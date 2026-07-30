@@ -61,7 +61,7 @@ export default function AgentPipeline({ agents }: AgentPipelineProps) {
     <div className="space-y-4">
       {/* Agent Tabs */}
       <div className="flex overflow-x-auto gap-2 pb-2">
-        {agents.map((agent, index) => (
+        {agents.filter(Boolean).map((agent, index) => (
           <button
             key={index}
             onClick={() => setActiveAgent(index)}
@@ -71,28 +71,28 @@ export default function AgentPipeline({ agents }: AgentPipelineProps) {
                 : 'bg-secondary text-secondary-foreground hover:bg-muted'
             }`}
           >
-            <span className="mr-2">{AGENT_ICONS[agent.role] || '🤖'}</span>
-            {agent.role}
+            <span className="mr-2">{AGENT_ICONS[agent?.role || ''] || '🤖'}</span>
+            {agent?.role || 'Agent'}
           </button>
         ))}
       </div>
 
       {/* Agent Cards - All visible in sequence */}
       <div className="space-y-4">
-        {displayedAgents.map((agent, index) => (
+        {displayedAgents.filter(Boolean).map((agent, index) => (
           <div
             key={index}
-            className={`bg-gradient-to-br ${AGENT_COLORS[agent.role] || 'from-accent/10 to-primary/10'} rounded-lg border border-border p-6 animate-in fade-in slide-in-from-bottom-4 duration-500`}
+            className={`bg-gradient-to-br ${AGENT_COLORS[agent?.role || ''] || 'from-accent/10 to-primary/10'} rounded-lg border border-border p-6 animate-in fade-in slide-in-from-bottom-4 duration-500`}
           >
             {/* Agent Header with Boarding Pass Style */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{AGENT_ICONS[agent.role] || '🤖'}</span>
+                <span className="text-3xl">{AGENT_ICONS[agent?.role || ''] || '🤖'}</span>
                 <div>
                   <span
-                    className={`inline-block ${AGENT_BADGES[agent.role] || 'bg-accent/20 text-accent'} px-3 py-1 rounded-full text-xs font-semibold mb-2`}
+                    className={`inline-block ${AGENT_BADGES[agent?.role || ''] || 'bg-accent/20 text-accent'} px-3 py-1 rounded-full text-xs font-semibold mb-2`}
                   >
-                    {agent.role}
+                    {agent?.role || 'Agent'}
                   </span>
                   <h3 className="text-sm font-semibold text-muted-foreground">Agent Report</h3>
                 </div>
@@ -110,7 +110,7 @@ export default function AgentPipeline({ agents }: AgentPipelineProps) {
             {/* Agent Content */}
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-foreground text-sm leading-relaxed whitespace-pre-line">
-                {agent.content}
+                {agent?.content || 'No content available'}
               </p>
             </div>
           </div>
