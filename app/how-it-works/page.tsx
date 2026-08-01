@@ -4,7 +4,7 @@ import Link from 'next/link';
 export const metadata = {
   title: 'How it works — TripME',
   description:
-    'How five specialised AI agents turn one mood + budget + duration into a complete, bookable trip plan.',
+    'How seven specialised AI agents turn one mood + budget + duration into a complete, bookable trip plan — and what happens when two of them disagree.',
 };
 
 const AGENTS = [
@@ -160,9 +160,10 @@ export default function HowItWorksPage() {
             generated live, in JSON mode, with per-agent prompts and temperatures.
           </p>
           <p className="mt-2">
-            <span className="font-semibold">Orchestration:</span> a sequential in-app pipeline with
-            typed handoffs between agents (open the &quot;Agent log&quot; on any trip page to see the raw
-            JSON each agent produced).
+            <span className="font-semibold">Orchestration:</span> an in-app pipeline with typed
+            handoffs between agents — a graph with a feedback edge, not a straight line: the Referee
+            can send the brief back to the Budget Agent, and the affected steps re-run (open the
+            &quot;Agent log&quot; on any trip page to see the raw JSON each agent produced).
           </p>
           <p className="mt-2">
             <span className="font-semibold">Memory:</span> saved trips stay in your browser and feed the
@@ -192,11 +193,11 @@ export default function HowItWorksPage() {
       {/* Credit */}
       <section className="mt-10 bg-card rounded-2xl border border-border p-6 flex items-center gap-5">
         <Image
-          src="/logo.png"
+          src="/icon.svg"
           alt="TripME logo"
           width={80}
           height={80}
-          className="logo-blend w-20 h-20 object-contain shrink-0"
+          className="w-20 h-20 object-contain shrink-0"
         />
         <div className="text-sm">
           <p className="font-display font-bold">Built by Team DEBUGGERS</p>

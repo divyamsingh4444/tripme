@@ -16,9 +16,7 @@ node_modules
 # TS build cache
 tsconfig.tsbuildinfo
 
-# Playwright MCP session output (snapshots, screenshots, traces)
+# Playwright MCP session output (snapshots, screenshots, traces).
+# Scoped deliberately: an unqualified *.png silently swallowed public/logo.png,
+# so the obvious fix for a broken image appeared to work locally and never shipped.
 .playwright-mcp/
-
-# Playwright MCP output
-.playwright-mcp/
-*.png
