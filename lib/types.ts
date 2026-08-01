@@ -299,6 +299,8 @@ export interface TripState {
 export interface SavedTrip {
   id: string;
   savedAt: number;
+  /** Absent on records written before versioning; see TRIP_SCHEMA_VERSION. */
+  schemaVersion?: number;
   state: TripState;
 }
 

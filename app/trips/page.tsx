@@ -8,7 +8,7 @@ import {
   deleteTrip,
   fmtDate,
   fmtINR,
-  listTrips,
+  readTrips,
   setCurrentTrip,
   setPendingInput,
   type TravelDNA,
@@ -29,9 +29,12 @@ export default function TripsPage() {
   const [dna, setDna] = useState<TravelDNA | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [dropped, setDropped] = useState(0);
 
   const refresh = () => {
-    setTrips(listTrips());
+    const { trips: usable, dropped: skipped } = readTrips();
+    setTrips(usable);
+    setDropped(skipped);
     setDna(computeTravelDNA());
   };
 
@@ -61,6 +64,13 @@ export default function TripsPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
       <h1 className="type-section font-display font-extrabold mb-6">My Trips</h1>
+
+      {dropped > 0 && (
+        <p className="mb-6 rounded-xl bg-secondary/50 border border-secondary px-4 py-3 text-sm">
+          {dropped} older {dropped === 1 ? 'trip' : 'trips'} couldn&apos;t be opened — {dropped === 1 ? 'it was' : 'they were'} saved by
+          an earlier version of TripME. {dropped === 1 ? 'It is' : 'They are'} being skipped rather than shown broken.
+        </p>
+      )}
 
       {/* Travel DNA */}
       {dna && dna.tripCount > 0 && (

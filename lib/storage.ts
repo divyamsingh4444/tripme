@@ -53,15 +53,50 @@ export function getPendingInput<T>(): T | null {
 }
 
 /* ---- saved trips (localStorage) ---- */
-export function listTrips(): SavedTrip[] {
-  if (!isBrowser()) return [];
+
+/** Bump when TripState's shape changes in a way older records can't satisfy. */
+export const TRIP_SCHEMA_VERSION = 2;
+
+/**
+ * Structural guard over data the user's own browser owns.
+ *
+ * Every reader below walks deep paths — `state.mood.moodProfile.primaryMood`,
+ * `state.destination.selected.name` — and this repo's saved-trip shape has
+ * already changed twice (5-agent rebuild, then 7). A single stale record threw
+ * inside a useEffect on the *landing page*, which renders as a white screen
+ * with no way back. Anything missing a field we actually read is dropped.
+ */
+function isUsableTrip(t: unknown): t is SavedTrip {
+  const trip = t as SavedTrip | null;
+  const s = trip?.state;
+  return (
+    !!trip &&
+    typeof trip.id === 'string' &&
+    !!s &&
+    !!s.input &&
+    typeof s.input.budgetTotalINR === 'number' &&
+    typeof s.input.durationDays === 'number' &&
+    typeof s.mood?.moodProfile?.primaryMood === 'string' &&
+    typeof s.destination?.selected?.name === 'string'
+  );
+}
+
+/** Trips plus how many unreadable records were skipped, so the UI can say so. */
+export function readTrips(): { trips: SavedTrip[]; dropped: number } {
+  if (!isBrowser()) return { trips: [], dropped: 0 };
   try {
     const raw = localStorage.getItem(TRIPS_KEY);
-    const trips = raw ? (JSON.parse(raw) as SavedTrip[]) : [];
-    return Array.isArray(trips) ? trips : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return { trips: [], dropped: 0 };
+    const trips = parsed.filter(isUsableTrip);
+    return { trips, dropped: parsed.length - trips.length };
   } catch {
-    return [];
+    return { trips: [], dropped: 0 };
   }
+}
+
+export function listTrips(): SavedTrip[] {
+  return readTrips().trips;
 }
 
 /** @returns true when the save actually persisted */
@@ -72,6 +107,7 @@ export function saveTrip(state: TripState): boolean {
     const trip: SavedTrip = {
       id: `trip-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
       savedAt: Date.now(),
+      schemaVersion: TRIP_SCHEMA_VERSION,
       state,
     };
     trips.unshift(trip);
