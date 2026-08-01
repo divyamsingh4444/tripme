@@ -9,9 +9,11 @@ import {
   auditItineraryVsBudget,
   buildPayload,
   consensusPayload,
+  intentAgentFor,
   moodPayload,
   runAgent,
   sleep,
+  usesAdvocates,
   type PipelineContext,
 } from '@/lib/agents-client';
 import type {
@@ -21,9 +23,11 @@ import type {
   BudgetOutput,
   ConsensusOutput,
   DestinationOutput,
+  FamilyAuditOutput,
   ItineraryOutput,
   MoodOutput,
   NotificationOutput,
+  PolicyAuditOutput,
   RefereeOutput,
   TripInput,
   TripState,
@@ -158,11 +162,13 @@ export default function RunPage() {
 
   async function runPipeline(input: TripInput) {
     const ctx = ctxRef.current!;
-    const isGroup = input.mode === 'group' && input.travellersList.length > 1;
+    const isGroup = usesAdvocates(input.mode) && input.travellersList.length > 1;
 
-    /* ---- Phase 1: intent. Solo = Mood Agent. Group = N Advocates + Referee consensus. ---- */
+    /* ---- Phase 1: intent.
+       couple/group -> N Advocates + Referee consensus.
+       solo/family/pilgrimage/corporate -> the matching Intent-agent variant. ---- */
     let moodOut: MoodOutput | null = null;
-    let advocates: AdvocateOutput[] = [];
+    const advocates: AdvocateOutput[] = [];
     let consensusInfo: ConsensusOutput['consensus'] | undefined;
 
     if (isGroup) {
@@ -197,13 +203,17 @@ export default function RunPage() {
       });
       await sleep(1100);
     } else {
-      setSteps([stepFor('mood', 'mood')]);
-      const out = await call<MoodOutput>('mood', 'mood', moodPayload(input));
+      const intentKey = intentAgentFor(input.mode);
+      setSteps([stepFor(intentKey, 'mood')]);
+      const out = await call<MoodOutput>('mood', intentKey, moodPayload(input));
       if (!out) return;
       moodOut = out;
       patch('mood', {
         kind: 'done',
-        summary: `${out.moodProfile.primaryMood} · ${out.destinationParameters.nonNegotiables?.slice(0, 2).join(', ') ?? out.moodProfile.pace + ' pace'}`,
+        summary:
+          out.destinationParameters.nonNegotiables?.length
+            ? `${out.moodProfile.primaryMood} · ${out.destinationParameters.nonNegotiables.slice(0, 2).join(', ')}`
+            : `${out.moodProfile.primaryMood} · ${out.moodProfile.pace} pace`,
       });
       await sleep(1100);
     }
@@ -297,13 +307,50 @@ export default function RunPage() {
       await sleep(900);
     }
 
-    /* ---- Phase 4: booking -> notification ---- */
+    /* ---- Phase 3b: family pacing audit — a second, non-money conflict class ---- */
+    let familyAudit: FamilyAuditOutput | undefined;
+    if (input.mode === 'family' && input.household.length > 0) {
+      push(stepFor('referee_family', 'referee-family'));
+      const fam = await call<FamilyAuditOutput>('referee-family', 'referee_family', buildPayload('referee_family', ctx));
+      if (fam) {
+        familyAudit = fam;
+        const n = fam.conflictsFound?.length ?? 0;
+        patch('referee-family', {
+          kind: n > 0 ? 'conflict' : 'done',
+          summary:
+            n > 0
+              ? `${n} pacing ${n === 1 ? 'problem' : 'problems'} found — ${fam.pacingVerdict}`
+              : `Plan is workable for every age band`,
+        });
+        await sleep(1200);
+      }
+    }
+
+    /* ---- Phase 4: booking -> [policy audit] -> notification ---- */
     push(stepFor('booking', 'booking'));
     const booking = await call<BookingOutput>('booking', 'booking', buildPayload('booking', ctx));
     if (!booking) return;
     ctx.booking = booking;
     patch('booking', { kind: 'done', summary: `${booking.bookings.length} bookings ready for approval` });
     await sleep(1100);
+
+    /* ---- Phase 4b: corporate compliance audit ---- */
+    let policyAudit: PolicyAuditOutput | undefined;
+    if (input.mode === 'corporate') {
+      push(stepFor('referee_policy', 'referee-policy'));
+      const pol = await call<PolicyAuditOutput>('referee-policy', 'referee_policy', buildPayload('referee_policy', ctx));
+      if (pol) {
+        policyAudit = pol;
+        const v = pol.violations?.length ?? 0;
+        patch('referee-policy', {
+          kind: pol.compliant ? 'done' : 'conflict',
+          summary: pol.compliant
+            ? `Policy compliant · ${fmtINR(pol.totalReimbursableINR ?? 0)} reimbursable`
+            : `${v} policy ${v === 1 ? 'violation' : 'violations'} flagged`,
+        });
+        await sleep(1200);
+      }
+    }
 
     push(stepFor('notification', 'notification'));
     const notif = await call<NotificationOutput>('notification', 'notification', buildPayload('notification', ctx));
@@ -324,11 +371,19 @@ export default function RunPage() {
       itinerary: ctx.itinerary as ItineraryOutput,
       referee: refereeOut,
       audit,
+      familyAudit,
+      policyAudit,
       replanned,
       budgetV1,
       booking,
       notification: notif ?? undefined,
-      agentsRun: (isGroup ? advocates.length + 1 : 1) + (replanned ? 7 : 5),
+      agentsRun:
+        (isGroup ? advocates.length + 1 : 1) + // intent phase
+        5 + // discovery, budget, itinerary, booking, notification
+        1 + // referee budget audit
+        (replanned ? 2 : 0) +
+        (familyAudit ? 1 : 0) +
+        (policyAudit ? 1 : 0),
       plannedInSeconds: seconds,
       hadHistory: getPastTripsCompact().length > 0,
       createdAt: Date.now(),

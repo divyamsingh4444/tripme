@@ -20,6 +20,7 @@ import type {
   SelectedDestination,
   SplitLine,
   TripInput,
+  TripMode,
   TripState,
 } from './types';
 import { getPastTripsCompact } from './storage';
@@ -71,14 +72,38 @@ export interface AgentMeta {
 
 export const AGENT_META: Record<AgentKey, AgentMeta> = {
   mood: { key: 'mood', name: 'Mood & Intent Agent', emoji: '✨', running: 'Reading your vibe and turning it into travel parameters…' },
+  mood_family: { key: 'mood_family', name: 'Mood & Intent Agent · household', emoji: '👨‍👩‍👧', running: 'Reading the household and finding the most constrained traveller…' },
+  mood_pilgrimage: { key: 'mood_pilgrimage', name: 'Mood & Intent Agent · faith', emoji: '🕉', running: 'Sequencing the circuit, season, darshan timing and access…' },
+  mood_corporate: { key: 'mood_corporate', name: 'Mood & Intent Agent · policy', emoji: '💼', running: 'Translating travel policy into hard constraints…' },
   advocate: { key: 'advocate', name: 'Traveller Advocate', emoji: '🙋', running: 'Arguing this traveller’s case…' },
   consensus: { key: 'consensus', name: 'Referee Agent · consensus', emoji: '⚖️', running: 'Negotiating between the advocates…' },
   destination: { key: 'destination', name: 'Discovery Agent', emoji: '🗺️', running: 'Scanning destinations that satisfy every non-negotiable…' },
   budget: { key: 'budget', name: 'Budget Agent', emoji: '💰', running: 'Allocating your budget across travel, stay, food and fun…' },
   itinerary: { key: 'itinerary', name: 'Itinerary Agent', emoji: '📅', running: 'Building your day-by-day plan at real local prices…' },
-  referee: { key: 'referee', name: 'Referee Agent · audit', emoji: '⚖️', running: 'Auditing the itinerary against the budget…' },
+  referee: { key: 'referee', name: 'Referee Agent · budget audit', emoji: '⚖️', running: 'Auditing the itinerary against the budget…' },
+  referee_family: { key: 'referee_family', name: 'Referee Agent · pacing audit', emoji: '⚖️', running: 'Checking the plan is survivable for everyone travelling…' },
+  referee_policy: { key: 'referee_policy', name: 'Referee Agent · compliance audit', emoji: '⚖️', running: 'Checking every booking against travel policy…' },
   booking: { key: 'booking', name: 'Booking Agent', emoji: '🎫', running: 'Preparing your bookings (demo)…' },
   notification: { key: 'notification', name: 'Notification Agent', emoji: '🔔', running: 'Scheduling your trip reminders…' },
+};
+
+/** Which Intent-agent variant each entry path uses. */
+export function intentAgentFor(mode: TripMode): AgentKey {
+  if (mode === 'family') return 'mood_family';
+  if (mode === 'pilgrimage') return 'mood_pilgrimage';
+  if (mode === 'corporate') return 'mood_corporate';
+  return 'mood';
+}
+
+export const usesAdvocates = (mode: TripMode) => mode === 'couple' || mode === 'group';
+
+export const MODE_LABEL: Record<TripMode, string> = {
+  solo: 'Solo',
+  couple: 'Couple',
+  group: 'Group',
+  family: 'Family',
+  pilgrimage: 'Pilgrimage',
+  corporate: 'Corporate',
 };
 
 /* ---------- payload builders (the handoff map) ---------- */
@@ -86,7 +111,15 @@ export const AGENT_META: Record<AgentKey, AgentMeta> = {
 export interface PipelineContext {
   input: TripInput;
   advocates?: unknown[];
-  mood?: { moodProfile: unknown; destinationParameters: unknown; travelIntent: string };
+  /** Intent-agent output. Mode variants add householdConstraints / faithContext / policyBrief. */
+  mood?: {
+    moodProfile: unknown;
+    destinationParameters: unknown;
+    travelIntent: string;
+    householdConstraints?: unknown;
+    faithContext?: unknown;
+    policyBrief?: unknown;
+  };
   destination?: { selected: SelectedDestination };
   budget?: BudgetOutput;
   itinerary?: ItineraryOutput;
@@ -99,7 +132,8 @@ export interface PipelineContext {
 
 export function moodPayload(input: TripInput): object {
   const pastTrips = getPastTripsCompact();
-  return {
+  const base = {
+    mode: input.mode,
     mood: input.mood,
     moodNote: input.moodNote,
     budgetTotalINR: input.budgetTotalINR,
@@ -111,6 +145,10 @@ export function moodPayload(input: TripInput): object {
     pace: input.pace,
     ...(pastTrips.length > 0 ? { pastTrips } : {}),
   };
+  if (input.mode === 'family') return { ...base, household: input.household };
+  if (input.mode === 'pilgrimage') return { ...base, pilgrimage: input.pilgrimage };
+  if (input.mode === 'corporate') return { ...base, corporate: input.corporate };
+  return base;
 }
 
 export function advocatePayload(input: TripInput, index: number): object {
@@ -145,11 +183,22 @@ export function consensusPayload(input: TripInput, advocates: unknown[]): object
 
 export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
   const { input } = ctx;
+  /** Mode-specific brief fields the Intent agent produced, forwarded downstream. */
+  const modeBrief = {
+    ...(ctx.mood?.householdConstraints ? { householdConstraints: ctx.mood.householdConstraints } : {}),
+    ...(ctx.mood?.faithContext ? { faithContext: ctx.mood.faithContext } : {}),
+    ...(ctx.mood?.policyBrief ? { policyBrief: ctx.mood.policyBrief } : {}),
+  };
+
   switch (agent) {
     case 'mood':
+    case 'mood_family':
+    case 'mood_pilgrimage':
+    case 'mood_corporate':
       return moodPayload(input);
     case 'destination':
       return {
+        mode: input.mode,
         moodProfile: ctx.mood!.moodProfile,
         destinationParameters: ctx.mood!.destinationParameters,
         travelIntent: ctx.mood!.travelIntent,
@@ -158,22 +207,46 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         durationDays: input.durationDays,
         travelers: input.travelers,
         budgetTotalINR: input.budgetTotalINR,
+        ...modeBrief,
+        // Corporate travel: the meeting fixes the city, so Discovery picks the district.
+        ...(input.mode === 'corporate' && input.corporate?.destinationCity
+          ? { fixedDestinationCity: input.corporate.destinationCity }
+          : {}),
       };
     case 'budget':
       return {
+        mode: input.mode,
         selected: ctx.destination!.selected,
         budgetTotalINR: input.budgetTotalINR,
         durationDays: input.durationDays,
         travelers: input.travelers,
         primaryMood: (ctx.mood!.moodProfile as { primaryMood: string }).primaryMood,
         pace: input.pace,
+        ...modeBrief,
         ...(ctx.refereeInstruction ? { refereeInstruction: ctx.refereeInstruction } : {}),
+      };
+    case 'referee_family':
+      return {
+        household: input.household,
+        householdConstraints: ctx.mood?.householdConstraints,
+        days: ctx.itinerary!.days,
+        durationDays: input.durationDays,
+        destination: ctx.destination!.selected.name,
+      };
+    case 'referee_policy':
+      return {
+        policyBrief: ctx.mood?.policyBrief ?? input.corporate,
+        bookings: ctx.booking!.bookings,
+        allocation: ctx.budget!.allocation,
+        durationDays: input.durationDays,
+        totalBudgetINR: input.budgetTotalINR,
       };
     case 'itinerary':
       // Deliberately withholds the budget allocation on the first pass: the
       // Itinerary Agent optimises for experience, the Budget Agent for thrift,
       // and the Referee reconciles. A cap only appears after arbitration.
       return {
+        mode: input.mode,
         selected: ctx.destination!.selected,
         destinationParameters: ctx.mood!.destinationParameters,
         durationDays: input.durationDays,
@@ -182,6 +255,8 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         foodPref: input.foodPref,
         pace: input.pace,
         travelers: input.travelers,
+        ...modeBrief,
+        ...(input.mode === 'family' ? { household: input.household } : {}),
         ...(ctx.itineraryCapINR ? { spendCapINR: ctx.itineraryCapINR } : {}),
       };
     case 'referee': {
@@ -203,6 +278,7 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         days[1]?.morning.activity ?? days[0]?.afternoon.activity,
       ].filter(Boolean);
       return {
+        mode: input.mode,
         selected: ctx.destination!.selected,
         startDate: input.startDate,
         durationDays: input.durationDays,
@@ -210,6 +286,7 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         allocation: ctx.budget!.allocation,
         totalINR: input.budgetTotalINR,
         highlightActivities,
+        ...modeBrief,
       };
     }
     case 'notification':
@@ -222,10 +299,25 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         days: ctx.itinerary!.days.map((d) => ({ day: d.day, theme: d.theme })),
         travellerContext: {
           mode: input.mode,
-          groupSize: input.mode === 'group' ? input.travellersList.length : 1,
-          travellerNames: input.travellersList.map((t) => t.name),
+          groupSize: usesAdvocates(input.mode)
+            ? input.travellersList.length
+            : input.mode === 'family'
+              ? input.household.length
+              : 1,
+          travellerNames: usesAdvocates(input.mode)
+            ? input.travellersList.map((t) => t.name)
+            : input.household.map((h) => h.name),
           primaryMood: (ctx.mood!.moodProfile as { primaryMood: string }).primaryMood,
+          // Drives channel choice: SMS/voice fallback, calendar sync, organiser-only.
+          digitalFluency:
+            input.mode === 'pilgrimage'
+              ? 'low — prefer SMS or voice call fallback, low-connectivity route'
+              : 'high',
+          accessibility: input.pilgrimage?.accessibility,
+          organiserOnly: input.mode === 'family',
+          calendarSync: input.mode === 'corporate',
         },
+        ...modeBrief,
       };
     default:
       return {};

@@ -94,6 +94,40 @@ export default function HowItWorksPage() {
             satisfaction score per person and a hard floor: nobody is allowed to lose twice.
           </p>
         </div>
+
+        <h3 className="font-display text-lg font-bold mt-8 mb-3">Six entry paths, one agent core</h3>
+        <p className="text-muted-foreground leading-relaxed text-sm">
+          Different travellers need different questions asked. Three of the six paths skip the mood
+          quiz entirely, because for them the intent is already known — and each path changes what
+          the agents actually do, not just what the form looks like.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border">
+                <th className="py-2 pr-3 font-semibold">Path</th>
+                <th className="py-2 pr-3 font-semibold">What it asks instead</th>
+                <th className="py-2 font-semibold">How the agents change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['🧍 Solo', 'Mood quiz', 'The standard seven'],
+                ['💑 Couple', 'Both moods + budgets', '2 Advocates → Referee blends them'],
+                ['👥 Group', 'Everyone’s mood + budget', 'One Advocate per friend; Referee publishes the concessions'],
+                ['👨‍👩‍👧 Family', 'Household ages + limitations', 'Paced by the most constrained member; Referee adds a pacing audit, flagging conflicts by name'],
+                ['🕉 Pilgrimage', 'Circuit, tradition, mobility, diet', 'Route sequenced traditionally, season checked, darshan timing planned; reminders fall back to SMS/voice'],
+                ['💼 Corporate', 'Travel policy — no mood at all', 'City is fixed by the meeting so Discovery picks the district; policy caps are enforced in code; Referee adds a compliance audit and builds the expense report'],
+              ].map(([path, asks, changes]) => (
+                <tr key={path} className="border-b border-border/60 last:border-0 align-top">
+                  <td className="py-2.5 pr-3 font-semibold whitespace-nowrap">{path}</td>
+                  <td className="py-2.5 pr-3">{asks}</td>
+                  <td className="py-2.5 text-muted-foreground">{changes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <ol className="mt-5 space-y-0">
           {AGENTS.map((agent, i) => (
             <li key={agent.name}>

@@ -20,6 +20,7 @@ export function buildSampleTrip(): TripState {
     input: {
       mode: 'solo',
       travellersList: [],
+      household: [],
       mood: 'Relax',
       moodNote: 'Slow mornings, sea breeze, no alarms',
       budgetTotalINR: 18000,

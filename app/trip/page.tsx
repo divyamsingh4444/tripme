@@ -9,6 +9,7 @@ import {
   computeSplit,
   flightsLink,
   hotelLink,
+  MODE_LABEL,
   runAgent,
   selectedFromAlternate,
   sleep,
@@ -102,7 +103,7 @@ export default function TripPage() {
   }
   if (!state) return null;
 
-  const { input, mood, destination, budget, itinerary, booking, referee, consensus, advocates, notification } = state;
+  const { input, mood, destination, budget, itinerary, booking, referee, consensus, advocates, notification, familyAudit, policyAudit } = state;
   const endDate = addDays(input.startDate, Math.max(0, input.durationDays - 1));
   const approvedTotal = booking.bookings.reduce((sum, b, i) => sum + (approved[i] ? b.amountINR : 0), 0);
   const isGroup = input.mode === 'group' && (consensus?.perTraveller?.length ?? 0) > 0;
@@ -181,6 +182,9 @@ export default function TripPage() {
           </div>
           <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
             {state.isSample && <span className="px-2.5 py-1 rounded-full bg-muted border border-border">Sample</span>}
+            <span className="px-2.5 py-1 rounded-full bg-secondary border border-secondary">
+              {MODE_LABEL[input.mode] ?? 'Solo'} trip
+            </span>
             <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground">
               Matched to: {mood.moodProfile.primaryMood}
             </span>
@@ -303,6 +307,133 @@ export default function TripPage() {
               </div>
             </details>
           )}
+        </section>
+      )}
+
+      {/* Family pacing audit */}
+      {familyAudit && (
+        <section className="mt-6 bg-card rounded-2xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">👨‍👩‍👧</span>
+            <div className="flex-1">
+              <h2 className="font-display text-xl font-bold">
+                Referee checked this works for everyone
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded-full align-middle ${
+                  familyAudit.pacingVerdict === 'workable' ? 'bg-secondary text-foreground' : 'bg-destructive/15 text-destructive'
+                }`}>
+                  {familyAudit.pacingVerdict}
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                The Itinerary Agent optimised the trip. The Referee audited it against the actual
+                people travelling — by name.
+              </p>
+            </div>
+          </div>
+
+          {familyAudit.conflictsFound?.length > 0 ? (
+            <div className="mt-4 space-y-2">
+              {familyAudit.conflictsFound.map((c, i) => (
+                <div key={i} className="rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-display font-bold text-sm">Day {c.day}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-card border border-border font-semibold">
+                      affects {c.affects}
+                    </span>
+                  </div>
+                  <p className="text-sm mt-1.5">{c.issue}</p>
+                  <p className="text-sm mt-1.5"><span className="font-semibold">Fix:</span> {c.fix}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm rounded-xl bg-secondary/40 border border-secondary px-4 py-3">
+              ✓ No pacing conflicts — every day works for the youngest and the oldest traveller.
+            </p>
+          )}
+
+          {familyAudit.restWindows?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {familyAudit.restWindows.map((r, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-full bg-secondary text-xs font-medium">😴 {r}</span>
+              ))}
+            </div>
+          )}
+          <p className="mt-4 text-sm italic text-muted-foreground">“{familyAudit.refereeNote}”</p>
+        </section>
+      )}
+
+      {/* Corporate compliance + expense report */}
+      {policyAudit && (
+        <section className="mt-6 bg-card rounded-2xl border-2 shadow-sm p-6 sm:p-8 print-block border-primary">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💼</span>
+            <div className="flex-1">
+              <h2 className="font-display text-xl font-bold">
+                Policy compliance
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded-full align-middle ${
+                  policyAudit.compliant ? 'bg-secondary text-foreground' : 'bg-destructive/15 text-destructive'
+                }`}>
+                  {policyAudit.compliant ? 'compliant' : 'needs approval'}
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Checked by the Referee before anything is approved.
+              </p>
+            </div>
+          </div>
+
+          {policyAudit.violations?.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {policyAudit.violations.map((v, i) => (
+                <div key={i} className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                  <div className="font-semibold">{v.item}</div>
+                  <p className="text-muted-foreground mt-0.5">Rule: {v.policyRule}</p>
+                  <p className="mt-1">
+                    {v.overageINR > 0 && <span className="font-mono font-semibold">{fmtINR(v.overageINR)} over · </span>}
+                    <span className="font-semibold">{v.action}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {policyAudit.expenseReport?.length > 0 && (
+            <div className="mt-4">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
+                Reimbursement-ready expense report
+                {input.corporate?.costCentre && <span className="font-mono normal-case"> · {input.corporate.costCentre}</span>}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted-foreground border-b border-border">
+                      <th className="py-2 pr-3 font-semibold">Category</th>
+                      <th className="py-2 pr-3 font-semibold text-right">Amount</th>
+                      <th className="py-2 pr-3 font-semibold">Reimbursable</th>
+                      <th className="py-2 font-semibold hidden sm:table-cell">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {policyAudit.expenseReport.map((r, i) => (
+                      <tr key={i} className="border-b border-border/60 last:border-0 align-top">
+                        <td className="py-2.5 pr-3 font-medium capitalize">{r.category}</td>
+                        <td className="py-2.5 pr-3 text-right font-mono">{fmtINR(r.amountINR)}</td>
+                        <td className="py-2.5 pr-3">{r.reimbursable ? '✓ Yes' : '✕ No'}</td>
+                        <td className="py-2.5 text-muted-foreground hidden sm:table-cell">{r.note}</td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-border font-semibold">
+                      <td className="py-2.5 pr-3">Total reimbursable</td>
+                      <td className="py-2.5 pr-3 text-right font-mono">{fmtINR(policyAudit.totalReimbursableINR ?? 0)}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          <p className="mt-4 text-sm italic text-muted-foreground">“{policyAudit.complianceNote}”</p>
         </section>
       )}
 
@@ -435,6 +566,12 @@ export default function TripPage() {
                   <span className="w-20 shrink-0 font-medium">Plan B</span>
                   <span className="flex-1 italic">{day.swapIfNeeded}</span>
                 </div>
+                {day.suitabilityNote && (
+                  <div className="flex gap-3 pt-1 mt-1 border-t border-border/60">
+                    <span className="w-20 shrink-0 text-muted-foreground font-medium">Works for</span>
+                    <span className="flex-1">{day.suitabilityNote}</span>
+                  </div>
+                )}
               </div>
             </article>
           ))}
@@ -609,7 +746,9 @@ export default function TripPage() {
               ['2 · Discovery Agent', destination],
               ['3 · Budget Agent', budget],
               ['4 · Itinerary Agent', itinerary],
-              referee ? ['6 · Referee Agent · audit', referee] : null,
+              referee ? ['6 · Referee Agent · budget audit', referee] : null,
+              familyAudit ? ['6 · Referee Agent · family pacing audit', familyAudit] : null,
+              policyAudit ? ['6 · Referee Agent · policy compliance audit', policyAudit] : null,
               state.audit ? ['Deterministic audit (code, not model)', state.audit] : null,
               ['5 · Booking Agent', booking],
               notification ? ['7 · Notification Agent', notification] : null,

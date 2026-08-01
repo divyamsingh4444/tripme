@@ -3,9 +3,11 @@
 export type MoodKey = 'Relax' | 'Adventure' | 'Explore' | 'Connect' | 'Spiritual' | 'Celebrate';
 export type FoodPref = 'Veg' | 'Non-veg' | 'Anything';
 export type Pace = 'Chill' | 'Balanced' | 'Packed';
-export type TripMode = 'solo' | 'group';
 
-/** One person on a group trip — each gets their own Advocate agent. */
+/** One entry path per persona from the Phase 2 persona set. */
+export type TripMode = 'solo' | 'couple' | 'group' | 'family' | 'pilgrimage' | 'corporate';
+
+/** One person on a couple/group trip — each gets their own Advocate agent. */
 export interface Traveller {
   name: string;
   mood: MoodKey;
@@ -13,11 +15,44 @@ export interface Traveller {
   note: string;
 }
 
+/** Family mode: household composition drives pacing, not mood. */
+export type AgeBand = 'adult' | 'child' | 'senior';
+
+export interface HouseholdMember {
+  name: string;
+  band: AgeBand;
+  age: number;
+  note: string; // e.g. "knee trouble — avoid long stair climbs"
+}
+
+/** Pilgrimage mode: faith logistics replace the mood quiz. */
+export interface PilgrimageInput {
+  circuit: string; // e.g. "Char Dham", "Shirdi", "Varanasi ghats"
+  tradition: string; // e.g. "Hindu / Shaiva", "Sikh", "Buddhist"
+  accessibility: 'full mobility' | 'limited walking' | 'wheelchair required';
+  dietary: string; // e.g. "strict satvik, no onion or garlic"
+  languagePref: string;
+}
+
+/** Corporate mode: policy constraints replace the mood quiz entirely. */
+export interface CorporatePolicy {
+  destinationCity: string; // fixed — you travel to where the meeting is
+  purpose: string;
+  hotelCapPerNightINR: number;
+  cabinClass: string;
+  perDiemINR: number;
+  approvalThresholdINR: number;
+  costCentre: string;
+}
+
 export interface TripInput {
   mode: TripMode;
-  mood: MoodKey; // solo mood, or the organiser's mood in group mode
+  mood: MoodKey; // solo mood, or the organiser's in couple/group
   moodNote: string;
-  travellersList: Traveller[]; // group mode only
+  travellersList: Traveller[]; // couple / group
+  household: HouseholdMember[]; // family
+  pilgrimage?: PilgrimageInput; // pilgrimage
+  corporate?: CorporatePolicy; // corporate
   budgetTotalINR: number;
   durationDays: number;
   originCity: string;
@@ -138,6 +173,8 @@ export interface ItineraryDay {
   evening: ItinerarySlot;
   meals: string;
   swapIfNeeded: string;
+  /** Mode-aware: who this day suits and why (age bands, darshan/access, policy). */
+  suitabilityNote?: string;
 }
 
 export interface ItineraryOutput {
@@ -165,6 +202,38 @@ export interface ConflictAudit {
   allowanceINR: number;
   gapINR: number;
   hasConflict: boolean;
+}
+
+/** Referee, family mode: audits the itinerary against who is actually travelling. */
+export interface FamilyAuditOutput {
+  conflictsFound: {
+    day: number;
+    issue: string;
+    affects: string;
+    fix: string;
+  }[];
+  pacingVerdict: 'workable' | 'too packed' | 'needs adjustment';
+  restWindows: string[];
+  refereeNote: string;
+}
+
+/** Referee, corporate mode: audits bookings against travel policy. */
+export interface PolicyAuditOutput {
+  compliant: boolean;
+  violations: {
+    item: string;
+    policyRule: string;
+    overageINR: number;
+    action: string;
+  }[];
+  expenseReport: {
+    category: string;
+    amountINR: number;
+    reimbursable: boolean;
+    note: string;
+  }[];
+  totalReimbursableINR: number;
+  complianceNote: string;
 }
 
 /* ---- Agent 5: Booking (simulated) ---- */
@@ -214,6 +283,8 @@ export interface TripState {
   itinerary: ItineraryOutput;
   referee?: RefereeOutput;
   audit?: ConflictAudit;
+  familyAudit?: FamilyAuditOutput;
+  policyAudit?: PolicyAuditOutput;
   replanned?: boolean;
   budgetV1?: BudgetOutput; // pre-arbitration allocation, kept for the audit trail
   booking: BookingOutput;
@@ -239,14 +310,23 @@ export interface SplitLine {
   balanceINR: number;
 }
 
+/**
+ * Still the 7-agent core. The Mood & Intent Agent and the Referee Agent each
+ * have mode variants — same agent, different brief per persona entry path.
+ */
 export type AgentKey =
   | 'mood'
+  | 'mood_family'
+  | 'mood_pilgrimage'
+  | 'mood_corporate'
   | 'advocate'
   | 'consensus'
   | 'destination'
   | 'budget'
   | 'itinerary'
   | 'referee'
+  | 'referee_family'
+  | 'referee_policy'
   | 'booking'
   | 'notification';
 
