@@ -1,33 +1,44 @@
-# tripme
+# TripME — One mood. One budget. One complete trip.
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+AI multi-agent travel planner. **BITSoM Capstone (Product Management with Generative & Agentic AI) · Team DEBUGGERS · Phase 2 MVP.**
 
-## Built with v0
+One input — mood + budget + duration — triggers five specialised AI agents in sequence. Each agent hands a structured JSON brief to the next, carrying context from emotional intent all the way to (simulated) bookings.
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## The 5-agent pipeline
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_Xvlbl4z1Bg41i65NBJ1ApBrvX1AF)
+| # | Agent | Job |
+|---|-------|-----|
+| 1 | ✨ Mood Agent | Turns the traveller's vibe into structured travel parameters |
+| 2 | 🗺️ Destination Agent | Picks the best-fit destination (+2 alternates) for mood, month & budget |
+| 3 | 💰 Budget Optimizer | Allocates the full budget across transport / stay / food / activities / buffer — before any booking |
+| 4 | 📅 Itinerary Agent | Day-by-day plan with costs, meals, plan-B swaps and a local language card |
+| 5 | 🎫 Booking Agent | Prepares simulated bookings within the allocation, each waiting for explicit user approval |
 
-## Getting Started
+Open the **Agent log** on any trip page to see the raw JSON each agent produced.
 
-First, run the development server:
+## Honesty block
+
+- **Real:** live AI planning — every plan is generated fresh by **Llama 3.3 70B on Groq** (JSON mode, per-agent prompts and temperatures). Budget arithmetic is enforced deterministically server-side.
+- **Simulated:** bookings. Cards are demo artefacts with reference codes and a visible "Demo Mode" label; each links out to real Google Flights / Booking.com searches for that exact trip.
+- **Private by design:** no accounts, no server database. Saved trips live in the browser (localStorage) and feed the Mood Agent's personalisation on the next plan.
+
+## Stack
+
+Next.js (App Router) · React · Tailwind CSS v4 · Groq API (`llama-3.3-70b-versatile`) · Vercel
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+echo "GROQ_API_KEY=gsk_your_key" > .env.local   # free key: console.groq.com/keys
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without a key the app still works via **"See a sample trip"** (bundled offline sample); live planning requires the key.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture notes
 
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+- `app/api/agent/route.ts` — single backend endpoint `POST { agent, payload }`; holds all five system prompts, parses/retries JSON, maps rate limits, and applies money guardrails. `GROQ_API_KEY` never reaches the client.
+- `lib/agents-client.ts` — the handoff map: builds each agent's payload from the previous agents' outputs.
+- `app/run/page.tsx` — live pipeline UI: per-agent status, elapsed timer, auto-retry on rate limits, sample fallback after repeated failures.
+- Switching to an alternate destination re-runs only agents 3–5; the mood profile carries over.

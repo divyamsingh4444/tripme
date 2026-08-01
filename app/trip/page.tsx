@@ -1,0 +1,519 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  activitiesLink,
+  bookingRef,
+  buildPayload,
+  flightsLink,
+  hotelLink,
+  runAgent,
+  selectedFromAlternate,
+  sleep,
+  type PipelineContext,
+} from '@/lib/agents-client';
+import type {
+  BookingItem,
+  BookingOutput,
+  BudgetOutput,
+  ItineraryOutput,
+  TripState,
+} from '@/lib/types';
+import { addDays, fmtDate, fmtINR, getCurrentTrip, saveTrip, setCurrentTrip } from '@/lib/storage';
+
+const CATEGORY_COLORS: Record<string, string> = {
+  transport: '#14453D',
+  stay: '#2E6B5E',
+  food: '#FFB52E',
+  activities: '#CFE6E0',
+  buffer: '#8FB5AA',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  transport: 'Transport',
+  stay: 'Stay',
+  food: 'Food',
+  activities: 'Activities',
+  buffer: 'Buffer',
+};
+
+function linkFor(item: BookingItem, state: TripState): { href: string; label: string } {
+  const dest = state.destination.selected.name;
+  const start = state.input.startDate;
+  const end = addDays(start, Math.max(1, state.input.durationDays - 1));
+  if (item.type === 'transport')
+    return { href: flightsLink(state.input.originCity, dest, start), label: 'See real options →' };
+  if (item.type === 'stay')
+    return {
+      href: hotelLink(dest, start, end, state.input.travelers),
+      label: 'See real options →',
+    };
+  return { href: activitiesLink(dest), label: 'See real options →' };
+}
+
+export default function TripPage() {
+  const router = useRouter();
+  const [state, setState] = useState<TripState | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [approved, setApproved] = useState<Record<number, boolean>>({});
+  const [saved, setSaved] = useState<'idle' | 'saved' | 'failed'>('idle');
+  const [showAlternates, setShowAlternates] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState('');
+  const [showLog, setShowLog] = useState(false);
+  const [offline, setOffline] = useState(false);
+  const switchBusy = useRef(false);
+
+  useEffect(() => {
+    const t = getCurrentTrip();
+    if (t) setState(t);
+    else setMissing(true);
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    setOffline(!navigator.onLine);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
+  if (missing) {
+    return (
+      <main className="max-w-xl mx-auto px-4 py-20 text-center">
+        <p className="text-lg font-medium">No trip loaded.</p>
+        <button
+          onClick={() => router.push('/')}
+          className="mt-4 px-6 py-2.5 rounded-xl bg-accent text-accent-foreground font-semibold"
+        >
+          Plan a trip
+        </button>
+      </main>
+    );
+  }
+  if (!state) return null;
+
+  const { input, mood, destination, budget, itinerary, booking } = state;
+  const endDate = addDays(input.startDate, Math.max(0, input.durationDays - 1));
+  const approvedTotal = booking.bookings.reduce(
+    (sum, b, i) => sum + (approved[i] ? b.amountINR : 0),
+    0,
+  );
+
+  const doSave = () => {
+    setSaved(saveTrip(state) ? 'saved' : 'failed');
+  };
+
+  const switchDestination = async (alt: { name: string; oneLineReason: string }) => {
+    if (switchBusy.current) return;
+    switchBusy.current = true;
+    setSwitchError('');
+    setShowAlternates(false);
+    try {
+      const newSelected = selectedFromAlternate(alt, destination.selected);
+      const ctx: PipelineContext = { input, mood, destination: { ...destination, selected: newSelected } };
+      setSwitching(`Re-planning for ${alt.name} — Budget Optimizer…`);
+      const newBudget = await runAgent<BudgetOutput>('budget', buildPayload('budget', ctx));
+      ctx.budget = newBudget;
+      await sleep(1200);
+      setSwitching(`Re-planning for ${alt.name} — Itinerary Agent…`);
+      const newItinerary = await runAgent<ItineraryOutput>('itinerary', buildPayload('itinerary', ctx));
+      ctx.itinerary = newItinerary;
+      await sleep(1200);
+      setSwitching(`Re-planning for ${alt.name} — Booking Agent…`);
+      const newBooking = await runAgent<BookingOutput>('booking', buildPayload('booking', ctx));
+
+      const newAlternates = [
+        { name: destination.selected.name, oneLineReason: 'Your previous pick.' },
+        ...destination.alternates.filter((a) => a.name !== alt.name),
+      ].slice(0, 2);
+
+      const next: TripState = {
+        ...state,
+        destination: { ...destination, selected: newSelected, alternates: newAlternates },
+        budget: newBudget,
+        itinerary: newItinerary,
+        booking: newBooking,
+      };
+      setState(next);
+      setCurrentTrip(next);
+      setApproved({});
+      setSaved('idle');
+    } catch {
+      setSwitchError('Could not re-plan for that destination right now — your current plan is untouched.');
+    } finally {
+      setSwitching(null);
+      switchBusy.current = false;
+    }
+  };
+
+  const allocationEntries = Object.entries(budget.allocation) as [
+    string,
+    { amountINR: number; pct: number; note: string; tier?: string },
+  ][];
+
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-8 pb-32">
+      {offline && (
+        <div className="no-print mb-4 rounded-xl bg-secondary/60 border border-secondary px-4 py-2.5 text-sm text-center">
+          You&apos;re offline — saved trips still work.
+        </div>
+      )}
+
+      {/* Header card */}
+      <section className="bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
+              {destination.selected.name}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {[destination.selected.region, destination.selected.country].filter(Boolean).join(', ')}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
+            {state.isSample && (
+              <span className="px-2.5 py-1 rounded-full bg-muted border border-border">Sample</span>
+            )}
+            <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground">
+              Matched to: {mood.moodProfile.primaryMood}
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-accent/25 border border-accent/50">
+              ⚡ Planned in {state.plannedInSeconds}s
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-muted border border-border font-mono">
+              Llama 3.3 70B · 5 agents
+            </span>
+            {state.hadHistory && mood.personalizationNote && (
+              <span
+                className="px-2.5 py-1 rounded-full bg-secondary border border-secondary cursor-help"
+                title={mood.personalizationNote}
+              >
+                ✨ Personalised
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <span>
+            📅 {fmtDate(input.startDate)} – {fmtDate(endDate)} · {input.durationDays}{' '}
+            {input.durationDays === 1 ? 'day' : 'days'}
+          </span>
+          <span>👥 {input.travelers} {input.travelers === 1 ? 'traveller' : 'travellers'}</span>
+          <span>🚌 {destination.selected.travelFromOrigin.mode || 'travel'} from {input.originCity}</span>
+        </div>
+        <p className="mt-4 text-sm leading-relaxed">{destination.selected.whyMatched}</p>
+        {destination.selected.weatherAtTravelDates && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            🌤 {destination.selected.weatherAtTravelDates}
+          </p>
+        )}
+
+        {/* Switch destination */}
+        <div className="mt-4 no-print">
+          <button
+            onClick={() => setShowAlternates((s) => !s)}
+            className="text-sm font-semibold text-primary hover:opacity-80"
+            aria-expanded={showAlternates}
+          >
+            {showAlternates ? '− Hide alternates' : 'Switch destination →'}
+          </button>
+          {showAlternates && (
+            <div className="mt-3 grid sm:grid-cols-2 gap-2">
+              {destination.alternates.map((alt) => (
+                <button
+                  key={alt.name}
+                  onClick={() => switchDestination(alt)}
+                  className="text-left rounded-xl border border-input bg-card px-4 py-3 hover:border-primary transition-colors"
+                >
+                  <div className="font-semibold">{alt.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{alt.oneLineReason}</div>
+                  <div className="text-xs font-semibold text-primary mt-1.5">
+                    Re-plan budget, days & bookings →
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {switchError && <p className="mt-2 text-sm text-destructive">{switchError}</p>}
+        </div>
+      </section>
+
+      {/* Budget */}
+      <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
+        <h2 className="font-display text-xl font-bold mb-4">
+          Budget — {fmtINR(budget.totalINR)} allocated before booking
+        </h2>
+        <div className="h-5 rounded-full overflow-hidden flex border border-border" role="img" aria-label="Budget split">
+          {allocationEntries.map(([key, cat]) => (
+            <div
+              key={key}
+              style={{ width: `${cat.pct}%`, backgroundColor: CATEGORY_COLORS[key] ?? '#ccc' }}
+              title={`${CATEGORY_LABELS[key] ?? key}: ${fmtINR(cat.amountINR)} (${cat.pct}%)`}
+            />
+          ))}
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border">
+                <th className="py-2 pr-3 font-semibold">Category</th>
+                <th className="py-2 pr-3 font-semibold text-right">Amount</th>
+                <th className="py-2 pr-3 font-semibold text-right">%</th>
+                <th className="py-2 font-semibold hidden sm:table-cell">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allocationEntries.map(([key, cat]) => (
+                <tr key={key} className="border-b border-border/60 last:border-0 align-top">
+                  <td className="py-2.5 pr-3">
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full mr-2"
+                      style={{ backgroundColor: CATEGORY_COLORS[key] ?? '#ccc' }}
+                    />
+                    <span className="font-medium">{CATEGORY_LABELS[key] ?? key}</span>
+                    {cat.tier && <span className="text-muted-foreground"> · {cat.tier}</span>}
+                  </td>
+                  <td className="py-2.5 pr-3 text-right font-mono">{fmtINR(cat.amountINR)}</td>
+                  <td className="py-2.5 pr-3 text-right font-mono">{cat.pct}%</td>
+                  <td className="py-2.5 text-muted-foreground hidden sm:table-cell">{cat.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 font-display font-semibold">
+          ≈ {fmtINR(budget.perDaySpendINR)}/day on food & activities
+        </p>
+        <div className="mt-3 grid sm:grid-cols-3 gap-2">
+          {budget.savingTips.map((tipText, i) => (
+            <div key={i} className="rounded-xl bg-secondary/40 border border-secondary px-3.5 py-2.5 text-xs leading-relaxed">
+              💡 {tipText}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Itinerary */}
+      <section className="mt-6">
+        <h2 className="font-display text-xl font-bold mb-4 px-1">Day-by-day plan</h2>
+        <div className="space-y-4">
+          {itinerary.days.map((day) => (
+            <article key={day.day} className="bg-card rounded-2xl border border-border shadow-sm p-5 sm:p-6 print-block">
+              <header className="flex items-baseline gap-3 mb-3">
+                <span className="font-display font-extrabold text-2xl text-primary">
+                  Day {day.day}
+                </span>
+                <span className="font-display font-semibold">{day.theme}</span>
+              </header>
+              <div className="space-y-2.5 text-sm">
+                {([
+                  ['Morning', day.morning],
+                  ['Afternoon', day.afternoon],
+                  ['Evening', day.evening],
+                ] as const).map(([label, slot]) => (
+                  <div key={label} className="flex gap-3">
+                    <span className="w-20 shrink-0 text-muted-foreground font-medium">{label}</span>
+                    <span className="flex-1">
+                      {slot.activity}
+                      {slot.area && <span className="text-muted-foreground"> · {slot.area}</span>}
+                    </span>
+                    <span className="font-mono text-muted-foreground whitespace-nowrap">
+                      {slot.approxCostINR > 0 ? fmtINR(slot.approxCostINR) : 'Free'}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex gap-3 pt-1">
+                  <span className="w-20 shrink-0 text-muted-foreground font-medium">Meals</span>
+                  <span className="flex-1">{day.meals}</span>
+                </div>
+                <div className="flex gap-3 text-muted-foreground">
+                  <span className="w-20 shrink-0 font-medium">Plan B</span>
+                  <span className="flex-1 italic">{day.swapIfNeeded}</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Language card */}
+      <section className="mt-6 bg-primary text-primary-foreground rounded-2xl shadow-sm p-6 sm:p-8 print-block">
+        <h2 className="font-display text-xl font-bold">
+          Pocket {itinerary.languageCard.language} card
+        </h2>
+        <p className="text-sm opacity-80 mt-0.5 mb-4">Eight phrases that cover 90% of traveller moments.</p>
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm">
+          {itinerary.languageCard.phrases.map((p, i) => (
+            <div key={i} className="flex items-baseline justify-between gap-3 border-b border-primary-foreground/15 pb-2">
+              <span className="opacity-80">{p.english}</span>
+              <span className="text-right">
+                <span className="font-semibold">{p.local}</span>
+                <span className="block text-xs opacity-70 font-mono">{p.phonetic}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {itinerary.packingTips.length > 0 && (
+          <p className="mt-4 text-xs opacity-80">
+            🎒 {itinerary.packingTips.join(' · ')}
+          </p>
+        )}
+      </section>
+
+      {/* Bookings */}
+      <section className="mt-6">
+        <h2 className="font-display text-xl font-bold mb-1 px-1">Bookings</h2>
+        <p className="text-sm text-muted-foreground mb-4 px-1">
+          Nothing is booked without your approval — and in this demo, nothing is ever really booked.
+        </p>
+        <div className="space-y-4">
+          {booking.bookings.map((item, i) => {
+            const isApproved = !!approved[i];
+            const reference = bookingRef(destination.selected.name + item.title, i);
+            const link = linkFor(item, state);
+            return (
+              <article
+                key={i}
+                className={`boarding-pass bg-card rounded-2xl border shadow-sm overflow-hidden flex flex-col sm:flex-row booking-flip print-block ${
+                  isApproved ? 'border-primary' : 'border-border'
+                }`}
+              >
+                <div className="flex-1 p-5 sm:p-6">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      {item.type}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[11px] font-bold uppercase tracking-wide">
+                      Demo Mode — no real reservation
+                    </span>
+                  </div>
+                  <h3 className="font-display font-bold text-lg mt-1.5">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">{item.detail}</p>
+                  <p className="text-sm mt-1.5">🗓 {item.dates}</p>
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="no-print inline-block mt-2 text-sm font-semibold text-primary hover:opacity-80"
+                  >
+                    {link.label}
+                  </a>
+                </div>
+                <div className="relative stub-divider sm:w-56 shrink-0 p-5 sm:p-6 flex sm:flex-col items-center justify-between gap-3 bg-muted/40">
+                  <span className="notch notch-top hidden sm:block" />
+                  <span className="notch notch-bottom hidden sm:block" />
+                  <div className="text-center">
+                    <div className="font-mono font-semibold text-lg">{fmtINR(item.amountINR)}</div>
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                      from {item.budgetCategory}
+                    </div>
+                  </div>
+                  {isApproved ? (
+                    <div className="text-center">
+                      <div className="text-primary font-bold text-sm">Confirmed ✓</div>
+                      <div className="font-mono text-xs mt-1 bg-card border border-border rounded-lg px-2 py-1">
+                        {reference}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setApproved((a) => ({ ...a, [i]: true }))}
+                      className="no-print px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-bold hover:brightness-95"
+                    >
+                      Approve (simulated)
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Agent log */}
+      <section className="mt-6 no-print">
+        <button
+          onClick={() => setShowLog((s) => !s)}
+          className="w-full bg-card rounded-2xl border border-border px-5 py-4 text-left font-display font-semibold hover:bg-muted/50 transition-colors"
+          aria-expanded={showLog}
+        >
+          🔍 Agent log — raw JSON handoffs {showLog ? '▲' : '▼'}
+        </button>
+        {showLog && (
+          <div className="mt-2 space-y-2">
+            {([
+              ['1 · Mood Agent', mood],
+              ['2 · Destination Agent', destination],
+              ['3 · Budget Optimizer', budget],
+              ['4 · Itinerary Agent', itinerary],
+              ['5 · Booking Agent', booking],
+            ] as const).map(([label, data]) => (
+              <details key={label} className="bg-card rounded-xl border border-border overflow-hidden">
+                <summary className="px-4 py-3 text-sm font-semibold cursor-pointer hover:bg-muted/50">
+                  {label}
+                </summary>
+                <pre className="px-4 pb-4 text-xs font-mono overflow-x-auto text-muted-foreground max-h-80 overflow-y-auto">
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Sticky bottom bar */}
+      <div className="no-print fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-sm">
+            <span className="font-mono font-semibold">{fmtINR(approvedTotal)}</span>
+            <span className="text-muted-foreground"> approved · </span>
+            <span className="font-mono font-semibold">{fmtINR(budget.totalINR - approvedTotal)}</span>
+            <span className="text-muted-foreground"> remaining</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={doSave}
+              disabled={saved === 'saved'}
+              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+            >
+              {saved === 'saved' ? 'Saved ✓' : 'Save trip'}
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 rounded-xl border border-input text-sm font-semibold hover:bg-muted"
+            >
+              Plan another
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 rounded-xl border border-input text-sm font-semibold hover:bg-muted hidden sm:block"
+            >
+              Print
+            </button>
+          </div>
+        </div>
+        {saved === 'failed' && (
+          <p className="text-center text-xs text-destructive pb-2">
+            Couldn&apos;t save on this device — the plan still works this session.
+          </p>
+        )}
+      </div>
+
+      {/* Switch overlay */}
+      {switching && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="bg-card rounded-2xl border border-border shadow-lg px-8 py-6 text-center max-w-sm">
+            <div className="text-3xl mb-3">🧭</div>
+            <p className="font-display font-semibold">{switching}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Only the Budget, Itinerary and Booking agents re-run — your mood profile carries over.
+            </p>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
