@@ -19,6 +19,7 @@ import type {
   BookingItem,
   BookingOutput,
   BudgetOutput,
+  DestinationOutput,
   ItineraryOutput,
   TripState,
 } from '@/lib/types';
@@ -116,8 +117,32 @@ export default function TripPage() {
     setSwitchError('');
     setShowAlternates(false);
     try {
-      const newSelected = selectedFromAlternate(alt, destination.selected);
-      const ctx: PipelineContext = { input, mood, destination: { selected: newSelected } };
+      /*
+       * Discovery has to run first. Skipping it was the bug: the header kept the
+       * PREVIOUS destination's `nonNegotiablesMet` receipt, so the page showed
+       * one city's proof lines under another city's name — falsifying the single
+       * claim the product leans on hardest.
+       */
+      const ctx: PipelineContext = { input, mood, pinnedDestinationName: alt.name };
+      setSwitching(`Re-planning for ${alt.name} — Discovery Agent…`);
+      let newDestination: DestinationOutput;
+      try {
+        newDestination = await runAgent<DestinationOutput>('destination', buildPayload('destination', ctx));
+        // The model is told to keep the name; trust but verify.
+        if (newDestination.selected?.name?.trim().toLowerCase() !== alt.name.trim().toLowerCase()) {
+          newDestination.selected = { ...newDestination.selected, name: alt.name };
+        }
+      } catch {
+        // Rather than fail the whole switch, fall back to the thin record — but
+        // drop the stale receipt, which is the part that would actively lie.
+        newDestination = {
+          selected: selectedFromAlternate(alt, destination.selected),
+          alternates: [],
+          decisionNote: '',
+        };
+      }
+      const newSelected = newDestination.selected;
+      ctx.destination = { selected: newSelected };
       setSwitching(`Re-planning for ${alt.name} — Budget Agent…`);
       const newBudget = await runAgent<BudgetOutput>('budget', buildPayload('budget', ctx));
       ctx.budget = newBudget;
@@ -139,7 +164,9 @@ export default function TripPage() {
 
       const next: TripState = {
         ...state,
-        destination: { ...destination, selected: newSelected, alternates: newAlternates },
+        // Spread the NEW Discovery output, never the old one — `nonNegotiablesMet`
+        // and `decisionNote` must describe where you are actually going.
+        destination: { ...newDestination, selected: newSelected, alternates: newAlternates },
         budget: newBudget,
         itinerary: newItinerary,
         booking: newBooking,
@@ -181,7 +208,7 @@ export default function TripPage() {
               {mood.moodProfile.primaryMood}
             </span>
             <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20 font-mono">
-              ⚡ {state.agentsRun ?? 5} agents · {state.plannedInSeconds}s
+              ⚡ {state.agentsRun ?? 5} agents · {state.plannedInSeconds}s of agent time
             </span>
             {state.replanned && (
               <span className="px-2.5 py-1 rounded-full bg-destructive/25 border border-destructive/40">
@@ -849,7 +876,8 @@ export default function TripPage() {
             <div className="text-3xl mb-3">🧭</div>
             <p className="font-display font-semibold">{switching}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Only the Budget, Itinerary and Booking agents re-run — your mood profile carries over.
+              Discovery, Budget, Itinerary and Booking re-run for the new place — your mood profile
+              and its non-negotiables carry over unchanged.
             </p>
           </div>
         </div>

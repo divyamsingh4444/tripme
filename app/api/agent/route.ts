@@ -101,6 +101,7 @@ Consensus rules: include one perTraveller entry for EVERY advocate, using their 
 {"selected":{"name":string,"region":string,"country":string,"whyMatched":string,"moodAlignment":string,"travelFromOrigin":{"mode":string,"approxHours":number},"weatherAtTravelDates":string,"crowdLevel":string,"dailyCostBandINR":string},"alternates":[{"name":string,"oneLineReason":string},{"name":string,"oneLineReason":string}],"nonNegotiablesMet":[string],"decisionNote":string}
 HARD CONSTRAINT — you are contractually bound by the brief you were handed:
 0. If payload.fixedDestinationCity is present, this is CORPORATE travel and the city is not yours to choose — the meeting decides it. selected.name MUST be that city name EXACTLY as given, character for character, and nothing else. Put the business district you recommend basing in into selected.region instead (e.g. name "Hyderabad", region "HITEC City"). Your two alternates become alternate districts within that same city, never other cities. whyMatched then argues for the district — proximity to the business hub, airport transfer time, reliable connectivity.
+0b. If payload.pinnedDestination is present, the traveller has already chosen that place from your own alternates. selected.name MUST be it, exactly. Your job is not to re-choose but to justify: fill in region, travelFromOrigin, weatherAtTravelDates, crowdLevel and dailyCostBandINR for it properly, and re-derive nonNegotiablesMet so every proof line names something real AT THIS destination. If a non-negotiable genuinely cannot be met here, say so plainly in that line rather than inventing a place — the traveller chose this knowingly. Offer two fresh alternates as normal.
 1. Every entry in destinationParameters.nonNegotiables must be genuinely satisfiable at the destination you select. nonNegotiablesMet must contain one line per non-negotiable, in the same order, naming the specific place or experience there that satisfies it.
 2. Nothing in destinationParameters.avoid may characterise your selection.
 3. If settingTypes contains "pilgrimage" or "temple-town", you MUST select a destination that is genuinely a religious or pilgrimage centre. Destinations of that category include Varanasi, Rishikesh, Haridwar, Tirupati, Shirdi, Bodh Gaya, Amritsar, Madurai, Rameswaram, Puri, Dwarka, Ujjain, Kedarnath and Badrinath. NEVER return a hill station, coffee region, beach resort or wildlife park for a pilgrimage brief.
@@ -314,6 +315,88 @@ function getGroq(): Groq {
   return groq;
 }
 
+/*
+ * ---- quota protection ----
+ *
+ * Measured, not assumed: after roughly two live runs the Groq free tier stopped
+ * answering for over ten minutes. Each run costs 8-13 calls, so two people
+ * planning at once is already over budget — and this endpoint is public and
+ * unauthenticated on a URL that goes in the submission. Three cheap defences,
+ * all in-process (no dependencies, no infrastructure, survives a cold start by
+ * simply starting empty):
+ *
+ *   1. Cache identical briefs. Demoing the same trip twice then costs nothing
+ *      and returns instantly — the single biggest win available.
+ *   2. Throttle per IP, so one runaway client cannot drain the key for everyone.
+ *   3. Same-origin check, so the endpoint is not trivially scriptable.
+ */
+
+const CACHE_TTL_MS = 60 * 60 * 1000;
+const CACHE_MAX = 200;
+const cache = new Map<string, { at: number; data: object }>();
+
+function cacheKey(agent: string, payload: object): string {
+  // Stable stringify: key order must not change the identity of a brief.
+  const stable = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(stable);
+    if (v && typeof v === 'object') {
+      return Object.fromEntries(
+        Object.entries(v as Record<string, unknown>)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, val]) => [k, stable(val)]),
+      );
+    }
+    return v;
+  };
+  return `${agent}:${JSON.stringify(stable(payload))}`;
+}
+
+function cacheGet(key: string): object | null {
+  const hit = cache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+  // Refresh recency so the eviction below drops genuinely cold entries.
+  cache.delete(key);
+  cache.set(key, hit);
+  return hit.data;
+}
+
+function cacheSet(key: string, data: object): void {
+  cache.set(key, { at: Date.now(), data });
+  while (cache.size > CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    if (oldest === undefined) break;
+    cache.delete(oldest);
+  }
+}
+
+const RATE_WINDOW_MS = 60 * 1000;
+/** One full plan is 8-13 calls; this allows ~2 concurrent plans per IP. */
+const RATE_MAX_CALLS = 30;
+const hits = new Map<string, number[]>();
+
+function throttled(ip: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 500) {
+    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k);
+  }
+  return recent.length > RATE_MAX_CALLS;
+}
+
+function clientIp(request: NextRequest): string {
+  const fwd = request.headers.get('x-forwarded-for');
+  return fwd?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+}
+
+/** The Itinerary Agent runs to 3400 tokens; the platform default can be shorter. */
+export const maxDuration = 60;
+
 async function callModel(config: AgentConfig, payload: object, strict: boolean): Promise<string> {
   const system = strict
     ? config.system + '\nReturn ONLY valid JSON matching the schema. No prose.'
@@ -345,8 +428,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'server_error' }, { status: 400 });
   }
 
+  /*
+   * Cap the brief before it reaches a system-prompted call. Every field here is
+   * user-typed free text (mood notes, traveller notes, circuit, dietary rule,
+   * cost centre), and the client's maxLength attributes are not enforcement.
+   */
+  const serialised = JSON.stringify(body.payload);
+  if (serialised.length > 24_000) {
+    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 413 });
+  }
+
+  // Same-origin only: this endpoint spends a shared, rate-limited quota.
+  const origin = request.headers.get('origin');
+  if (origin) {
+    const host = request.headers.get('host');
+    let sameHost = false;
+    try {
+      sameHost = new URL(origin).host === host;
+    } catch {
+      sameHost = false;
+    }
+    if (!sameHost) {
+      return NextResponse.json({ ok: false, error: 'server_error' }, { status: 403 });
+    }
+  }
+
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json({ ok: false, error: 'missing_key' }, { status: 503 });
+  }
+
+  // An identical brief is the same plan — serve it free rather than re-buying it.
+  const key = cacheKey(agentKey, body.payload);
+  const cached = cacheGet(key);
+  if (cached) {
+    return NextResponse.json({ ok: true, data: cached, cached: true });
+  }
+
+  if (throttled(clientIp(request))) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', retryAfterSeconds: 20 },
+      { status: 429 },
+    );
   }
 
   try {
@@ -361,12 +483,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'parse_failed' }, { status: 502 });
     }
     const processed = postProcess(agentKey, data, body.payload as Record<string, unknown>);
+    cacheSet(key, processed);
     return NextResponse.json({ ok: true, data: processed });
   } catch (err: unknown) {
     const status = (err as { status?: number })?.status;
     if (status === 429) {
+      /*
+       * The binding free-tier limit is tokens-per-minute, not requests: 12k TPM
+       * against an Itinerary call that alone costs ~5k (1.8k prompt + 3.4k
+       * completion). Two heavy agents in one minute exhaust the window. The old
+       * fixed 12s therefore retried straight back into the same exhausted
+       * minute and failed again — measured: eight consecutive retries, no
+       * progress. Honour Groq's own retry-after when it sends one, and
+       * otherwise wait out a full window.
+       */
+      const headers = (err as { headers?: Record<string, string> })?.headers;
+      const advertised = Number(headers?.['retry-after']);
+      const retryAfterSeconds =
+        Number.isFinite(advertised) && advertised > 0 ? Math.ceil(advertised) : 60;
       return NextResponse.json(
-        { ok: false, error: 'rate_limited', retryAfterSeconds: 12 },
+        { ok: false, error: 'rate_limited', retryAfterSeconds },
         { status: 429 },
       );
     }

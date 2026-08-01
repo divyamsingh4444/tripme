@@ -127,6 +127,8 @@ export interface PipelineContext {
   booking?: { bookings: BookingItem[] };
   /** set by the Referee when it orders the Budget Agent to re-allocate */
   refereeInstruction?: string;
+  /** forces Discovery to keep this city and only re-derive its reasoning */
+  pinnedDestinationName?: string;
   /** hard ceiling handed to the Itinerary Agent only after arbitration */
   itineraryCapINR?: number;
 }
@@ -213,6 +215,11 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         ...(input.mode === 'corporate' && input.corporate?.destinationCity
           ? { fixedDestinationCity: input.corporate.destinationCity }
           : {}),
+        // The user switched to an alternate: the place is decided, but Discovery
+        // must still re-derive the proof lines for it. Distinct from
+        // fixedDestinationCity, whose corporate contract turns the alternates
+        // into districts of one city — wrong for a leisure switch.
+        ...(ctx.pinnedDestinationName ? { pinnedDestination: ctx.pinnedDestinationName } : {}),
       };
     case 'budget':
       return {
