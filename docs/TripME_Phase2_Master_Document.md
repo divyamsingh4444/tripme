@@ -16,6 +16,16 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 1 Aug 2026
 
+**D-012 · Brand and atmosphere pass — the "generic" critique answered visually (commit `6b493a8`).**
+Architecture had been fixed (D-002, D-007) but the *look* was still plain. Studied **Pickyourtrail.com** as the reference and extracted its actual design language rather than copying it: deep-green as the dominant surface (not just an accent), a full-bleed atmospheric hero, oversized confident display type, **ticket-perforation dividers**, and glow on primary actions. Applied to TripME's own palette:
+- **three.js hero backdrop** — a point-cloud globe with marigold flight arcs, drifting motes and pointer parallax. On-theme for travel and it means no stock photography (which we cannot buy). Engineered carefully: dynamically imported so it never blocks first paint, paused via IntersectionObserver when scrolled away, and it bails cleanly to a gradient under `prefers-reduced-motion` or missing WebGL — **both fallbacks verified**, not assumed.
+- **New SVG logo.** The traced source had an opaque white plate and near-white artefacts; those were stripped, the viewBox tightened using an in-browser `getBBox()` measurement, and the yellow normalised to brand marigold. Two variants (ink / white) since `currentColor` does not resolve through `<img>`. The mark is now the wordmark — the duplicate "TripME" text beside it is gone, which was the amateur tell.
+- **Perforation promoted from the boarding-pass card to a brand-wide motif** — it now divides sections, so the ticket metaphor runs through the whole product rather than sitting in one component.
+- Nav rides transparent over the hero and solidifies on scroll, with a real mobile menu; footer rebuilt on the deep surface; fluid `clamp()` type so nothing jumps between breakpoints.
+- **Responsive verified with Playwright at 375 / 768 / 1280** — zero page-level horizontal overflow on every route; the single wide table scrolls inside its own container, which is correct.
+
+*Deliberately not done yet: the login gate, and a matching visual pass on the run/trip pages beyond spacing and type. The trip page is content-dense and worth a dedicated pass before the demo.*
+
 **D-011 · This document now lives inside the repo, at `docs/TripME_Phase2_Master_Document.md`.**
 Previously it sat in `massai_project/` alongside the repo, so none of its edits were version-controlled — the most important non-code artifact had no history. Moved in so the decision log evolves alongside the code in one commit stream. **Note: the repo is public, so everything in this file is public** — including rubric detail, team feedback and strategy. Divyam was told this and chose to move it in anyway (a sanitised-copy option was offered and declined). Keep that in mind before adding anything genuinely sensitive.
 
