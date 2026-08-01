@@ -457,21 +457,37 @@ export default function RunPage() {
         structured brief to the next
       </p>
 
-      <ol className="space-y-3">
+      <ol className="relative space-y-3">
+        {/* the spine: makes the handoff chain legible at a glance */}
+        <span className="absolute left-[34px] top-6 bottom-6 w-px bg-border hidden sm:block" aria-hidden="true" />
         {steps.map((s) => (
           <li
             key={s.id}
-            className={`bg-card rounded-2xl border px-5 py-4 flex items-start gap-4 ${
+            className={`relative bg-card rounded-2xl border px-4 sm:px-5 py-4 flex items-start gap-3.5 sm:gap-4 card-lift ${
               s.state.kind === 'running' || s.state.kind === 'waiting'
-                ? 'border-accent agent-active'
+                ? 'border-accent agent-active shadow-md'
                 : s.state.kind === 'error'
                   ? 'border-destructive'
                   : s.state.kind === 'conflict'
                     ? 'border-destructive/60 bg-destructive/5'
-                    : 'border-border'
-            } ${s.isLoopback ? 'ml-6 border-dashed' : ''}`}
+                    : s.state.kind === 'done'
+                      ? 'border-border'
+                      : 'border-border opacity-60'
+            } ${s.isLoopback ? 'sm:ml-8 border-dashed' : ''}`}
           >
-            <span className="text-2xl leading-none mt-0.5">{s.isLoopback ? '↩' : s.emoji}</span>
+            <span
+              className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-lg leading-none ${
+                s.state.kind === 'done'
+                  ? 'bg-secondary border border-secondary'
+                  : s.state.kind === 'running' || s.state.kind === 'waiting'
+                    ? 'bg-accent/25 border border-accent'
+                    : s.state.kind === 'conflict' || s.state.kind === 'error'
+                      ? 'bg-destructive/10 border border-destructive/40'
+                      : 'bg-muted border border-border'
+              }`}
+            >
+              {s.isLoopback ? '↩' : s.emoji}
+            </span>
             <div className="flex-1 min-w-0">
               <div className="font-display font-semibold">
                 {s.name}

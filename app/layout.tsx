@@ -22,10 +22,9 @@ export const metadata: Metadata = {
   title: 'TripME — One mood. One budget. One complete trip.',
   description:
     'Seven AI agents plan your entire trip — destination, budget, day-by-day itinerary and bookings — in under a minute. When two of them disagree, a Referee arbitrates in front of you.',
-  icons: {
-    icon: [{ url: '/logo.svg', type: 'image/svg+xml' }, { url: '/icon.svg', type: 'image/svg+xml' }],
-    apple: '/apple-icon.png',
-  },
+  // The tab icon is the simplified mark, not the full lockup — the script
+  // wordmark is unreadable at 16px.
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
 }
 
 export const viewport: Viewport = {

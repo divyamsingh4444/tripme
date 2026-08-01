@@ -25,7 +25,19 @@ export default function GlobeBackdrop() {
     const el = mountRef.current;
     if (!el) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    /*
+     * Gate before importing anything. three.js is ~178KB gzipped, so we only
+     * pay for it where it actually earns its place: a motion-tolerant user, on
+     * a screen big enough to see the globe, with cores to spare. Phones and
+     * low-power devices get the CSS gradient, which is the same composition
+     * minus the motion — and costs nothing.
+     */
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const tooNarrow = window.innerWidth < 768;
+    const weakDevice = (navigator.hardwareConcurrency ?? 8) < 4;
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+
+    if (reduced || tooNarrow || weakDevice || saveData) {
       setFailed(true);
       return;
     }

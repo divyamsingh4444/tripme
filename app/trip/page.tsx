@@ -162,72 +162,88 @@ export default function TripPage() {
   ][];
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-36">
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-36">
       {offline && (
         <div className="no-print mb-4 rounded-xl bg-secondary/60 border border-secondary px-4 py-2.5 text-sm text-center">
           You&apos;re offline — saved trips still work.
         </div>
       )}
 
-      {/* Header */}
-      <section className="bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
-              {destination.selected.name}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {[destination.selected.region, destination.selected.country].filter(Boolean).join(', ')}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
-            {state.isSample && <span className="px-2.5 py-1 rounded-full bg-muted border border-border">Sample</span>}
-            <span className="px-2.5 py-1 rounded-full bg-secondary border border-secondary">
+      {/* Header — the destination gets to be a statement, not a form field */}
+      <section className="surface-deep-grad rounded-3xl overflow-hidden shadow-lg print-block">
+        <div className="p-6 sm:p-10">
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold mb-5">
+            {state.isSample && <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20">Sample</span>}
+            <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20">
               {MODE_LABEL[input.mode] ?? 'Solo'} trip
             </span>
-            <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground">
-              Matched to: {mood.moodProfile.primaryMood}
+            <span className="px-2.5 py-1 rounded-full bg-accent text-accent-foreground">
+              {mood.moodProfile.primaryMood}
             </span>
-            <span className="px-2.5 py-1 rounded-full bg-accent/25 border border-accent/50">
+            <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20 font-mono">
               ⚡ {state.agentsRun ?? 5} agents · {state.plannedInSeconds}s
             </span>
             {state.replanned && (
-              <span className="px-2.5 py-1 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
+              <span className="px-2.5 py-1 rounded-full bg-destructive/25 border border-destructive/40">
                 ↩ Re-planned by Referee
               </span>
             )}
             {state.hadHistory && mood.personalizationNote && (
-              <span className="px-2.5 py-1 rounded-full bg-secondary border border-secondary cursor-help" title={mood.personalizationNote}>
+              <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20 cursor-help" title={mood.personalizationNote}>
                 ✨ Personalised
               </span>
             )}
           </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span>📅 {fmtDate(input.startDate)} – {fmtDate(endDate)} · {input.durationDays} {input.durationDays === 1 ? 'day' : 'days'}</span>
-          <span>👥 {input.travelers} {input.travelers === 1 ? 'traveller' : 'travellers'}</span>
-          <span>🚌 {destination.selected.travelFromOrigin.mode || 'travel'} from {input.originCity}</span>
-        </div>
-        <p className="mt-4 text-sm leading-relaxed">{destination.selected.whyMatched}</p>
 
-        {/* Non-negotiables contract */}
-        {destination.nonNegotiablesMet && destination.nonNegotiablesMet.length > 0 && (
-          <div className="mt-4 rounded-xl bg-secondary/40 border border-secondary p-4">
-            <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
-              Your non-negotiables, and where they&apos;re met
-            </div>
-            <ul className="space-y-1 text-sm">
-              {destination.nonNegotiablesMet.map((n, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-primary font-bold">✓</span>
-                  <span>{n}</span>
-                </li>
-              ))}
-            </ul>
+          <h1 className="type-hero font-display font-extrabold text-white">
+            {destination.selected.name}
+          </h1>
+          {[destination.selected.region, destination.selected.country].filter(Boolean).length > 0 && (
+            <p className="text-white/60 mt-2 text-lg">
+              {[destination.selected.region, destination.selected.country].filter(Boolean).join(', ')}
+            </p>
+          )}
+
+          <div className="mt-6 grid sm:grid-cols-3 gap-3">
+            {[
+              ['Dates', `${fmtDate(input.startDate)} – ${fmtDate(endDate)}`, `${input.durationDays} ${input.durationDays === 1 ? 'day' : 'days'}`],
+              ['Travellers', `${input.travelers}`, input.travelers === 1 ? 'person' : 'people'],
+              ['Getting there', destination.selected.travelFromOrigin.mode || 'travel', `from ${input.originCity}`],
+            ].map(([label, big, small]) => (
+              <div key={label} className="rounded-2xl bg-white/[0.07] border border-white/12 px-4 py-3">
+                <div className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">{label}</div>
+                <div className="font-display font-bold mt-0.5 leading-tight">{big}</div>
+                <div className="text-xs text-white/60">{small}</div>
+              </div>
+            ))}
           </div>
-        )}
 
-        <div className="mt-4 no-print">
+          <p className="mt-6 leading-relaxed text-white/85">{destination.selected.whyMatched}</p>
+        </div>
+
+        {/* Non-negotiables contract — the Discovery Agent's receipt */}
+        {destination.nonNegotiablesMet && destination.nonNegotiablesMet.length > 0 && (
+          <>
+            <div className="perforation perforation-light" />
+            <div className="px-6 sm:px-10 py-6">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-3">
+                Your non-negotiables, and where they&apos;re met
+              </div>
+              <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                {destination.nonNegotiablesMet.map((n, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="text-accent font-bold shrink-0">✓</span>
+                    <span className="text-white/85">{n}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-5 sm:p-6 print-block">
+        <div className="no-print">
           <button onClick={() => setShowAlternates((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showAlternates}>
             {showAlternates ? '− Hide alternates' : 'Switch destination →'}
           </button>
@@ -248,8 +264,8 @@ export default function TripPage() {
 
       {/* Group consensus */}
       {isGroup && consensus && (
-        <section className="mt-6 bg-card rounded-2xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
-          <h2 className="font-display text-xl font-bold">⚖️ How the Referee settled it</h2>
+        <section className="mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
+          <h2 className="type-section font-display font-extrabold">⚖️ How the Referee settled it</h2>
           <p className="text-sm text-muted-foreground mt-1 mb-4">
             {advocates?.length ?? 0} Advocate agents argued. Nobody got everything — here is exactly
             who conceded what.
@@ -312,7 +328,7 @@ export default function TripPage() {
 
       {/* Family pacing audit */}
       {familyAudit && (
-        <section className="mt-6 bg-card rounded-2xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
+        <section className="mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
           <div className="flex items-start gap-3">
             <span className="text-2xl">👨‍👩‍👧</span>
             <div className="flex-1">
@@ -365,7 +381,7 @@ export default function TripPage() {
 
       {/* Corporate compliance + expense report */}
       {policyAudit && (
-        <section className="mt-6 bg-card rounded-2xl border-2 shadow-sm p-6 sm:p-8 print-block border-primary">
+        <section className="mt-10 bg-card rounded-3xl border-2 shadow-sm p-6 sm:p-8 print-block border-primary">
           <div className="flex items-start gap-3">
             <span className="text-2xl">💼</span>
             <div className="flex-1">
@@ -439,7 +455,7 @@ export default function TripPage() {
 
       {/* Referee conflict */}
       {referee && (
-        <section className="mt-6 bg-card rounded-2xl border-2 border-destructive/50 shadow-sm p-6 sm:p-8 print-block">
+        <section className="mt-10 bg-card rounded-3xl border-2 border-destructive/50 shadow-sm p-6 sm:p-8 print-block">
           <div className="flex items-start gap-3">
             <span className="text-2xl">⚖️</span>
             <div className="flex-1">
@@ -492,11 +508,15 @@ export default function TripPage() {
       )}
 
       {/* Budget */}
-      <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
-        <h2 className="font-display text-xl font-bold mb-4">
-          Budget — {fmtINR(budget.totalINR)} allocated before booking
-        </h2>
-        <div className="h-5 rounded-full overflow-hidden flex border border-border" role="img" aria-label="Budget split">
+      <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+          <h2 className="type-section font-display font-extrabold">Budget</h2>
+          <span className="font-mono text-lg font-semibold">{fmtINR(budget.totalINR)}</span>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Allocated across every category <em>before</em> a single booking is prepared.
+        </p>
+        <div className="h-6 rounded-full overflow-hidden flex border border-border" role="img" aria-label="Budget split">
           {allocationEntries.map(([key, cat]) => (
             <div key={key} style={{ width: `${cat.pct}%`, backgroundColor: CATEGORY_COLORS[key] ?? '#ccc' }} title={`${CATEGORY_LABELS[key] ?? key}: ${fmtINR(cat.amountINR)} (${cat.pct}%)`} />
           ))}
@@ -535,41 +555,74 @@ export default function TripPage() {
         </div>
       </section>
 
-      {/* Itinerary */}
-      <section className="mt-6">
-        <h2 className="font-display text-xl font-bold mb-4 px-1">Day-by-day plan</h2>
-        <div className="space-y-4">
+      {/* Itinerary — a timeline, not a table of rows */}
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between gap-3 mb-5 px-1">
+          <h2 className="type-section font-display font-extrabold">Day by day</h2>
+          <span className="text-sm text-muted-foreground shrink-0">
+            {itinerary.days.length} {itinerary.days.length === 1 ? 'day' : 'days'} planned
+          </span>
+        </div>
+        <div className="space-y-5">
           {itinerary.days.map((day) => (
-            <article key={day.day} className="bg-card rounded-2xl border border-border shadow-sm p-5 sm:p-6 print-block">
-              <header className="flex items-baseline gap-3 mb-3">
-                <span className="font-display font-extrabold text-2xl text-primary">Day {day.day}</span>
-                <span className="font-display font-semibold">{day.theme}</span>
+            <article key={day.day} className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden print-block">
+              <header className="flex items-center gap-4 px-5 sm:px-7 py-4 bg-primary text-primary-foreground">
+                <span className="shrink-0 w-12 h-12 rounded-2xl bg-white/12 border border-white/20 flex flex-col items-center justify-center leading-none">
+                  <span className="text-[9px] uppercase tracking-wider opacity-70">Day</span>
+                  <span className="font-display font-extrabold text-lg">{day.day}</span>
+                </span>
+                <span className="font-display font-bold text-lg leading-tight">{day.theme}</span>
               </header>
-              <div className="space-y-2.5 text-sm">
-                {([['Morning', day.morning], ['Afternoon', day.afternoon], ['Evening', day.evening]] as const).map(([label, slot]) => (
-                  <div key={label} className="flex gap-3">
-                    <span className="w-20 shrink-0 text-muted-foreground font-medium">{label}</span>
-                    <span className="flex-1">
-                      {slot.activity}
-                      {slot.area && <span className="text-muted-foreground"> · {slot.area}</span>}
-                    </span>
-                    <span className="font-mono text-muted-foreground whitespace-nowrap">
-                      {slot.approxCostINR > 0 ? fmtINR(slot.approxCostINR) : 'Free'}
-                    </span>
+
+              <div className="px-5 sm:px-7 py-5">
+                <ol className="relative">
+                  {([
+                    ['Morning', '🌅', day.morning],
+                    ['Afternoon', '☀️', day.afternoon],
+                    ['Evening', '🌙', day.evening],
+                  ] as const).map(([label, icon, slot], idx, arr) => (
+                    <li key={label} className="relative flex gap-4 pb-5 last:pb-0">
+                      {/* connector */}
+                      {idx < arr.length - 1 && (
+                        <span className="absolute left-[15px] top-8 bottom-0 w-px bg-border" aria-hidden="true" />
+                      )}
+                      <span className="relative z-10 shrink-0 w-8 h-8 rounded-full bg-secondary border border-secondary flex items-center justify-center text-sm">
+                        {icon}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                            {label}
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                            {slot.approxCostINR > 0 ? fmtINR(slot.approxCostINR) : 'Free'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 font-medium leading-snug">{slot.activity}</p>
+                        {slot.area && <p className="text-sm text-muted-foreground">📍 {slot.area}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="mt-4 pt-4 border-t border-border grid sm:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">
+                      🍽 Meals
+                    </div>
+                    <p>{day.meals}</p>
                   </div>
-                ))}
-                <div className="flex gap-3 pt-1">
-                  <span className="w-20 shrink-0 text-muted-foreground font-medium">Meals</span>
-                  <span className="flex-1">{day.meals}</span>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">
+                      ☔ If plans change
+                    </div>
+                    <p className="text-muted-foreground">{day.swapIfNeeded}</p>
+                  </div>
                 </div>
-                <div className="flex gap-3 text-muted-foreground">
-                  <span className="w-20 shrink-0 font-medium">Plan B</span>
-                  <span className="flex-1 italic">{day.swapIfNeeded}</span>
-                </div>
+
                 {day.suitabilityNote && (
-                  <div className="flex gap-3 pt-1 mt-1 border-t border-border/60">
-                    <span className="w-20 shrink-0 text-muted-foreground font-medium">Works for</span>
-                    <span className="flex-1">{day.suitabilityNote}</span>
+                  <div className="mt-3 rounded-xl bg-secondary/40 border border-secondary px-4 py-2.5 text-sm">
+                    <span className="font-semibold">Works for you because</span> — {day.suitabilityNote}
                   </div>
                 )}
               </div>
@@ -579,7 +632,7 @@ export default function TripPage() {
       </section>
 
       {/* Language card */}
-      <section className="mt-6 bg-primary text-primary-foreground rounded-2xl shadow-sm p-6 sm:p-8 print-block">
+      <section className="mt-10 surface-deep-grad rounded-3xl shadow-lg p-6 sm:p-8 print-block">
         <h2 className="font-display text-xl font-bold">Pocket {itinerary.languageCard.language} card</h2>
         <p className="text-sm opacity-80 mt-0.5 mb-4">Eight phrases that cover 90% of traveller moments.</p>
         <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm">
@@ -597,8 +650,8 @@ export default function TripPage() {
       </section>
 
       {/* Bookings */}
-      <section className="mt-6">
-        <h2 className="font-display text-xl font-bold mb-1 px-1">Bookings</h2>
+      <section className="mt-10">
+        <h2 className="type-section font-display font-extrabold mb-1 px-1">Bookings</h2>
         <p className="text-sm text-muted-foreground mb-4 px-1">
           Nothing is booked without your approval — and in this demo, nothing is ever really booked.
         </p>
@@ -652,8 +705,8 @@ export default function TripPage() {
       </section>
 
       {/* Live spend + split */}
-      <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
-        <h2 className="font-display text-xl font-bold">Live spend &amp; settle-up</h2>
+      <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
+        <h2 className="type-section font-display font-extrabold">Live spend &amp; settle-up</h2>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           Planned vs actually approved, updating as you approve each booking. No separate app.
         </p>
@@ -701,8 +754,8 @@ export default function TripPage() {
 
       {/* Notification schedule */}
       {notification && notification.reminders?.length > 0 && (
-        <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 print-block">
-          <h2 className="font-display text-xl font-bold">🔔 Your reminder schedule</h2>
+        <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
+          <h2 className="type-section font-display font-extrabold">🔔 Your reminder schedule</h2>
           <p className="text-sm text-muted-foreground mt-1 mb-4">
             Scheduled by the Notification Agent. In this MVP the schedule is real; delivery over
             push/SMS/voice is post-MVP.
