@@ -442,14 +442,17 @@ export default function RunPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="font-display text-2xl sm:text-3xl font-bold">Planning your trip…</h1>
-        <span className="font-mono text-lg font-semibold text-primary tabular-nums" aria-live="polite">
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+      <div className="flex items-center justify-between gap-4 mb-2">
+        <h1 className="font-display text-2xl sm:text-4xl font-extrabold">Planning your trip…</h1>
+        <span
+          className="font-mono text-xl sm:text-2xl font-semibold text-primary tabular-nums shrink-0 px-3 py-1.5 rounded-xl bg-card border border-border"
+          aria-live="polite"
+        >
           {elapsed}s
         </span>
       </div>
-      <p className="text-sm text-muted-foreground mb-6">
+      <p className="text-sm text-muted-foreground mb-7">
         {agentCount} agent {agentCount === 1 ? 'call' : 'calls'} completed · each one hands a
         structured brief to the next
       </p>

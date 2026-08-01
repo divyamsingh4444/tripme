@@ -59,8 +59,8 @@ export default function TripsPage() {
   if (!ready) return null;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl font-bold mb-6">My Trips</h1>
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+      <h1 className="type-section font-display font-extrabold mb-6">My Trips</h1>
 
       {/* Travel DNA */}
       {dna && dna.tripCount > 0 && (

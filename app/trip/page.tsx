@@ -162,7 +162,7 @@ export default function TripPage() {
   ][];
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8 pb-32">
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-36">
       {offline && (
         <div className="no-print mb-4 rounded-xl bg-secondary/60 border border-secondary px-4 py-2.5 text-sm text-center">
           You&apos;re offline — saved trips still work.

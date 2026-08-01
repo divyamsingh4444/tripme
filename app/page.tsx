@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   CorporatePolicy,
@@ -15,23 +16,11 @@ import type {
 } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
-import {
-  CorporateForm,
-  HouseholdForm,
-  MOODS,
-  PilgrimageForm,
-  TravellersForm,
-} from '@/components/mode-forms';
+import { CorporateForm, HouseholdForm, MOODS, PilgrimageForm, TravellersForm } from '@/components/mode-forms';
 
-const AGENT_CHIPS = [
-  { emoji: '✨', name: 'Intent' },
-  { emoji: '🗺️', name: 'Discovery' },
-  { emoji: '💰', name: 'Budget' },
-  { emoji: '📅', name: 'Itinerary' },
-  { emoji: '🎫', name: 'Booking' },
-  { emoji: '⚖️', name: 'Referee' },
-  { emoji: '🔔', name: 'Notify' },
-];
+const GlobeBackdrop = dynamic(() => import('@/components/globe-backdrop'), { ssr: false });
+
+const AGENTS = ['Intent', 'Discovery', 'Budget', 'Itinerary', 'Booking', 'Referee', 'Notify'];
 
 const MODES: { key: TripMode; label: string; emoji: string; sub: string }[] = [
   { key: 'solo', label: 'Solo', emoji: '🧍', sub: 'Mood quiz' },
@@ -47,6 +36,7 @@ const PACES: Pace[] = ['Chill', 'Balanced', 'Packed'];
 
 export default function PlanPage() {
   const router = useRouter();
+  const formRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<TripMode>('solo');
   const [mood, setMood] = useState<MoodKey | null>(null);
@@ -105,18 +95,17 @@ export default function PlanPage() {
   const usesPeople = mode === 'couple' || mode === 'group';
   const groupBudget = people.reduce((s, p) => s + (Number(p.budgetINR) || 0), 0);
   const effectiveBudget = usesPeople ? groupBudget : budget;
-  const effectiveTravellers = usesPeople
-    ? people.length
-    : mode === 'family'
-      ? household.length
-      : travelers;
+  const effectiveTravellers = usesPeople ? people.length : mode === 'family' ? household.length : travelers;
+
+  const pickMode = (m: TripMode) => {
+    setMode(m);
+    setError('');
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'solo' && !mood) {
-      setError('Pick a mood — it is the one thing the agents cannot guess.');
-      return;
-    }
+    if (mode === 'solo' && !mood) return setError('Pick a mood — it is the one thing the agents cannot guess.');
     if (usesPeople) {
       if (people.length < 2) return setError('This mode needs at least two travellers.');
       if (people.some((p) => !p.name.trim()))
@@ -127,15 +116,14 @@ export default function PlanPage() {
       if (household.some((m) => !m.name.trim()))
         return setError('Every family member needs a name — the Referee flags conflicts by name.');
     }
-    if (mode === 'pilgrimage' && !pilgrimage.circuit.trim())
-      return setError('Which yatra or temple are you planning for?');
+    if (mode === 'pilgrimage' && !pilgrimage.circuit.trim()) return setError('Which yatra or temple are you planning for?');
     if (mode === 'corporate' && !corporate.destinationCity.trim())
       return setError('Corporate trips need the destination city — the meeting decides it.');
     if (!origin.trim()) return setError('Tell us the city you are starting from.');
     if (!startDate) return setError('Pick a start date.');
 
     setError('');
-    const input: TripInput = {
+    setPendingInput({
       mode,
       mood: usesPeople ? people[0].mood : mode === 'pilgrimage' ? 'Spiritual' : (mood ?? 'Explore'),
       moodNote: moodNote.trim(),
@@ -150,8 +138,7 @@ export default function PlanPage() {
       travelers: effectiveTravellers,
       foodPref: mode === 'pilgrimage' ? 'Veg' : foodPref,
       pace,
-    };
-    setPendingInput(input);
+    } satisfies TripInput);
     router.push('/run');
   };
 
@@ -161,76 +148,125 @@ export default function PlanPage() {
   };
 
   const ctaLabel =
-    mode === 'corporate'
-      ? 'Plan within policy'
-      : usesPeople
-        ? 'Negotiate our trip'
-        : mode === 'family'
-          ? 'Plan for everyone'
-          : mode === 'pilgrimage'
-            ? 'Plan the yatra'
-            : 'Plan my trip';
+    mode === 'corporate' ? 'Plan within policy'
+      : usesPeople ? 'Negotiate our trip'
+      : mode === 'family' ? 'Plan for everyone'
+      : mode === 'pilgrimage' ? 'Plan the yatra'
+      : 'Plan my trip';
+
+  const fieldCls =
+    'w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
-      <section className="text-center mb-10">
-        <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-          One mood. One budget.
-          <br />
-          One complete trip.
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-          Seven AI agents plan your entire trip — and when two of them disagree, a Referee
-          arbitrates in front of you.
-        </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-xs font-medium">
-          {AGENT_CHIPS.map((a, i) => (
-            <span key={a.name} className="flex items-center gap-1.5">
-              <span className="px-2.5 py-1 rounded-full bg-card border border-border shadow-sm">
-                {a.emoji} {a.name}
+    <main>
+      {/* ---------------- HERO ---------------- */}
+      <section className="relative min-h-[88svh] flex items-center justify-center overflow-hidden">
+        <GlobeBackdrop />
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center pt-24 pb-16">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur text-white/90 text-xs sm:text-sm font-medium rise">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            Seven agents · one pipeline · live on Llama 3.3 70B
+          </span>
+
+          <h1 className="type-hero font-display font-extrabold text-white mt-6 rise">
+            One mood.
+            <br />
+            One budget.
+            <br />
+            <span className="text-accent">One complete trip.</span>
+          </h1>
+
+          <p className="mt-6 text-base sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed rise">
+            Stop juggling eight tabs. Tell us how you want to feel and what you can spend — seven AI
+            agents do the rest, and when two of them disagree, a Referee settles it in front of you.
+          </p>
+
+          <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center rise">
+            <button
+              onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="px-8 py-4 rounded-2xl bg-accent text-accent-foreground font-display font-bold text-lg glow-accent hover:brightness-95 active:scale-[0.99] transition"
+            >
+              Start planning
+            </button>
+            <button
+              onClick={loadSample}
+              className="px-8 py-4 rounded-2xl bg-white/10 border border-white/25 backdrop-blur text-white font-display font-semibold text-lg hover:bg-white/20 transition"
+            >
+              See a sample trip
+            </button>
+          </div>
+
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-[11px] sm:text-xs font-medium">
+            {AGENTS.map((a, i) => (
+              <span key={a} className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/80 backdrop-blur">
+                  {a}
+                </span>
+                {/* arrows would orphan at line-ends on narrow screens */}
+                {i < AGENTS.length - 1 && <span className="text-accent/70 hidden sm:inline">→</span>}
               </span>
-              {i < AGENT_CHIPS.length - 1 && <span className="text-muted-foreground">→</span>}
-            </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- STAT STRIP ---------------- */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            ['4–6 hrs → under 60s', 'Planning time, measured on screen'],
+            ['6–8 apps → 1 input', 'One brief, carried end to end'],
+            ['3 conflict types', 'Money, pacing and policy — arbitrated'],
+          ].map(([big, small]) => (
+            <div key={big} className="bg-card rounded-2xl border border-border shadow-sm px-5 py-5 card-lift">
+              <div className="font-display font-extrabold text-lg">{big}</div>
+              <div className="text-xs text-muted-foreground mt-1">{small}</div>
+            </div>
           ))}
         </div>
       </section>
 
-      <form onSubmit={submit} className="bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 space-y-7">
-        {prefillNote && (
-          <div className="flex items-start justify-between gap-3 text-sm bg-secondary/50 border border-secondary rounded-xl px-4 py-3">
-            <span>Pre-filled from your travel history — change anything.</span>
-            <button type="button" onClick={() => setPrefillNote(false)} className="font-semibold hover:opacity-70" aria-label="Dismiss">✕</button>
-          </div>
-        )}
-
-        {/* Mode select — six entry paths, one per persona */}
-        <div>
-          <label className="block font-display font-semibold mb-1">Who&apos;s travelling?</label>
-          <p className="text-xs text-muted-foreground mb-3">
-            Each path runs a different Intent agent — and Family, Pilgrimage and Corporate skip the
-            mood quiz entirely.
+      {/* ---------------- PLANNER ---------------- */}
+      <section ref={formRef} className="max-w-3xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 scroll-mt-20">
+        <div className="text-center mb-8">
+          <h2 className="type-section font-display font-extrabold">Who&apos;s coming along?</h2>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+            Each path runs a different Intent agent. Family, Pilgrimage and Corporate skip the mood
+            quiz entirely — because for them, the intent is already known.
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {MODES.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => { setMode(m.key); setError(''); }}
-                className={`px-3 py-2.5 rounded-xl text-left border transition-colors ${
-                  mode === m.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
-                }`}
-                aria-pressed={mode === m.key}
-              >
-                <div className="font-semibold text-sm">{m.emoji} {m.label}</div>
-                <div className={`text-[11px] mt-0.5 ${mode === m.key ? 'opacity-80' : 'text-muted-foreground'}`}>{m.sub}</div>
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Mode-specific inputs */}
-        {mode === 'solo' && (
-          <>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-10">
+          {MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => pickMode(m.key)}
+              className={`px-4 py-4 rounded-2xl text-left border card-lift ${
+                mode === m.key
+                  ? 'surface-deep-grad border-primary shadow-lg'
+                  : 'bg-card border-border hover:border-primary/40'
+              }`}
+              aria-pressed={mode === m.key}
+            >
+              <div className="text-2xl leading-none">{m.emoji}</div>
+              <div className={`font-display font-bold mt-2 ${mode === m.key ? 'text-white' : ''}`}>{m.label}</div>
+              <div className={`text-[11px] mt-0.5 ${mode === m.key ? 'text-white/70' : 'text-muted-foreground'}`}>
+                {m.sub}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={submit} className="bg-card rounded-3xl border border-border shadow-sm p-5 sm:p-8 space-y-7">
+          {prefillNote && (
+            <div className="flex items-start justify-between gap-3 text-sm bg-secondary/50 border border-secondary rounded-xl px-4 py-3">
+              <span>Pre-filled from your travel history — change anything.</span>
+              <button type="button" onClick={() => setPrefillNote(false)} className="font-semibold hover:opacity-70" aria-label="Dismiss">✕</button>
+            </div>
+          )}
+
+          {mode === 'solo' && (
             <div>
               <label className="block font-display font-semibold mb-3">
                 What&apos;s the mood? <span className="text-destructive">*</span>
@@ -241,140 +277,169 @@ export default function PlanPage() {
                     key={m.key}
                     type="button"
                     onClick={() => setMood(m.key)}
-                    className={`px-3 py-2.5 rounded-full text-sm font-medium border transition-colors ${
+                    className={`px-3 py-3 rounded-xl text-sm font-medium border transition-colors ${
                       mood === m.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
                     }`}
                     aria-pressed={mood === m.key}
                   >
-                    {m.emoji} {m.key}
+                    <span className="text-lg mr-1">{m.emoji}</span> {m.key}
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
-                value={moodNote}
-                onChange={(e) => setMoodNote(e.target.value)}
-                placeholder="Describe your vibe (optional)"
-                className="mt-3 w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                maxLength={120}
-              />
-            </div>
-          </>
-        )}
-
-        {usesPeople && <TravellersForm people={people} setPeople={setPeople} max={mode === 'couple' ? 2 : 6} />}
-        {mode === 'family' && <HouseholdForm household={household} setHousehold={setHousehold} />}
-        {mode === 'pilgrimage' && <PilgrimageForm value={pilgrimage} setValue={setPilgrimage} />}
-        {mode === 'corporate' && <CorporateForm value={corporate} setValue={setCorporate} />}
-
-        {/* Budget — group modes derive it from the individual budgets */}
-        {!usesPeople && (
-          <div>
-            <label className="block font-display font-semibold mb-1">
-              Total budget <span className="font-mono text-primary">{fmtINR(budget)}</span>
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range" min={5000} max={200000} step={1000} value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="flex-1 accent-[#14453D]" aria-label="Budget slider"
-              />
-              <input
-                type="number" min={5000} max={200000} step={1000} value={budget}
-                onChange={(e) => setBudget(Math.min(200000, Math.max(5000, Number(e.target.value) || 5000)))}
-                className="w-28 px-3 py-2 rounded-xl border border-input bg-card text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label="Budget amount"
-              />
-            </div>
-            {mode === 'corporate' && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Policy caps above are hard ceilings — the Budget Agent may not exceed them, and the
-                compliance audit checks every booking against them.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="grid sm:grid-cols-3 gap-5">
-          <div>
-            <label className="block font-display font-semibold mb-2">Days</label>
-            <div className="flex items-center rounded-xl border border-input overflow-hidden">
-              <button type="button" onClick={() => setDuration((d) => Math.max(1, d - 1))} className="px-4 py-2.5 hover:bg-muted font-bold" aria-label="Fewer days">−</button>
-              <span className="flex-1 text-center font-mono font-semibold">{duration}</span>
-              <button type="button" onClick={() => setDuration((d) => Math.min(10, d + 1))} className="px-4 py-2.5 hover:bg-muted font-bold" aria-label="More days">+</button>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="origin" className="block font-display font-semibold mb-2">From</label>
-            <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Your city" className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-          <div>
-            <label htmlFor="start" className="block font-display font-semibold mb-2">Start date</label>
-            <input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-        </div>
-
-        <div>
-          <button type="button" onClick={() => setShowMore((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showMore}>
-            {showMore ? '− Fewer preferences' : '+ More preferences'}
-          </button>
-          {showMore && (
-            <div className="mt-4 grid sm:grid-cols-3 gap-5">
-              {!usesPeople && mode !== 'family' && (
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Travellers</label>
-                  <div className="flex items-center rounded-xl border border-input overflow-hidden">
-                    <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
-                    <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
-                    <button type="button" onClick={() => setTravelers((t) => Math.min(8, t + 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="More travellers">+</button>
-                  </div>
-                </div>
-              )}
-              {mode !== 'pilgrimage' && (
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Food</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {FOODS.map((f) => (
-                      <button key={f} type="button" onClick={() => setFoodPref(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${foodPref === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{f}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold mb-2">Pace</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {PACES.map((p) => (
-                    <button key={p} type="button" onClick={() => setPace(p)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${pace === p ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{p}</button>
-                  ))}
-                </div>
+              <div className="mt-3 rounded-xl border border-input glow-focus transition">
+                <input
+                  type="text"
+                  value={moodNote}
+                  onChange={(e) => setMoodNote(e.target.value)}
+                  placeholder="Describe your vibe — “slow mornings, sea breeze, no alarms”"
+                  className="w-full px-4 py-3 rounded-xl bg-card text-sm focus:outline-none"
+                  maxLength={120}
+                />
               </div>
             </div>
           )}
-        </div>
 
-        {error && <p className="text-sm text-destructive font-medium" role="alert">{error}</p>}
+          {usesPeople && <TravellersForm people={people} setPeople={setPeople} max={mode === 'couple' ? 2 : 6} />}
+          {mode === 'family' && <HouseholdForm household={household} setHousehold={setHousehold} />}
+          {mode === 'pilgrimage' && <PilgrimageForm value={pilgrimage} setValue={setPilgrimage} />}
+          {mode === 'corporate' && <CorporateForm value={corporate} setValue={setCorporate} />}
 
-        <div className="pt-1 space-y-3">
-          <button type="submit" className="w-full py-3.5 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg shadow-sm hover:brightness-95 active:scale-[0.99] transition">
-            {ctaLabel}
-          </button>
-          <button type="button" onClick={loadSample} className="w-full text-center text-sm font-semibold text-primary hover:opacity-80">
-            See a sample trip →
-          </button>
-        </div>
-      </form>
+          {!usesPeople && (
+            <div>
+              <label className="block font-display font-semibold mb-2">
+                Total budget <span className="font-mono text-primary ml-1">{fmtINR(budget)}</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range" min={5000} max={200000} step={1000} value={budget}
+                  onChange={(e) => setBudget(Number(e.target.value))}
+                  className="flex-1 accent-[#14453D]" aria-label="Budget slider"
+                />
+                <input
+                  type="number" min={5000} max={200000} step={1000} value={budget}
+                  onChange={(e) => setBudget(Math.min(200000, Math.max(5000, Number(e.target.value) || 5000)))}
+                  className="w-28 px-3 py-2.5 rounded-xl border border-input bg-card text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Budget amount"
+                />
+              </div>
+              {mode === 'corporate' && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Policy caps above are hard ceilings — enforced in code, then audited by the Referee.
+                </p>
+              )}
+            </div>
+          )}
 
-      <section className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-        {[
-          ['4–6 hrs → <60 s', 'planning time'],
-          ['6 entry paths', 'one agent core'],
-          ['7 agents, 1 referee', 'conflicts resolved in the open'],
-        ].map(([big, small]) => (
-          <div key={big} className="bg-card rounded-2xl border border-border px-4 py-4">
-            <div className="font-display font-bold">{big}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{small}</div>
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+            <div>
+              <label className="block font-display font-semibold mb-2">Days</label>
+              <div className="flex items-center rounded-xl border border-input overflow-hidden">
+                <button type="button" onClick={() => setDuration((d) => Math.max(1, d - 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="Fewer days">−</button>
+                <span className="flex-1 text-center font-mono font-semibold">{duration}</span>
+                <button type="button" onClick={() => setDuration((d) => Math.min(10, d + 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="More days">+</button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="origin" className="block font-display font-semibold mb-2">From</label>
+              <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Your city" className={fieldCls} />
+            </div>
+            <div>
+              <label htmlFor="start" className="block font-display font-semibold mb-2">Start date</label>
+              <input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldCls} />
+            </div>
           </div>
-        ))}
+
+          <div>
+            <button type="button" onClick={() => setShowMore((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showMore}>
+              {showMore ? '− Fewer preferences' : '+ More preferences'}
+            </button>
+            {showMore && (
+              <div className="mt-4 grid sm:grid-cols-3 gap-5">
+                {!usesPeople && mode !== 'family' && (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Travellers</label>
+                    <div className="flex items-center rounded-xl border border-input overflow-hidden">
+                      <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
+                      <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
+                      <button type="button" onClick={() => setTravelers((t) => Math.min(8, t + 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="More travellers">+</button>
+                    </div>
+                  </div>
+                )}
+                {mode !== 'pilgrimage' && (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Food</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {FOODS.map((f) => (
+                        <button key={f} type="button" onClick={() => setFoodPref(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${foodPref === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{f}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Pace</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {PACES.map((p) => (
+                      <button key={p} type="button" onClick={() => setPace(p)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${pace === p ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{p}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-destructive font-medium" role="alert">{error}</p>}
+
+          <div className="pt-1 space-y-3">
+            <button type="submit" className="w-full py-4 rounded-2xl bg-accent text-accent-foreground font-display font-bold text-lg glow-accent hover:brightness-95 active:scale-[0.99] transition">
+              {ctaLabel}
+            </button>
+            <p className="text-center text-xs text-muted-foreground">
+              Takes about 20 seconds · nothing is ever really booked
+            </p>
+          </div>
+        </form>
+      </section>
+
+      {/* ---------------- WHY IT'S DIFFERENT ---------------- */}
+      <section className="mt-20 surface-deep-grad">
+        <div className="perforation perforation-light" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <h2 className="type-section font-display font-extrabold text-center">
+            Most AI trip planners are <span className="text-accent">one prompt</span> in a trench coat
+          </h2>
+          <p className="mt-4 text-center text-white/75 max-w-2xl mx-auto">
+            TripME is a system. The agents have opposing objectives, audit each other&apos;s work, and
+            can send the plan backwards for a re-think.
+          </p>
+
+          <div className="mt-12 grid sm:grid-cols-3 gap-4">
+            {[
+              {
+                t: 'They disagree on purpose',
+                d: 'The Itinerary Agent is never shown the budget — it plans the trip you deserve at honest prices. The Budget Agent argues for thrift. Real tension, not theatre.',
+              },
+              {
+                t: 'A Referee arbitrates',
+                d: 'It states the conflict in rupees on screen, offers three genuine trade-offs, and can send the Budget Agent back to re-plan. Money, pacing and policy.',
+              },
+              {
+                t: 'One agent per human',
+                d: 'Plan with friends and everyone gets their own Advocate that never compromises. The Referee publishes who conceded what — with a fairness floor.',
+              },
+            ].map((c) => (
+              <div key={c.t} className="rounded-2xl bg-white/[0.06] border border-white/12 p-6 backdrop-blur-sm">
+                <div className="font-display font-bold text-lg text-accent">{c.t}</div>
+                <p className="mt-2 text-sm text-white/75 leading-relaxed">{c.d}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <a href="/how-it-works" className="inline-block px-7 py-3.5 rounded-2xl bg-white/10 border border-white/25 font-display font-semibold hover:bg-white/20 transition">
+              See how the seven agents work →
+            </a>
+          </div>
+        </div>
       </section>
     </main>
   );

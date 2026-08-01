@@ -47,8 +47,8 @@ const AGENTS = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">How TripME works</h1>
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+      <h1 className="type-hero font-display font-extrabold">How TripME works</h1>
 
       {/* Problem */}
       <section className="mt-8">
