@@ -16,6 +16,7 @@ import type {
   BookingItem,
   BudgetOutput,
   ConflictAudit,
+  CorporatePolicy,
   ItineraryOutput,
   SelectedDestination,
   SplitLine,
@@ -233,14 +234,38 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         durationDays: input.durationDays,
         destination: ctx.destination!.selected.name,
       };
-    case 'referee_policy':
+    case 'referee_policy': {
+      // Normalise to per-night / per-day here so the Referee compares like with
+      // like. Left to the model, it read a multi-night stay total as a nightly
+      // rate and raised a false violation.
+      const nights = Math.max(1, input.durationDays - 1);
+      const alloc = ctx.budget!.allocation;
+      const policy = (ctx.mood?.policyBrief ?? input.corporate) as CorporatePolicy | undefined;
       return {
-        policyBrief: ctx.mood?.policyBrief ?? input.corporate,
+        policyBrief: policy,
         bookings: ctx.booking!.bookings,
-        allocation: ctx.budget!.allocation,
+        allocation: alloc,
         durationDays: input.durationDays,
+        nights,
         totalBudgetINR: input.budgetTotalINR,
+        computed: {
+          stayTotalINR: alloc.stay.amountINR,
+          stayPerNightINR: Math.round(alloc.stay.amountINR / nights),
+          stayCapPerNightINR: policy?.hotelCapPerNightINR ?? null,
+          stayWithinCap:
+            policy?.hotelCapPerNightINR != null
+              ? Math.round(alloc.stay.amountINR / nights) <= policy.hotelCapPerNightINR
+              : null,
+          foodTotalINR: alloc.food.amountINR,
+          foodPerDayINR: Math.round(alloc.food.amountINR / Math.max(1, input.durationDays)),
+          perDiemCapINR: policy?.perDiemINR ?? null,
+          foodWithinPerDiem:
+            policy?.perDiemINR != null
+              ? Math.round(alloc.food.amountINR / Math.max(1, input.durationDays)) <= policy.perDiemINR
+              : null,
+        },
       };
+    }
     case 'itinerary':
       // Deliberately withholds the budget allocation on the first pass: the
       // Itinerary Agent optimises for experience, the Budget Agent for thrift,

@@ -70,12 +70,16 @@ export default function RunPage() {
   const [offerSample, setOfferSample] = useState(false);
   const [noInput, setNoInput] = useState(false);
   const [agentCount, setAgentCount] = useState(0);
+  /** id of the step currently paused on an error, awaiting the user's decision */
+  const [failedStep, setFailedStep] = useState<string | null>(null);
 
   const started = useRef(false);
   const ctxRef = useRef<PipelineContext | null>(null);
   const timerStart = useRef(0);
   const finished = useRef(false);
   const hardFails = useRef(0);
+  /** resolves the promise `call()` is parked on: true = retry, false = give up */
+  const retryResolver = useRef<((retry: boolean) => void) | null>(null);
 
   const patch = (id: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, state } : s)));
@@ -116,7 +120,12 @@ export default function RunPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Run one agent with rate-limit auto-retry. Returns null on hard failure. */
+  /**
+   * Run one agent with rate-limit auto-retry.
+   * On hard failure the pipeline PAUSES here and waits for the user to press
+   * Retry, then resumes from this exact step with the same payload — the run
+   * in progress is never thrown away. Returns null only if the user gives up.
+   */
   async function call<T>(id: string, agent: AgentKey, payload: object): Promise<T | null> {
     patch(id, { kind: 'running' });
     let rateRetries = 0;
@@ -125,6 +134,7 @@ export default function RunPage() {
         const data = await runAgent<T>(agent, payload);
         setAgentCount((c) => c + 1);
         hardFails.current = 0;
+        setFailedStep(null);
         return data;
       } catch (err) {
         const e = err instanceof AgentError ? err : new AgentError('server_error');
@@ -138,19 +148,29 @@ export default function RunPage() {
           continue;
         }
         hardFails.current++;
-        if (hardFails.current >= 2) setOfferSample(true);
+        setOfferSample(true); // always give an escape hatch, not just after two
         patch(id, {
           kind: 'error',
           message:
             e.code === 'rate_limited'
-              ? 'Still busy after retries — wait a few seconds and retry.'
+              ? 'Free-tier rate limit reached — wait a few seconds, then retry.'
               : e.code === 'missing_key'
                 ? 'The AI backend is not configured on this deployment.'
                 : e.code === 'network'
                   ? 'Network hiccup — check your connection and retry.'
                   : 'This agent hit a snag.',
         });
-        return null;
+        setFailedStep(id);
+
+        const shouldRetry = await new Promise<boolean>((resolve) => {
+          retryResolver.current = resolve;
+        });
+        retryResolver.current = null;
+        setFailedStep(null);
+        if (!shouldRetry) return null;
+
+        patch(id, { kind: 'running' });
+        rateRetries = 0;
       }
     }
   }
@@ -402,6 +422,7 @@ export default function RunPage() {
   }
 
   const loadSample = () => {
+    retryResolver.current?.(false); // release the paused pipeline before leaving
     setCurrentTrip(buildSampleTrip());
     router.push('/trip');
   };
@@ -471,6 +492,14 @@ export default function RunPage() {
                   <span className="text-destructive">{s.state.message}</span>
                 )}
               </div>
+              {s.state.kind === 'error' && failedStep === s.id && (
+                <button
+                  onClick={() => retryResolver.current?.(true)}
+                  className="mt-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
+                >
+                  Retry step
+                </button>
+              )}
             </div>
             {s.state.kind === 'done' && <span className="text-primary font-bold">✓</span>}
           </li>
