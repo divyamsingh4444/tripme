@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { FoodPref, MoodKey, Pace, TripInput } from '@/lib/types';
+import type { FoodPref, MoodKey, Pace, Traveller, TripInput, TripMode } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
 
@@ -17,18 +17,28 @@ const MOODS: { key: MoodKey; emoji: string }[] = [
 
 const AGENT_CHIPS = [
   { emoji: '✨', name: 'Mood' },
-  { emoji: '🗺️', name: 'Destination' },
+  { emoji: '🗺️', name: 'Discovery' },
   { emoji: '💰', name: 'Budget' },
   { emoji: '📅', name: 'Itinerary' },
   { emoji: '🎫', name: 'Booking' },
+  { emoji: '⚖️', name: 'Referee' },
+  { emoji: '🔔', name: 'Notify' },
 ];
 
 const FOODS: FoodPref[] = ['Veg', 'Non-veg', 'Anything'];
 const PACES: Pace[] = ['Chill', 'Balanced', 'Packed'];
 
+const newTraveller = (n: number): Traveller => ({
+  name: `Traveller ${n}`,
+  mood: 'Explore',
+  budgetINR: 20000,
+  note: '',
+});
+
 export default function PlanPage() {
   const router = useRouter();
 
+  const [mode, setMode] = useState<TripMode>('solo');
   const [mood, setMood] = useState<MoodKey | null>(null);
   const [moodNote, setMoodNote] = useState('');
   const [budget, setBudget] = useState(25000);
@@ -41,8 +51,11 @@ export default function PlanPage() {
   const [showMore, setShowMore] = useState(false);
   const [error, setError] = useState('');
   const [prefillNote, setPrefillNote] = useState(false);
+  const [people, setPeople] = useState<Traveller[]>([
+    { name: 'Priya', mood: 'Adventure', budgetINR: 20000, note: '' },
+    { name: 'Rohan', mood: 'Relax', budgetINR: 15000, note: '' },
+  ]);
 
-  // Defaults that depend on the client: date (+3 weeks) and history pre-fill.
   useEffect(() => {
     const d = new Date();
     d.setDate(d.getDate() + 21);
@@ -57,11 +70,28 @@ export default function PlanPage() {
     }
   }, []);
 
+  const groupBudget = people.reduce((s, p) => s + (Number(p.budgetINR) || 0), 0);
+  const effectiveBudget = mode === 'group' ? groupBudget : budget;
+  const effectiveTravellers = mode === 'group' ? people.length : travelers;
+
+  const updatePerson = (i: number, patch: Partial<Traveller>) =>
+    setPeople((prev) => prev.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mood) {
+    if (mode === 'solo' && !mood) {
       setError('Pick a mood — it is the one thing the agents cannot guess.');
       return;
+    }
+    if (mode === 'group') {
+      if (people.length < 2) {
+        setError('Group mode needs at least two travellers.');
+        return;
+      }
+      if (people.some((p) => !p.name.trim())) {
+        setError('Every traveller needs a name — their Advocate agent argues in that name.');
+        return;
+      }
     }
     if (!origin.trim()) {
       setError('Tell us the city you are starting from.');
@@ -73,13 +103,15 @@ export default function PlanPage() {
     }
     setError('');
     const input: TripInput = {
-      mood,
+      mode,
+      mood: mode === 'group' ? people[0].mood : mood!,
       moodNote: moodNote.trim(),
-      budgetTotalINR: budget,
+      travellersList: mode === 'group' ? people.map((p) => ({ ...p, name: p.name.trim() })) : [],
+      budgetTotalINR: effectiveBudget,
       durationDays: duration,
       originCity: origin.trim(),
       startDate,
-      travelers,
+      travelers: effectiveTravellers,
       foodPref,
       pace,
     };
@@ -94,7 +126,6 @@ export default function PlanPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
-      {/* Hero */}
       <section className="text-center mb-10">
         <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
           One mood. One budget.
@@ -102,8 +133,8 @@ export default function PlanPage() {
           One complete trip.
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-          Five AI agents plan your entire trip — destination, budget, day-by-day itinerary and
-          bookings — in under a minute.
+          Seven AI agents plan your entire trip — and when two of them disagree, a Referee
+          arbitrates in front of you.
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-xs font-medium">
           {AGENT_CHIPS.map((a, i) => (
@@ -117,7 +148,6 @@ export default function PlanPage() {
         </div>
       </section>
 
-      {/* Form */}
       <form
         onSubmit={submit}
         className="bg-card rounded-2xl border border-border shadow-sm p-6 sm:p-8 space-y-7"
@@ -125,182 +155,219 @@ export default function PlanPage() {
         {prefillNote && (
           <div className="flex items-start justify-between gap-3 text-sm bg-secondary/50 border border-secondary rounded-xl px-4 py-3">
             <span>Pre-filled from your travel history — change anything.</span>
-            <button
-              type="button"
-              onClick={() => setPrefillNote(false)}
-              className="font-semibold hover:opacity-70"
-              aria-label="Dismiss"
-            >
+            <button type="button" onClick={() => setPrefillNote(false)} className="font-semibold hover:opacity-70" aria-label="Dismiss">
               ✕
             </button>
           </div>
         )}
 
-        {/* Mood */}
+        {/* Mode select */}
         <div>
-          <label className="block font-display font-semibold mb-3">
-            What&apos;s the mood? <span className="text-destructive">*</span>
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {MOODS.map((m) => (
+          <label className="block font-display font-semibold mb-3">Who&apos;s travelling?</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              ['solo', '🧍 Just me', 'One Mood Agent reads your intent'],
+              ['group', '👥 Group / Couple', 'One Advocate agent argues per person'],
+            ] as const).map(([key, label, sub]) => (
               <button
-                key={m.key}
+                key={key}
                 type="button"
-                onClick={() => setMood(m.key)}
-                className={`px-3 py-2.5 rounded-full text-sm font-medium border transition-colors ${
-                  mood === m.key
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card border-input hover:bg-muted'
+                onClick={() => setMode(key)}
+                className={`px-4 py-3 rounded-xl text-left border transition-colors ${
+                  mode === key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
                 }`}
-                aria-pressed={mood === m.key}
+                aria-pressed={mode === key}
               >
-                {m.emoji} {m.key}
+                <div className="font-semibold text-sm">{label}</div>
+                <div className={`text-xs mt-0.5 ${mode === key ? 'opacity-80' : 'text-muted-foreground'}`}>{sub}</div>
               </button>
             ))}
           </div>
-          <input
-            type="text"
-            value={moodNote}
-            onChange={(e) => setMoodNote(e.target.value)}
-            placeholder="Describe your vibe (optional)"
-            className="mt-3 w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            maxLength={120}
-          />
         </div>
 
-        {/* Budget */}
-        <div>
-          <label className="block font-display font-semibold mb-1">
-            Total budget <span className="font-mono text-primary">{fmtINR(budget)}</span>
-          </label>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min={5000}
-              max={200000}
-              step={1000}
-              value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))}
-              className="flex-1 accent-[#14453D]"
-              aria-label="Budget slider"
-            />
-            <input
-              type="number"
-              min={5000}
-              max={200000}
-              step={1000}
-              value={budget}
-              onChange={(e) =>
-                setBudget(Math.min(200000, Math.max(5000, Number(e.target.value) || 5000)))
-              }
-              className="w-28 px-3 py-2 rounded-xl border border-input bg-card text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Budget amount"
-            />
+        {mode === 'solo' ? (
+          <>
+            <div>
+              <label className="block font-display font-semibold mb-3">
+                What&apos;s the mood? <span className="text-destructive">*</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {MOODS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMood(m.key)}
+                    className={`px-3 py-2.5 rounded-full text-sm font-medium border transition-colors ${
+                      mood === m.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
+                    }`}
+                    aria-pressed={mood === m.key}
+                  >
+                    {m.emoji} {m.key}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={moodNote}
+                onChange={(e) => setMoodNote(e.target.value)}
+                placeholder="Describe your vibe (optional)"
+                className="mt-3 w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                maxLength={120}
+              />
+            </div>
+
+            <div>
+              <label className="block font-display font-semibold mb-1">
+                Total budget <span className="font-mono text-primary">{fmtINR(budget)}</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min={5000}
+                  max={200000}
+                  step={1000}
+                  value={budget}
+                  onChange={(e) => setBudget(Number(e.target.value))}
+                  className="flex-1 accent-[#14453D]"
+                  aria-label="Budget slider"
+                />
+                <input
+                  type="number"
+                  min={5000}
+                  max={200000}
+                  step={1000}
+                  value={budget}
+                  onChange={(e) => setBudget(Math.min(200000, Math.max(5000, Number(e.target.value) || 5000)))}
+                  className="w-28 px-3 py-2 rounded-xl border border-input bg-card text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Budget amount"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className="block font-display font-semibold mb-1">
+              Everyone&apos;s mood &amp; budget
+            </label>
+            <p className="text-xs text-muted-foreground mb-3">
+              Each person gets their own Advocate agent. The Referee negotiates between them — and
+              tells you who conceded what.
+            </p>
+            <div className="space-y-3">
+              {people.map((p, i) => (
+                <div key={i} className="rounded-xl border border-input p-4 space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={p.name}
+                      onChange={(e) => updatePerson(i, { name: e.target.value })}
+                      placeholder="Name"
+                      className="flex-1 px-3 py-2 rounded-lg border border-input bg-card text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+                      maxLength={24}
+                    />
+                    <input
+                      type="number"
+                      min={2000}
+                      step={1000}
+                      value={p.budgetINR}
+                      onChange={(e) => updatePerson(i, { budgetINR: Math.max(2000, Number(e.target.value) || 2000) })}
+                      className="w-28 px-3 py-2 rounded-lg border border-input bg-card text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                      aria-label={`Budget for ${p.name}`}
+                    />
+                    {people.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setPeople((prev) => prev.filter((_, j) => j !== i))}
+                        className="px-2.5 py-2 rounded-lg border border-input text-destructive text-sm hover:bg-destructive/5"
+                        aria-label={`Remove ${p.name}`}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MOODS.map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => updatePerson(i, { mood: m.key })}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          p.mood === m.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
+                        }`}
+                      >
+                        {m.emoji} {m.key}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={p.note}
+                    onChange={(e) => updatePerson(i, { note: e.target.value })}
+                    placeholder={`What does ${p.name || 'this person'} really want? (optional)`}
+                    className="w-full px-3 py-2 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    maxLength={100}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+              {people.length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => setPeople((prev) => [...prev, newTraveller(prev.length + 1)])}
+                  className="text-sm font-semibold text-primary hover:opacity-80"
+                >
+                  + Add traveller
+                </button>
+              )}
+              <span className="text-sm">
+                Group budget <span className="font-mono font-semibold">{fmtINR(groupBudget)}</span>
+                <span className="text-muted-foreground"> · {people.length + 1} agents just for intent</span>
+              </span>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">For the whole group, all-in.</p>
-        </div>
+        )}
 
-        {/* Duration + Origin + Date */}
         <div className="grid sm:grid-cols-3 gap-5">
           <div>
             <label className="block font-display font-semibold mb-2">Days</label>
             <div className="flex items-center rounded-xl border border-input overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setDuration((d) => Math.max(1, d - 1))}
-                className="px-4 py-2.5 hover:bg-muted font-bold"
-                aria-label="Fewer days"
-              >
-                −
-              </button>
+              <button type="button" onClick={() => setDuration((d) => Math.max(1, d - 1))} className="px-4 py-2.5 hover:bg-muted font-bold" aria-label="Fewer days">−</button>
               <span className="flex-1 text-center font-mono font-semibold">{duration}</span>
-              <button
-                type="button"
-                onClick={() => setDuration((d) => Math.min(10, d + 1))}
-                className="px-4 py-2.5 hover:bg-muted font-bold"
-                aria-label="More days"
-              >
-                +
-              </button>
+              <button type="button" onClick={() => setDuration((d) => Math.min(10, d + 1))} className="px-4 py-2.5 hover:bg-muted font-bold" aria-label="More days">+</button>
             </div>
           </div>
           <div>
-            <label htmlFor="origin" className="block font-display font-semibold mb-2">
-              From
-            </label>
-            <input
-              id="origin"
-              type="text"
-              value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
-              placeholder="Your city"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <label htmlFor="origin" className="block font-display font-semibold mb-2">From</label>
+            <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Your city" className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
-            <label htmlFor="start" className="block font-display font-semibold mb-2">
-              Start date
-            </label>
-            <input
-              id="start"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <label htmlFor="start" className="block font-display font-semibold mb-2">Start date</label>
+            <input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
         </div>
 
-        {/* More preferences */}
         <div>
-          <button
-            type="button"
-            onClick={() => setShowMore((s) => !s)}
-            className="text-sm font-semibold text-primary hover:opacity-80"
-            aria-expanded={showMore}
-          >
+          <button type="button" onClick={() => setShowMore((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showMore}>
             {showMore ? '− Fewer preferences' : '+ More preferences'}
           </button>
           {showMore && (
             <div className="mt-4 grid sm:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Travellers</label>
-                <div className="flex items-center rounded-xl border border-input overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setTravelers((t) => Math.max(1, t - 1))}
-                    className="px-4 py-2 hover:bg-muted font-bold"
-                    aria-label="Fewer travellers"
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
-                  <button
-                    type="button"
-                    onClick={() => setTravelers((t) => Math.min(8, t + 1))}
-                    className="px-4 py-2 hover:bg-muted font-bold"
-                    aria-label="More travellers"
-                  >
-                    +
-                  </button>
+              {mode === 'solo' && (
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Travellers</label>
+                  <div className="flex items-center rounded-xl border border-input overflow-hidden">
+                    <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
+                    <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
+                    <button type="button" onClick={() => setTravelers((t) => Math.min(8, t + 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="More travellers">+</button>
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold mb-2">Food</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {FOODS.map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFoodPref(f)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        foodPref === f
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card border-input hover:bg-muted'
-                      }`}
-                    >
-                      {f}
-                    </button>
+                    <button key={f} type="button" onClick={() => setFoodPref(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${foodPref === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{f}</button>
                   ))}
                 </div>
               </div>
@@ -308,18 +375,7 @@ export default function PlanPage() {
                 <label className="block text-sm font-semibold mb-2">Pace</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {PACES.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPace(p)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        pace === p
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card border-input hover:bg-muted'
-                      }`}
-                    >
-                      {p}
-                    </button>
+                    <button key={p} type="button" onClick={() => setPace(p)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${pace === p ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{p}</button>
                   ))}
                 </div>
               </div>
@@ -327,35 +383,23 @@ export default function PlanPage() {
           )}
         </div>
 
-        {error && (
-          <p className="text-sm text-destructive font-medium" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-destructive font-medium" role="alert">{error}</p>}
 
         <div className="pt-1 space-y-3">
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg shadow-sm hover:brightness-95 active:scale-[0.99] transition"
-          >
-            Plan my trip
+          <button type="submit" className="w-full py-3.5 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg shadow-sm hover:brightness-95 active:scale-[0.99] transition">
+            {mode === 'group' ? 'Negotiate our trip' : 'Plan my trip'}
           </button>
-          <button
-            type="button"
-            onClick={loadSample}
-            className="w-full text-center text-sm font-semibold text-primary hover:opacity-80"
-          >
+          <button type="button" onClick={loadSample} className="w-full text-center text-sm font-semibold text-primary hover:opacity-80">
             See a sample trip →
           </button>
         </div>
       </form>
 
-      {/* Stats row */}
       <section className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
         {[
           ['4–6 hrs → <60 s', 'planning time'],
           ['6–8 apps → 1 input', 'no tab juggling'],
-          ['5 agents, 1 pipeline', 'context never lost'],
+          ['7 agents, 1 referee', 'conflicts resolved in the open'],
         ].map(([big, small]) => (
           <div key={big} className="bg-card rounded-2xl border border-border px-4 py-4">
             <div className="font-display font-bold">{big}</div>

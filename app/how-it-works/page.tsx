@@ -10,28 +10,38 @@ export const metadata = {
 const AGENTS = [
   {
     emoji: '✨',
-    name: 'Mood Agent',
-    role: 'Turns your vibe into structured travel parameters — setting, climate, crowd tolerance, themes.',
+    name: 'Mood & Intent Agent',
+    role: 'Turns your vibe into a structured brief — setting types, crowd tolerance, and a list of non-negotiables the next agent is contractually bound to satisfy.',
   },
   {
     emoji: '🗺️',
-    name: 'Destination Agent',
-    role: 'Matches those parameters against month, budget and distance to pick one destination (+2 alternates).',
+    name: 'Discovery Agent',
+    role: 'Picks one destination (+2 alternates) and must show, line by line, where each of your non-negotiables is met.',
   },
   {
     emoji: '💰',
-    name: 'Budget Optimizer',
+    name: 'Budget Agent',
     role: 'Allocates the full budget across transport, stay, food, activities and buffer — before any booking.',
   },
   {
     emoji: '📅',
     name: 'Itinerary Agent',
-    role: 'Builds the day-by-day plan with costs, meals, plan-B swaps and a local language card.',
+    role: 'Builds the day-by-day plan at honest local prices — it is told NOT to shrink costs to fit the budget.',
   },
   {
     emoji: '🎫',
     name: 'Booking Agent',
-    role: 'Prepares simulated bookings within the allocation, each waiting for your explicit approval.',
+    role: 'Prepares simulated bookings within the allocation, each gated behind your explicit approval.',
+  },
+  {
+    emoji: '⚖️',
+    name: 'Referee Agent',
+    role: 'The one that makes this a system, not a sequence: it audits Itinerary against Budget, states any conflict out loud, and can send the Budget Agent back to re-plan. In group mode it also negotiates between everyone’s Advocates.',
+  },
+  {
+    emoji: '🔔',
+    name: 'Notification Agent',
+    role: 'Schedules trip reminders from the confirmed bookings, choosing a channel per traveller — push, SMS or voice fallback, or calendar sync.',
   },
 ];
 
@@ -66,10 +76,24 @@ export default function HowItWorksPage() {
       <section className="mt-10">
         <h2 className="font-display text-xl font-bold mb-3">The TripME answer</h2>
         <p className="text-muted-foreground leading-relaxed">
-          One input — mood + budget + duration — triggers five specialised agents in sequence. Each
-          agent does one job well, then hands a structured JSON brief to the next. Context flows
-          from intent all the way to bookings; nothing is re-typed, nothing is lost.
+          One input — mood + budget + duration — triggers seven specialised agents. Each does one
+          job well, then hands a structured JSON brief to the next. But this is deliberately{' '}
+          <strong className="text-foreground">not a straight line</strong>: the Referee Agent audits
+          the Itinerary Agent&apos;s real costs against the Budget Agent&apos;s allocation, and when
+          they conflict it says so on screen and sends the brief <em>backwards</em> for a re-plan.
+          Agents that can reject each other&apos;s work are what separate a multi-agent system from
+          one long prompt.
         </p>
+        <div className="mt-4 rounded-2xl border-2 border-accent bg-accent/10 p-5">
+          <h3 className="font-display font-bold">Group mode: one agent per human</h3>
+          <p className="text-sm mt-1.5 leading-relaxed">
+            Plan with friends and the architecture changes shape. Every traveller gets their own{' '}
+            <strong>Traveller Advocate agent</strong> whose only instruction is to argue for that
+            person and <em>never</em> compromise — a group of five runs five advocates plus the core
+            seven. The Referee then negotiates, and publishes exactly who conceded what, with a
+            satisfaction score per person and a hard floor: nobody is allowed to lose twice.
+          </p>
+        </div>
         <ol className="mt-5 space-y-0">
           {AGENTS.map((agent, i) => (
             <li key={agent.name}>
