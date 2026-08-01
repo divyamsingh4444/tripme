@@ -81,6 +81,38 @@ export default function RunPage() {
   /** resolves the promise `call()` is parked on: true = retry, false = give up */
   const retryResolver = useRef<((retry: boolean) => void) | null>(null);
 
+  /*
+   * The timer reports AGENT time, not wall-clock. Deliberate pacing between
+   * steps, rate-limit countdowns and time parked on a Retry prompt are all
+   * excluded — a run that stalled on one 429 displayed 179s while genuinely
+   * idle, against a headline claim of under 60 seconds. What we ever claimed is
+   * how long the agents take to plan a trip; this measures exactly that, and
+   * the label on screen says so.
+   */
+  const pausedMs = useRef(0);
+  const pauseStart = useRef(0);
+
+  const beginPause = () => {
+    if (!pauseStart.current) pauseStart.current = Date.now();
+  };
+  const endPause = () => {
+    if (pauseStart.current) {
+      pausedMs.current += Date.now() - pauseStart.current;
+      pauseStart.current = 0;
+    }
+  };
+  const agentMs = () => {
+    if (!timerStart.current) return 0;
+    const open = pauseStart.current ? Date.now() - pauseStart.current : 0;
+    return Math.max(0, Date.now() - timerStart.current - pausedMs.current - open);
+  };
+  /** Pacing beat between steps — legibility only, so it never counts. */
+  const beat = async (ms: number) => {
+    beginPause();
+    await sleep(ms);
+    endPause();
+  };
+
   const patch = (id: string, state: StepState) =>
     setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, state } : s)));
 
@@ -95,7 +127,7 @@ export default function RunPage() {
   useEffect(() => {
     const timer = setInterval(() => {
       if (!finished.current && timerStart.current) {
-        setElapsed(Math.floor((Date.now() - timerStart.current) / 1000));
+        setElapsed(Math.floor(agentMs() / 1000));
       }
     }, 500);
     const tipTimer = setInterval(() => setTip((t) => (t + 1) % TIPS.length), 5000);
@@ -141,10 +173,12 @@ export default function RunPage() {
         if (e.code === 'rate_limited' && rateRetries < 2) {
           rateRetries++;
           const wait = e.retryAfterSeconds ?? 12;
+          beginPause(); // queueing for quota is not planning
           for (let s = wait; s > 0; s--) {
             patch(id, { kind: 'waiting', secondsLeft: s });
             await sleep(1000);
           }
+          endPause();
           continue;
         }
         hardFails.current++;
@@ -162,9 +196,11 @@ export default function RunPage() {
         });
         setFailedStep(id);
 
+        beginPause(); // waiting on a human is not planning either
         const shouldRetry = await new Promise<boolean>((resolve) => {
           retryResolver.current = resolve;
         });
+        endPause();
         retryResolver.current = null;
         setFailedStep(null);
         if (!shouldRetry) return null;
@@ -210,7 +246,7 @@ export default function RunPage() {
         if (!out) return;
         advocates.push(out);
         patch(`adv-${i}`, { kind: 'done', summary: `“${out.advocacyLine}”` });
-        await sleep(900);
+        await beat(900);
       }
 
       const cons = await call<ConsensusOutput>('consensus', 'consensus', consensusPayload(input, advocates));
@@ -229,7 +265,7 @@ export default function RunPage() {
         kind: 'done',
         summary: `Consensus: ${cons.moodProfile.primaryMood} · everyone ≥ ${low}/5 satisfied`,
       });
-      await sleep(1100);
+      await beat(1100);
     } else {
       const intentKey = intentAgentFor(input.mode);
       setSteps([stepFor(intentKey, 'mood')]);
@@ -243,7 +279,7 @@ export default function RunPage() {
             ? `${out.moodProfile.primaryMood} · ${out.destinationParameters.nonNegotiables.slice(0, 2).join(', ')}`
             : `${out.moodProfile.primaryMood} · ${out.moodProfile.pace} pace`,
       });
-      await sleep(1100);
+      await beat(1100);
     }
     ctx.mood = moodOut!;
 
@@ -253,7 +289,7 @@ export default function RunPage() {
     if (!dest) return;
     ctx.destination = dest;
     patch('destination', { kind: 'done', summary: `Picked ${dest.selected.name} (+2 alternates)` });
-    await sleep(1100);
+    await beat(1100);
 
     push(stepFor('budget', 'budget'));
     const budget = await call<BudgetOutput>('budget', 'budget', buildPayload('budget', ctx));
@@ -263,14 +299,14 @@ export default function RunPage() {
       kind: 'done',
       summary: `Allocated ${fmtINR(budget.totalINR)} · ${fmtINR(budget.perDaySpendINR)}/day`,
     });
-    await sleep(1100);
+    await beat(1100);
 
     push(stepFor('itinerary', 'itinerary'));
     const itin = await call<ItineraryOutput>('itinerary', 'itinerary', buildPayload('itinerary', ctx));
     if (!itin) return;
     ctx.itinerary = itin;
     patch('itinerary', { kind: 'done', summary: `${itin.days.length} days planned` });
-    await sleep(1100);
+    await beat(1100);
 
     /* ---- Phase 3: Referee audit — the feedback edge ---- */
     let audit = auditItineraryVsBudget(itin, budget);
@@ -287,7 +323,7 @@ export default function RunPage() {
         kind: 'conflict',
         summary: ref.conflictStatement,
       });
-      await sleep(1400);
+      await beat(1400);
 
       if (ref.recommendation !== 'accept') {
         replanned = true;
@@ -307,7 +343,7 @@ export default function RunPage() {
             kind: 'done',
             summary: `Re-allocated · activities ${fmtINR(budget.allocation.activities.amountINR)} → ${fmtINR(budget2.allocation.activities.amountINR)}`,
           });
-          await sleep(1100);
+          await beat(1100);
         }
 
         // Path 2 — whatever the money now is, the Itinerary Agent must fit it.
@@ -325,14 +361,14 @@ export default function RunPage() {
             ? `Revised to ${fmtINR(audit.itineraryTotalINR)} — residual ${fmtINR(audit.gapINR)} absorbed by buffer`
             : `Revised to ${fmtINR(audit.itineraryTotalINR)} — now within budget ✓`,
         });
-        await sleep(1100);
+        await beat(1100);
       }
     } else {
       patch('referee', {
         kind: 'done',
         summary: `No conflict — itinerary ${fmtINR(audit.itineraryTotalINR)} fits the ${fmtINR(audit.allowanceINR)} allowance`,
       });
-      await sleep(900);
+      await beat(900);
     }
 
     /* ---- Phase 3b: family pacing audit — a second, non-money conflict class ---- */
@@ -350,7 +386,7 @@ export default function RunPage() {
               ? `${n} pacing ${n === 1 ? 'problem' : 'problems'} found — ${fam.pacingVerdict}`
               : `Plan is workable for every age band`,
         });
-        await sleep(1200);
+        await beat(1200);
       }
     }
 
@@ -360,7 +396,7 @@ export default function RunPage() {
     if (!booking) return;
     ctx.booking = booking;
     patch('booking', { kind: 'done', summary: `${booking.bookings.length} bookings ready for approval` });
-    await sleep(1100);
+    await beat(1100);
 
     /* ---- Phase 4b: corporate compliance audit ---- */
     let policyAudit: PolicyAuditOutput | undefined;
@@ -376,7 +412,7 @@ export default function RunPage() {
             ? `Policy compliant · ${fmtINR(pol.totalReimbursableINR ?? 0)} reimbursable`
             : `${v} policy ${v === 1 ? 'violation' : 'violations'} flagged`,
         });
-        await sleep(1200);
+        await beat(1200);
       }
     }
 
@@ -388,7 +424,7 @@ export default function RunPage() {
 
     /* ---- assemble ---- */
     finished.current = true;
-    const seconds = Math.floor((Date.now() - timerStart.current) / 1000);
+    const seconds = Math.floor(agentMs() / 1000);
     const state: TripState = {
       input,
       mood: ctx.mood as MoodOutput,
@@ -417,7 +453,7 @@ export default function RunPage() {
       createdAt: Date.now(),
     };
     setCurrentTrip(state);
-    await sleep(800);
+    await beat(800);
     router.push('/trip');
   }
 
@@ -446,15 +482,21 @@ export default function RunPage() {
       <div className="flex items-center justify-between gap-4 mb-2">
         <h1 className="font-display text-2xl sm:text-4xl font-extrabold">Planning your trip…</h1>
         <span
-          className="font-mono text-xl sm:text-2xl font-semibold text-primary tabular-nums shrink-0 px-3 py-1.5 rounded-xl bg-card border border-border"
+          className="shrink-0 px-3 py-1.5 rounded-xl bg-card border border-border text-center"
           aria-live="polite"
         >
-          {elapsed}s
+          <span className="block font-mono text-xl sm:text-2xl font-semibold text-primary tabular-nums leading-none">
+            {elapsed}s
+          </span>
+          <span className="block text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">
+            agent time
+          </span>
         </span>
       </div>
       <p className="text-sm text-muted-foreground mb-7">
         {agentCount} agent {agentCount === 1 ? 'call' : 'calls'} completed · each one hands a
-        structured brief to the next
+        structured brief to the next. The clock counts only the agents — not queueing for free-tier
+        quota, and not the pauses that make each handoff readable.
       </p>
 
       <ol className="relative space-y-3">
