@@ -16,6 +16,13 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 1 Aug 2026
 
+**D-013 · Trip/run visual pass, real favicon, and three.js gated by device (commit `90924d4`).**
+- **Trip page** — the screen the demo spends most time on — got a dedicated pass. The header is now a deep-gradient statement card (destination in the hero type scale, status chips, dates/travellers/getting-there tiles) with the Discovery Agent's **non-negotiables rendered below a perforation as a receipt**: promised vs met, visible. Day-by-day became a **timeline** — Pine header with a day badge, connected morning/afternoon/evening nodes, costs right-aligned, meals and plan-B paired. Run page steps gained a vertical spine and per-state icon chips.
+- **Favicon.** Answering the question directly: converting the logo SVG to a favicon does *not* fix anything about the nav logo (already fixed in D-012), and the full lockup makes a **bad** favicon — a script wordmark plus hairline plane is mush at 16px. Built a purpose-made mark instead: Pine field, marigold flight path, solid plane. Leftover v0 icon PNGs removed.
+- **three.js cost, measured not guessed:** 708KB raw / **178KB gzipped**, already isolated in its own lazy chunk. Rather than remove it (it was explicitly wanted, and the globe is the atmosphere), it is now **gated**: it loads only for motion-tolerant users on ≥768px screens with ≥4 cores and no save-data. Phones get the CSS gradient — same composition, no motion, zero bytes. Verified: **0 canvases at 390px, 1 at 1366px**. Most real-world visitors therefore never download it.
+
+*Still open: the login decision, and a full uninterrupted group-mode run (blocked by Groq free-tier limits, not by code).*
+
 **D-012 · Brand and atmosphere pass — the "generic" critique answered visually (commit `6b493a8`).**
 Architecture had been fixed (D-002, D-007) but the *look* was still plain. Studied **Pickyourtrail.com** as the reference and extracted its actual design language rather than copying it: deep-green as the dominant surface (not just an accent), a full-bleed atmospheric hero, oversized confident display type, **ticket-perforation dividers**, and glow on primary actions. Applied to TripME's own palette:
 - **three.js hero backdrop** — a point-cloud globe with marigold flight arcs, drifting motes and pointer parallax. On-theme for travel and it means no stock photography (which we cannot buy). Engineered carefully: dynamically imported so it never blocks first paint, paused via IntersectionObserver when scrolled away, and it bails cleanly to a gradient under `prefers-reduced-motion` or missing WebGL — **both fallbacks verified**, not assumed.
