@@ -706,9 +706,12 @@ export default function TripPage() {
 
       {/* Live spend + split */}
       <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
-        <h2 className="type-section font-display font-extrabold">Live spend &amp; settle-up</h2>
+        <h2 className="type-section font-display font-extrabold">
+          Live spend{split.length > 1 && ' & settle-up'}
+        </h2>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
-          Planned vs actually approved, updating as you approve each booking. No separate app.
+          Planned vs actually approved, updating as you approve each booking.
+          {split.length > 1 && ' No separate app.'}
         </p>
         <div className="grid sm:grid-cols-3 gap-3 mb-5">
           {[
@@ -722,9 +725,12 @@ export default function TripPage() {
             </div>
           ))}
         </div>
-        {approvedTotal === 0 ? (
-          <p className="text-sm text-muted-foreground italic">Approve a booking above to see the split.</p>
-        ) : (
+        {/* A settle-up ledger needs someone to settle up with — one traveller
+            would otherwise get a row owing themselves nothing. */}
+        {split.length > 1 &&
+          (approvedTotal === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Approve a booking above to see the split.</p>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -749,7 +755,7 @@ export default function TripPage() {
               </tbody>
             </table>
           </div>
-        )}
+          ))}
       </section>
 
       {/* Notification schedule */}

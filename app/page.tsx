@@ -34,6 +34,9 @@ const MODES: { key: TripMode; label: string; emoji: string; sub: string }[] = [
 const FOODS: FoodPref[] = ['Veg', 'Non-veg', 'Anything'];
 const PACES: Pace[] = ['Chill', 'Balanced', 'Packed'];
 
+// couple/group/family derive the head-count from their lists — these three carry a plain number
+const defaultTravellers = (m: TripMode) => (m === 'solo' || m === 'corporate' ? 1 : 2);
+
 export default function PlanPage() {
   const router = useRouter();
   const formRef = useRef<HTMLDivElement>(null);
@@ -45,7 +48,7 @@ export default function PlanPage() {
   const [duration, setDuration] = useState(3);
   const [origin, setOrigin] = useState('Bengaluru');
   const [startDate, setStartDate] = useState('');
-  const [travelers, setTravelers] = useState(2);
+  const [travelers, setTravelers] = useState(defaultTravellers('solo'));
   const [foodPref, setFoodPref] = useState<FoodPref>('Anything');
   const [pace, setPace] = useState<Pace>('Balanced');
   const [showMore, setShowMore] = useState(false);
@@ -96,9 +99,13 @@ export default function PlanPage() {
   const groupBudget = people.reduce((s, p) => s + (Number(p.budgetINR) || 0), 0);
   const effectiveBudget = usesPeople ? groupBudget : budget;
   const effectiveTravellers = usesPeople ? people.length : mode === 'family' ? household.length : travelers;
+  // Solo is excluded deliberately: the mode already answers the question, and a
+  // stepper going to 8 under a button labelled "Solo" contradicts itself.
+  const usesTravellerCount = !usesPeople && mode !== 'family' && mode !== 'solo';
 
   const pickMode = (m: TripMode) => {
     setMode(m);
+    setTravelers(defaultTravellers(m)); // a count set in one mode must never leak into the next
     setError('');
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -330,7 +337,8 @@ export default function PlanPage() {
             </div>
           )}
 
-          <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+          {/* four fields pair up 2×2 rather than squeezing the date input into a quarter column */}
+          <div className={`grid gap-4 sm:gap-5 ${usesTravellerCount ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
             <div>
               <label className="block font-display font-semibold mb-2">Days</label>
               <div className="flex items-center rounded-xl border border-input overflow-hidden">
@@ -339,6 +347,16 @@ export default function PlanPage() {
                 <button type="button" onClick={() => setDuration((d) => Math.min(10, d + 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="More days">+</button>
               </div>
             </div>
+            {usesTravellerCount && (
+              <div>
+                <label className="block font-display font-semibold mb-2">Travellers</label>
+                <div className="flex items-center rounded-xl border border-input overflow-hidden">
+                  <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
+                  <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
+                  <button type="button" onClick={() => setTravelers((t) => Math.min(8, t + 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="More travellers">+</button>
+                </div>
+              </div>
+            )}
             <div>
               <label htmlFor="origin" className="block font-display font-semibold mb-2">From</label>
               <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Your city" className={fieldCls} />
@@ -354,17 +372,7 @@ export default function PlanPage() {
               {showMore ? '− Fewer preferences' : '+ More preferences'}
             </button>
             {showMore && (
-              <div className="mt-4 grid sm:grid-cols-3 gap-5">
-                {!usesPeople && mode !== 'family' && (
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Travellers</label>
-                    <div className="flex items-center rounded-xl border border-input overflow-hidden">
-                      <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
-                      <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
-                      <button type="button" onClick={() => setTravelers((t) => Math.min(8, t + 1))} className="px-4 py-2 hover:bg-muted font-bold" aria-label="More travellers">+</button>
-                    </div>
-                  </div>
-                )}
+              <div className="mt-4 grid sm:grid-cols-2 gap-5">
                 {mode !== 'pilgrimage' && (
                   <div>
                     <label className="block text-sm font-semibold mb-2">Food</label>

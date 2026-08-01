@@ -27,7 +27,7 @@ export function buildSampleTrip(): TripState {
       durationDays: 3,
       originCity: 'Bengaluru',
       startDate,
-      travelers: 2,
+      travelers: 1,
       foodPref: 'Anything',
       pace: 'Chill',
     },
@@ -36,7 +36,7 @@ export function buildSampleTrip(): TripState {
         primaryMood: 'Relax',
         energyLevel: 'low',
         pace: 'chill',
-        socialSetting: 'couple / close friends',
+        socialSetting: 'solo',
       },
       travelIntent:
         'A slow, salt-air weekend where the loudest sound is the tide and the only plan is having none.',
@@ -84,13 +84,13 @@ export function buildSampleTrip(): TripState {
         transport: {
           amountINR: 4000,
           pct: 22,
-          note: 'Round-trip AC sleeper bus for two, plus local autos between beaches.',
+          note: 'Round-trip AC sleeper bus, plus local autos between beaches.',
         },
         stay: {
           amountINR: 6000,
           pct: 33,
           tier: 'beach-side guesthouse',
-          note: 'Two nights in a clean double room a short walk from Kudle Beach.',
+          note: 'Two nights in a clean single room a short walk from Kudle Beach.',
         },
         food: {
           amountINR: 3500,
@@ -136,7 +136,7 @@ export function buildSampleTrip(): TripState {
             approxCostINR: 700,
           },
           meals: 'Smoothie bowl breakfast; grilled-fish or veg thali dinner at a beach shack.',
-          swapIfNeeded: 'If the sun is harsh, swap the walk for board games at a cliff café.',
+          swapIfNeeded: 'If the sun is harsh, swap the walk for a book and cold coffee at a cliff café.',
         },
         {
           day: 2,
@@ -240,7 +240,7 @@ export function buildSampleTrip(): TripState {
         {
           type: 'transport',
           title: 'Bengaluru → Gokarna overnight sleeper bus',
-          detail: 'AC sleeper, round trip for 2 travellers (generic operator)',
+          detail: 'AC sleeper, round trip for 1 traveller (generic operator)',
           dates: 'Departure eve of Day 1 · return night of Day 3',
           amountINR: 3800,
           budgetCategory: 'transport',
@@ -249,7 +249,7 @@ export function buildSampleTrip(): TripState {
         {
           type: 'stay',
           title: '2 nights · beach-side guesthouse (sample property)',
-          detail: 'Double room with breakfast, 4-minute walk to Kudle Beach',
+          detail: 'Single room with breakfast, 4-minute walk to Kudle Beach',
           dates: 'Day 1 – Day 3',
           amountINR: 5600,
           budgetCategory: 'stay',
@@ -257,8 +257,8 @@ export function buildSampleTrip(): TripState {
         },
         {
           type: 'activity',
-          title: 'Morning kayaking session for two',
-          detail: 'One-hour guided paddle on calm water, gear included',
+          title: 'Morning kayaking session for one',
+          detail: 'One-hour guided paddle on calm water in a single kayak, gear included',
           dates: 'Day 2, 7:30 AM',
           amountINR: 800,
           budgetCategory: 'activities',

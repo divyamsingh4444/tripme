@@ -324,14 +324,18 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         days: ctx.itinerary!.days.map((d) => ({ day: d.day, theme: d.theme })),
         travellerContext: {
           mode: input.mode,
+          // Derive from input.travelers, never a literal — a hard-coded 1 here
+          // disagreed with the count every other agent was handed.
           groupSize: usesAdvocates(input.mode)
             ? input.travellersList.length
             : input.mode === 'family'
               ? input.household.length
-              : 1,
+              : input.travelers,
           travellerNames: usesAdvocates(input.mode)
             ? input.travellersList.map((t) => t.name)
-            : input.household.map((h) => h.name),
+            : input.household.length > 0
+              ? input.household.map((h) => h.name)
+              : ['You'],
           primaryMood: (ctx.mood!.moodProfile as { primaryMood: string }).primaryMood,
           // Drives channel choice: SMS/voice fallback, calendar sync, organiser-only.
           digitalFluency:

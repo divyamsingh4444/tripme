@@ -16,6 +16,30 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 1 Aug 2026
 
+**D-015 · Took P0-3 (a solo trip planned for two) first, ahead of §8.6's own ordering (commit pending).**
+§8.6 put P0-1 — the stale five-agent copy — first. That is being overridden deliberately, and the reason is **reversibility, not effort**: the two items cost roughly the same (30 min vs 20 min), but README and `how-it-works` prose can be corrected at any hour, right up to and past 8 Aug, with zero regression risk. Anything still wrong at recording time is **frozen into the demo video** — the single biggest build deliverable (rubric 5.2, 2 marks) — and can only be undone by re-recording under a 1-plan-per-minute Groq quota. P0-3 is on camera: the trip header tile at `app/trip/page.tsx:210` renders "Travellers / 2 / people" during the solo Spiritual run that is **beat 3 of the §5.2 demo script**. P0-1 is also really the front half of §6 item 6 (doc↔build reconciliation), which has to happen anyway while drafting the PRD — doing it standalone today invites doing it twice.
+The deeper argument for going first: a Solo path that ignores that you are solo is the **"generic" critique (D-002) landing again**, against the exact persona-differentiation thesis the 7-agent rebuild exists to defend.
+**Scope of the fix — and why it doubled.** It began as two files: `app/page.tsx` (mode-derived default solo/corporate → 1, reset on mode switch, stepper surfaced out of the collapsed "+ More preferences" panel) and `lib/sample-trip.ts` (the rate-limit fallback, and therefore what evaluators see if Groq 429s, made internally consistent as a genuine solo trip with **no ₹ figures changed** — so ₹18,000 over 3 days now reads as a comfortable solo budget rather than a tight one; a deliberate trade, since a fallback that looks strained is worse than one that looks generous).
+
+A parallel read-only blast-radius audit then established that **those two files alone would have left the bug on camera.** They fix the form and the *hard-coded* sample; they do nothing for a **live** run, and beat 3 of the §5.2 demo script is a live solo run. Four further defects, all fixed here:
+- **No agent prompt had a party-size rule.** `travelers` was in the Booking, Itinerary and Budget payloads and mentioned in none of their system prompts — so a live solo run could still return "double room with breakfast", "morning kayaking for two", or a `suitabilityNote` reading "perfect for couples", on the largest surfaces of the trip page. Rules added to the Booking, Itinerary (a new SOLO branch in MODE ADAPTATION) and Budget prompts, plus a clause binding `moodProfile.socialSetting` to `travelers` at the source, since every downstream agent reads that line.
+- **`travellerContext.groupSize` was a second, hard-coded derivation** (`lib/agents-client.ts`) that fell through to a literal `1` — so on a pilgrimage trip the Notification Agent was told `groupSize: 1` while every other agent was told `travelers: 2`, in the same run. Now derived from `input.travelers`, with `travellerNames` defaulting to `['You']` instead of an empty array.
+- **The settle-up table rendered a one-row ledger for a solo trip** — "You | ₹10,200 | ₹10,200 | settled", under a heading reading "Fair share", on the same screen as demo beat 4. Pre-existing, but it is the loudest possible violation of this item's own rationale. The split table and the "& settle-up" heading now appear only when there is more than one traveller. Side benefit: this also hides the equally meaningless one-row table couple and family modes currently get, until **P1-3** properly fixes them.
+- **Solo could be set to 8 travellers** — a regression our own fix introduced by promoting the stepper to primary position. Solo no longer renders the stepper at all; the mode already answers the question. Pilgrimage and corporate keep it.
+
+*Verified:* `npx tsc --noEmit` clean, `next build` clean, and **driven in a real browser at 1268px** — Solo renders no travellers stepper at all (the mode answers it); Corporate renders it at **1** in the new 2×2 row; the sample trip page shows "**Travellers / 1 / person**", a stay card reading "**Single room** with breakfast", and a spend section headed "**Live spend**" with the settle-up table correctly absent. No page-level horizontal overflow (page width == viewport width).
+*Responsive sweep — done and clean.* Driven with Playwright at **375 / 768 / 1280 across all five entry modes** on the plan form, and at all three widths on the trip page: zero page-level horizontal overflow everywhere (`scrollWidth == clientWidth` in every one of eighteen checks), and the travellers stepper present for exactly Corporate and Pilgrimage, absent for Solo, Family and Group. D-012's invariant holds.
+
+*One check could NOT be completed, and it must not be quietly forgotten:* **the new prompt rules are unverified against a live run.** Two attempts were made; both stalled on the Discovery Agent under sustained Groq 429s — the second nursed the Retry button ten times over ten minutes without ever clearing. The free-tier quota was exhausted and stayed exhausted. Committing anyway is a deliberate call resting on one asymmetry: the prompt changes are **purely additive instructions**, so if the model ignores them the output is exactly what it was before this commit. They cannot regress anything; they can only fail to help. Everything that *can* break — layout, JSX nesting, the settle-up gate, the stepper logic, `groupSize` — is code, and all of it is verified. **Owed at the next opportunity with quota:** one solo run, checking the booking cards, `stay.note` and day `suitabilityNote`s for couple-framing.
+**Considered and rejected for now:** *P0-6 (error boundary)* — its catastrophic case has a free workaround for the recording (clear localStorage first) and its real exposure is the 8 Aug live session, after the 2 Aug deadline. *P1-2 (apply pacing fixes)* — the best demo beat in the backlog, but 1.5 hrs of new agent round-trips is too much new work for the day before submission.
+
+**D-014 · Full product audit done from a PM seat; findings live in §8 as a ranked backlog.**
+Read the product A-to-Z at commit `c67e1fe` — every route, both storage layers, all fourteen agent prompts, the API surface, performance, accessibility, copy consistency and repo hygiene. Verdict: **the architecture is genuinely strong and needs no structural change**; what has drifted is the gap between what the product *claims* and what its surfaces *do*. Three patterns, in priority order:
+1. **Stale public copy contradicts the build** — the README and the How-it-works page still describe **five** agents and a **"sequential"** pipeline. The repo is public and linked in the submission, and rubric 5.3 deducts for contradictions between phases. This one contradicts us against ourselves.
+2. **Headline mechanisms are one layer thinner than they look** — the Referee's three resolution options do nothing when clicked; the family pacing audit names fixes that can't be applied; switching destination keeps the *old* destination's "non-negotiables met" receipt. These are exactly where a hostile click-through lands.
+3. **Unhandled demo failure modes** — no error boundary anywhere (any client throw = white screen), a public unauthenticated unthrottled `/api/agent` on a free-tier key, and ~7s of the headline "planned in Ns" timer is `sleep()`.
+Everything is logged in **§8** with evidence, rationale and effort, ranked P0–P3, each item self-contained so it can be picked up one at a time. Sequencing in §8.6. *Deliberately kept in this document rather than a separate audit file — one source of truth, one history.*
+
 **D-013 · Trip/run visual pass, real favicon, and three.js gated by device (commit `90924d4`).**
 - **Trip page** — the screen the demo spends most time on — got a dedicated pass. The header is now a deep-gradient statement card (destination in the hero type scale, status chips, dates/travellers/getting-there tiles) with the Discovery Agent's **non-negotiables rendered below a perforation as a receipt**: promised vs met, visible. Day-by-day became a **timeline** — Pine header with a day badge, connected morning/afternoon/evening nodes, costs right-aligned, meals and plan-B paired. Run page steps gained a vertical spine and per-state icon chips.
 - **Favicon.** Answering the question directly: converting the logo SVG to a favicon does *not* fix anything about the nav logo (already fixed in D-012), and the full lockup makes a **bad** favicon — a script wordmark plus hairline plane is mush at 16px. Built a purpose-made mark instead: Pine field, marigold flight path, solid plane. Leftover v0 icon PNGs removed.
@@ -279,6 +303,194 @@ Now that wireframes are deferred (D-006), the plan reorganises around one princi
 | **C · Derive, in one batch** | Wireframes (Path A) · user flow + journey map · PRD · demo recording — all generated from the frozen build, so they agree with each other and with the app | All four exist with links |
 | **D · Assemble & submit** | Merge Q&A doc + PRD + wireframe link + demo link + Jira screenshot + experimental tasks. Team list, student IDs, contributions. Every link hyperlinked | Submitted |
 
-**Immediate next action:** decide what else the product needs (stage A). Everything else is either waiting on that, or is the team's to run in parallel.
+**Immediate next action:** work the §8 backlog top-down (stage A). Everything else is either waiting on that, or is the team's to run in parallel.
 
 *Everything above is ₹0: Groq free tier, Vercel free hosting, Figma free plan (if Path B), Game Bar/OBS, YouTube unlisted, VS Code PDF export.*
+
+---
+
+## 8. Product audit & prioritised backlog (D-014)
+
+**Audit basis: commit `c67e1fe`, main, clean tree.** This is the answer to "what would a PM owning this fix?" — §7 stage A, made concrete. Pick an item, do it, tick it. Every item is self-contained; none depends on another unless stated.
+
+Each entry carries **Evidence** (the exact file/line — every finding was verified against source, not inferred), **Why it matters** (the user, evaluator or business consequence — if that line can't be written, the item doesn't belong here), a **Fix** shape, and an **Effort** estimate.
+
+**Priority model.** The deadline dominates, so ranking is `demo/submission risk × user impact ÷ effort`, not pure product value.
+- **P0 — Ship-blocker.** Actively wrong, publicly visible, or will break in front of an evaluator. Do before recording.
+- **P1 — Credibility gap.** The product claims something it doesn't quite do; a sharp evaluator poking the demo lands here.
+- **P2 — Product depth.** The gap between "impressive demo" and "product someone uses twice."
+- **P3 — Hygiene.** Won't be seen; will hurt later.
+
+**What is NOT wrong.** Opposing-objective agents, the Referee arbitrating three conflict classes, the backward re-plan edge, one Advocate per human, money enforced in code rather than trusted to the model, the six differentiated entry paths, the pause-and-resume failure handling on `/run`, and the three.js gating from D-013 — all sound, none need rework. Nothing below disputes the architecture.
+
+### 8.1 P0 — Ship-blockers
+
+**P0-1 · Public copy still says five agents and a sequential pipeline.**
+*Evidence:* `README.md` — the whole "The 5-agent pipeline" table, "five specialised AI agents in sequence", "holds all five system prompts". `app/how-it-works/page.tsx:6-7` — `metadata.description` reads *"how five specialised AI agents…"*. `app/how-it-works/page.tsx:163-165` — *"Orchestration: a sequential in-app pipeline"*, on the very page whose thesis is that it is **deliberately not a straight line**.
+*Why it matters:* Rubric 5.3 deducts for contradictions with earlier phases — this contradicts *itself*, in public, on the two artifacts an evaluator opens first (repo landing page, explainer page). The `metadata.description` is also the link-preview and search text. Cheapest marks protection in the backlog.
+*Fix:* Rewrite the README pipeline table to seven agents + dynamic Advocates (lift §3's table), fix the two strings in `how-it-works`, re-word "sequential" to "a graph with a feedback edge — the Referee can send work backwards". Then grep for `five` / `5 agents`.
+*Effort:* 30 min.
+*Status:* **NEXT (D-015)** — was ranked first here and in §8.6, then displaced by P0-3. Reversible at any hour and folds into §6 item 6 (doc↔build reconciliation) during the PRD draft, so it does not have to clear before the recording.
+
+**P0-2 · `/logo.png` is a broken image on How-it-works — and `.gitignore` guarantees it stays broken.**
+*Evidence:* `app/how-it-works/page.tsx:194-200` renders `<Image src="/logo.png">`. `public/` holds only `icon.svg`, `logo.svg`, `logo-white.svg` — the PNGs went in D-013. Worse, `.gitignore` carries an unscoped `*.png`, so dropping a `logo.png` into `public/` fixes it locally and silently never deploys.
+*Why it matters:* A visibly broken image in the "Built by Team DEBUGGERS" credit block, on the page that explains the product. Costs disproportionate credibility, and the gitignore trap makes the obvious fix fail mysteriously.
+*Fix:* Point the credit block at `/logo.svg` (already present, already used by the nav). Separately scope the ignore rule to `.playwright-mcp/*.png` — the intent was Playwright output, not all images — and drop the duplicated `.playwright-mcp/` line.
+*Effort:* 10 min.
+
+**P0-3 · A solo trip is silently planned for two people.**
+*Evidence:* `app/page.tsx:47` — `useState(2)` for `travelers`. `app/page.tsx:98` — `effectiveTravellers` falls through to it for solo, pilgrimage and corporate. `app/page.tsx:358` — the travellers stepper renders **only inside the collapsed "+ More preferences" panel**, which defaults closed.
+*Why it matters:* Pick 🧍 Solo, submit, and `travelers: 2` reaches the Budget Agent (which sizes stay and food for two), the Booking Agent, and the hotel deep-link (`group_adults=2`). The plan is wrong in a way the user is never shown an input for. Same for a single-traveller corporate trip — the *normal* corporate case. It also undercuts the persona-awareness we advertise for that path.
+*Fix:* Default `travelers` from mode (solo → 1, corporate → 1, else 2); surface the stepper outside the collapsed panel for solo/pilgrimage/corporate; reset on mode change.
+*Effort:* 20 min.
+*Status:* **CODE COMPLETE, AWAITING BROWSER VERIFICATION (D-015, commit pending)** — **taken first, ahead of P0-1**, because it is the only P0 of the two that appears on camera (trip header, `app/trip/page.tsx:210`, during demo-script beat 3) and therefore the only one that becomes irreversible once we hit record. Six files, not the two originally scoped: a blast-radius audit found that fixing the form and the hard-coded sample would have left the bug intact on **live** runs, because no agent prompt had a party-size rule. Booking / Itinerary / Budget / Mood prompts, `travellerContext.groupSize`, the solo settle-up table and the solo stepper's 1-8 range are all in scope. `tsc` clean, `next build` clean, and **Playwright-verified at 375/768/1280 across all five modes** — no overflow anywhere, stepper present for exactly Corporate and Pilgrimage, sample trip reading "Travellers / 1 / person", "Single room", and "Live spend" with the settle-up table correctly absent. **Committed with one check outstanding:** the new prompt rules could not be exercised live — two attempts died under sustained Groq 429s (see the raised severity note on **P0-7**). Accepted because the prompt edits are additive only and cannot regress; owed at the next opportunity with quota. Reasoning in full at **D-015**; §8.6 updated to match. Deferred spin-offs: **P1-8**, **P2-9**, **P2-10**, **P3-7**, plus the timer addendum on **P0-5**.
+
+**P0-4 · Switching destination keeps the old destination's "non-negotiables met" receipt.**
+*Evidence:* `app/trip/page.tsx:140-146` — `destination: { ...destination, selected: newSelected, alternates: newAlternates }`. `nonNegotiablesMet` is spread from the previous object and never regenerated, because `switchDestination` re-runs only Budget → Itinerary → Booking, never Discovery. `app/trip/page.tsx:225-242` then renders it under the new destination's name. Related: `lib/agents-client.ts:388-402` (`selectedFromAlternate`) blanks `region`, `weatherAtTravelDates`, `crowdLevel`, `dailyCostBandINR` and sets `approxHours: 0`, so the header's "Getting there" tile degrades too.
+*Why it matters:* This is the flagship mechanism — "the Discovery Agent is **contractually bound** to show, line by line, where each non-negotiable is met" (§3, agent 2). After a switch the page shows Gokarna's proof lines under Rishikesh's headline. It is the most falsifiable claim on the page, and switching destination is an obvious thing to try.
+*Fix:* Re-run the Discovery Agent as part of the switch, pinning `selected.name` to the chosen alternate so it regenerates `nonNegotiablesMet` and the blanked fields — one extra agent call, and the switching modal already narrates agent-by-agent so it fits the existing UX. Cheap alternative if time runs out: hide the receipt block after a switch and label the state honestly.
+*Effort:* 45 min.
+
+**P0-5 · ~7 seconds of the headline timer is `sleep()`.**
+*Evidence:* `app/run/page.tsx` — `await sleep(1100)` after mood (L246), destination (L256), budget (L266), itinerary (L273) and booking (L363); `sleep(900)` after a clean referee pass (L335); `sleep(800)` before `router.push('/trip')` (L420). Solo happy path = **7.2s of deliberate delay** inside a run §3 measures at 11–25s and the trip header reports as `⚡ 7 agents · Ns`.
+*Why it matters:* "<60 s planning time" is a locked Phase 1 commitment and the on-screen timer is our evidence for it. A third to a half of a fast run is artificial. The repo is public, and a mentor grading "reasoning and mechanisms" may well read `run/page.tsx`. The pacing exists for legibility — a legitimate goal; the problem is that it's *counted*.
+*Fix:* Cheapest honest version — stop the elapsed timer at the last agent response and let the remaining animation play out after it freezes, so the number reports agent time. Better — cut the delays to ~400 ms (step summaries stay readable) and leave the timer alone. Either way the number must be defensible line-by-line on stage.
+*Effort:* 30 min. See also P2-2, which inflates group runs far more.
+**Addendum (observed live, 1 Aug, during D-015 verification — this is now the worse half of the item).** The elapsed timer keeps counting through rate-limit waits **and while the pipeline sits paused awaiting the user's Retry decision** — `timerStart` is never adjusted, and `plannedInSeconds` is computed as raw wall-clock at assembly (`app/run/page.tsx:391`). A real solo run that took one 429 on the Discovery Agent showed **179s** on screen while genuinely idle. If the user then retries and completes, the trip header renders `⚡ 7 agents · 179s` — flatly contradicting the "<60 s" Phase 1 claim, on camera, in **precisely the scenario §6 Risk 3 says is most likely during evaluation**. The `sleep()` padding is an honesty problem; this is a headline-claim problem, and it fires exactly when we can least afford it. *Fix:* accumulate agent time only — pause the clock on `waiting`/`error` states and resume on retry — so the number means "time the agents took", which is the only claim we ever actually made.
+
+**P0-6 · No error boundary anywhere — any client throw is a white screen.**
+*Evidence:* No `error.tsx`, `global-error.tsx` or `not-found.tsx` in `app/`. Every page is `'use client'` with unguarded reads of storage-derived data — `lib/storage.ts:129-130` (`t.state.mood.moodProfile.primaryMood`, `t.state.input.pace`) is called from the **landing page** at `app/page.tsx:86`; `lib/storage.ts:101` reads `t.state.destination.selected.name`. `listTrips()` catches JSON parse failures but nothing catches a shape mismatch.
+*Why it matters:* The saved-trip schema has already changed twice in this repo (`d576e1c` 5-agent rebuild → `ed871de` 7-agent), and the presenter's own browser has been used across every build. One malformed entry in `tripme.trips` and `computeTravelDNA()` throws inside a `useEffect` on the **home page** — with no boundary that's a blank screen at the top of the demo, recoverable only by knowing to clear localStorage. This compounds the D-009 caveat that Playwright's profile persists localStorage.
+*Fix:* Add `app/error.tsx` (friendly message + "Reset local data" clearing the three storage keys + "Try again") and `app/not-found.tsx`. Independently harden `computeTravelDNA` / `getPastTripsCompact` to skip malformed entries rather than trust shape.
+*Effort:* 45 min.
+
+**P0-7 · Evaluation-day rate-limit plan — public, unauthenticated, unthrottled endpoint.**
+*Evidence:* `app/api/agent/route.ts:332-348` — POST with no auth, no origin check, no per-IP throttle, no request cap. Each run makes 8–13 sequential Groq calls on a free tier good for roughly one plan per minute (§6 Risk 3). No `export const maxDuration`, so the platform default governs the 3400-token Itinerary call. Client retry is capped at 2 rate-limit retries per step (`app/run/page.tsx:141`).
+*Why it matters:* The URL is public and goes in the submission PDF. A handful of evaluators in the same minute — or anyone scripting it — drains the quota, and every visitor then sees the failure path. The sample-trip fallback is a good escape hatch but it is a fallback, not a plan. Highest-probability way the demo fails on the day, and it isn't a code bug, so it needs a deliberate decision.
+*Fix (combination; decide before recording):* per-IP throttle + `Origin` check on `/api/agent` (an in-memory counter suffices at this scale); `export const maxDuration = 60` so the long Itinerary call isn't cut off; a server-side cache keyed on payload hash with an hour TTL, so repeated demo runs cost nothing and return instantly; demo-day protocol — one warm-up run, and **narrate the fallback** ("free tier, ~1 plan/min — here's the honest degradation path") so a 429 reads as designed resilience rather than a crash. **Verify** the deployed function's max duration on the current Vercel plan before recording.
+*Effort:* 1–2 hrs for code; the protocol is free.
+**Severity raised — measured, not estimated (D-015 verification, 1 Aug).** §6 Risk 3 says "≈1 full plan/minute". The real behaviour is worse: after roughly two live runs the quota did not recover for **over ten minutes**, with the Discovery Agent returning 429 on ten consecutive retries spaced 30s apart. The run never completed. Two compounding causes worth stating plainly: browser automation draws on the **same** key as the app (D-009's own caveat), so testing the product competes with using it; and each run burns 8–13 calls, so two people planning at once is already over budget. **Consequence for demo day:** an evaluator who opens the URL shortly after anyone else will not see a plan at all — they will see the paused pipeline. The sample-trip fallback is therefore not a nicety, it is the primary path under load, and the demo narration must introduce it *before* it is needed. This moves the server-side cache from "nice optimisation" to the single highest-value item in P0-7, because a cached plan costs zero quota and returns instantly.
+
+### 8.2 P1 — Credibility gaps
+
+**P1-1 · The Referee's three resolution options are decorative.**
+*Evidence:* `app/trip/page.tsx:473-491` — clicking calls `setChosenResolution(i)` and renders "✓ Selected". Nothing else happens; the pipeline already auto-applied the Referee's own recommendation during the run (`app/run/page.tsx:292-328`). The "REFEREE'S PICK" badge is also hardcoded to `i === 0` rather than matched to `referee.recommendation`, so it can badge the wrong option.
+*Why it matters:* "It offers three genuine trade-offs" is one of our three headline anti-generic mechanisms (§3, agent 6). Presenting a decision and ignoring it is worse than not presenting it — the first thing anyone does with three buttons is click the one the system didn't pick.
+*Fix:* Make selection real — choosing a non-recommended option re-runs Budget and/or Itinerary with that instruction; the machinery already exists (`switchDestination`, plus the `refereeInstruction` / `spendCapINR` payload fields). If that can't fit before the deadline, the honest minimum is to label the block "The Referee considered three options and chose the first" and make the alternatives non-interactive. Fix the badge index either way.
+*Effort:* 1.5 hrs real; 15 min honest-label.
+
+**P1-2 · The family pacing audit names fixes that can't be applied.**
+*Evidence:* `app/trip/page.tsx:350-364` renders `conflictsFound[].fix` as text. No action exists.
+*Why it matters:* Same class as P1-1, on one of our strongest persona demos. The Referee finds "Day 2 affects Ira — long guided tour without snack breaks → add a 15-minute break" (§3, verified run) and the user's only option is to read it. The payoff of the whole audit is one button away.
+*Fix:* An "Apply fixes" action re-running the Itinerary Agent with the conflict list appended as hard constraints, then re-running the pacing audit to show it clean. **The most demo-able item in this backlog** — "the Referee found a problem, and here it is being fixed, live." Consider promoting it into the §5.2 demo script.
+*Effort:* 1.5 hrs.
+
+**P1-3 · Couple mode has no expense split.**
+*Evidence:* `lib/agents-client.ts:407-410` — `computeSplit` builds per-person rows only when `mode === 'group'`; couple and family fall back to `['You']`.
+*Why it matters:* Two people, two budgets collected in the form, two Advocates arguing — then a settle-up table with one row called "You". Expense split was explicit team feedback (§2) and "Splitwise meets a travel agent" is a claim in §3. Family mode has named household members and gets the same single row.
+*Fix:* Use `travellersList` whenever non-empty (covers couple *and* group) and `household` names for family. One condition plus a label pass.
+*Effort:* 20 min.
+
+**P1-4 · A plan cannot be shared with the people it was planned for.**
+*Evidence:* `lib/storage.ts:16-33` — the current trip lives in `sessionStorage`, per-tab. Saved trips are `localStorage`, per-device. No share, no export, no URL carrying a plan; the only egress is `window.print()`.
+*Why it matters:* **The biggest product gap, not just a demo one.** Group mode's whole premise is planning *with other people* — five Advocates argue for five humans, the Referee publishes who conceded what, and then exactly one person in one browser tab can see the result. Open it in a second tab and it's gone. For a travel planner, "send this to the group" is table stakes.
+*Fix:* Cheapest useful version with no backend — serialise `TripState` into a compressed URL fragment (`/trip#<compressed>`): a real shareable link, still zero server, and it *strengthens* the "no accounts, data never leaves your browser" story rather than weakening it. Add "Copy link" and "Download JSON" beside Print. A proper share needs a DB, correctly out of MVP scope.
+*Effort:* 2–3 hrs. Won't make 2 Aug; strong candidate before 8 Aug. **Note: this, not a login gate, is the real answer to "I want to get back to my plan" — see item 11 in §6.**
+
+**P1-5 · No input sanity checks — past dates and impossible budgets sail through.**
+*Evidence:* `app/page.tsx:347-349` — the date input has no `min`. `app/page.tsx:313-323` — budget is bounded ₹5,000–₹200,000 in aggregate with no relation to travellers or duration. `submit` (`app/page.tsx:106-124`) checks presence only.
+*Why it matters:* You can plan a trip that started last year and the Discovery Agent will report the weather for it. You can ask for ₹5,000 total for 8 travellers over 10 days — ₹62 per person per day — and every downstream agent will pretend that's a trip. A planner that doesn't push back on an impossible brief is autocompleting, not advising. Conversely a well-judged warning ("that's ₹62/person/day — most trips from Bengaluru need at least ₹X") is a genuinely good product moment and demonstrates PM judgment better than another agent would.
+*Fix:* `min={today}` on the date field; a live per-person-per-day figure under the budget slider with a soft warning below a threshold — warn, don't block.
+*Effort:* 45 min.
+
+**P1-6 · Single hardcoded model, no fallback.**
+*Evidence:* `app/api/agent/route.ts:19` — `const MODEL = 'llama-3.3-70b-versatile'`.
+*Why it matters:* Groq rotates and deprecates free-tier models on short notice. Presentations run from 8 Aug — days after the build freezes. A decommission between recording and presenting takes the whole product down with a provider 404, and it looks like our bug.
+*Fix:* Read from `process.env.GROQ_MODEL` with the current id as default, and fall back to a second model on a model-not-found error. Ten lines; removes a whole class of presentation-day risk.
+*Effort:* 20 min.
+
+**P1-7 · Free-text fields flow straight into system prompts unvalidated.**
+*Evidence:* `app/api/agent/route.ts:326` — `JSON.stringify(payload)` as the user message, no field allow-listing or length caps server-side. User text reaches it via `moodNote`, traveller `note`, and every pilgrimage/corporate string field.
+*Why it matters:* Low blast radius — output is JSON rendered as text by React so there's no XSS path, and no privileged tools sit behind the model. But the endpoint and repo are both public, and "user text concatenated into a system-prompted call with no validation" is fair criticism. Prompt-injecting the Discovery Agent into ignoring the non-negotiables would embarrass the demo.
+*Fix:* Validate payload shape per agent server-side, cap string lengths, strip control characters. The client already caps most fields with `maxLength` — mirror it where it's actually enforceable.
+*Effort:* 45 min.
+
+**P1-8 · The corporate hotel cap is enforced without a traveller multiplier.** *(Surfaced by the D-015 blast-radius audit.)*
+*Evidence:* `app/api/agent/route.ts:252-253` — `stayCap = hotelCapPerNightINR × nights`, no `travelers` factor; `buildPayload('referee_policy')` computes `stayPerNightINR` the same way (`lib/agents-client.ts:253-257`).
+*Why it matters:* At one traveller this is correct — so P0-3 actually *repairs* a latent mis-comparison for the default corporate case. But the stepper P0-3 promoted to primary position makes two travellers reachable in one click, and then code hard-caps the stay to one room's worth while the Booking and Itinerary agents plan for two. D-008 established the principle that policy caps are enforced in code and never trusted to the model; this is that enforcement being subtly wrong, in the mode whose entire pitch is that the numbers are auditable. A finance-literate evaluator is exactly who we built this path for.
+*Fix:* Multiply the cap by rooms (or by `travelers`) in both places, or state explicitly in the prompt and the UI that the cap is per-room.
+*Effort:* 30 min.
+
+### 8.3 P2 — Product depth
+
+**P2-1 · Nothing can be regenerated except the whole destination.** *(`app/trip/page.tsx:113-157` is the only post-plan lever.)* Every real planner lets you say "not this day" or "make it cheaper"; here one bad Day 3 means re-running from the landing page. The per-agent architecture makes targeted regeneration easy — that's the payoff of building it this way and we don't collect it. A "🔄 Re-plan this day" button showcases the architecture better than any explainer paragraph. *Fix:* per-day regenerate (Itinerary Agent, one day, other days as context) plus a global "make it cheaper / richer" re-running Budget + Itinerary with an adjusted cap. **2 hrs.**
+
+**P2-2 · Group advocates run serially, and the run can't be cancelled.** *(`app/run/page.tsx:208-214` — a `for` loop of `await call(...)` plus `sleep(900)` per traveller; no cancel control.)* Six friends = six sequential LLM calls plus 5.4s of padding before the Referee even starts, pushing group runs toward or past the "<60s" claim — and §0 notes a full group run has **never completed uninterrupted**. Advocates are independent by construction (each argues for one person, none sees the others), so this is latency we chose. *Fix:* `Promise.all` the advocates with a small stagger to avoid a burst 429; add a Cancel that aborts in-flight fetches and returns to the form with inputs intact. **1 hr.**
+
+**P2-3 · Approvals are one-way.** *(`app/trip/page.tsx:696` sets `true` with no inverse.)* Mis-click and the spend tracker and settle-up are permanently wrong for that session; everything else on the page is reversible. *Fix:* toggle, with a confirm on un-approve. **15 min.**
+
+**P2-4 · Accessibility pass.** Pipeline step transitions aren't announced — `aria-live` covers only the timer (`app/run/page.tsx:451`) and the tip line (L540), so a screen-reader user gets nothing during the product's signature 20-second moment. The budget bar is `role="img"` with `aria-label="Budget split"` and no values (`app/trip/page.tsx:519`). Satisfaction renders as bare `●` characters with no text equivalent (`app/trip/page.tsx:292-293`). The destination-switch modal (`app/trip/page.tsx:840`) has no `role="dialog"`, focus trap or announcement. Form errors are one unassociated string — no `aria-invalid` / `aria-describedby` on the offending field. *Why it matters:* partly principle, partly that a product built around accessibility-aware personas — a senior with knee trouble, "wheelchair required" as a first-class pilgrimage input — should not itself be inaccessible. That contrast is noticeable. Basics are already right (`aria-pressed`, labels, `role="alert"`, reduced-motion respected throughout), so this is a finishing pass, not a rebuild. **1.5 hrs.**
+
+**P2-5 · No social/share metadata, no per-page titles.** *(`app/layout.tsx:21-28` has title, description, icons — no `openGraph`, `twitter`, OG image or `metadataBase`; `/trip`, `/run`, `/trips` are client components inheriting the root title.)* The submission link and the team's own WhatsApp sharing render as a bare URL with no card — cheapest perceived-quality win available — and browser tabs can't be told apart during a live demo with several open. *Fix:* `openGraph`/`twitter` on the root with a static OG image (the hero composition works); own titles for `/trips` and `/how-it-works`. **1 hr including the image.**
+
+**P2-6 · Two 79 KB logo SVGs load on every page.** `public/logo.svg` and `public/logo-white.svg` are 79,237 bytes each — traced output. The nav loads one with `priority` (`components/site-chrome.tsx:47-54`), the footer always loads `logo-white.svg` (L132), and `images: { unoptimized: true }` means no processing saves us. That is ~158 KB of vector path data per page load on every device — comfortably more than the 178 KB gzipped three.js chunk D-013 went to real lengths to gate away from phones. **Mobile users dodge the globe and eat the logo instead.** *Fix:* SVGO with path simplification, or re-export the mark cleanly; target <10 KB each. **45 min.**
+
+**P2-7 · No funnel instrumentation.** `@vercel/analytics` is production-only (`app/layout.tsx:46`) — pageviews and nothing else, no custom events anywhere. As PM I currently cannot answer: which of the six entry paths do people pick? What share of runs complete vs hard-fail? How often does the Referee find a conflict? Does anyone save a trip? Those are also **rubric material** — "we measured X" beats "we believe X" in every section grading reasoning. *Fix:* six or seven `track()` calls — `mode_selected`, `run_started`, `agent_failed` (with agent key), `run_completed` (duration, agent count), `conflict_detected`, `booking_approved`, `trip_saved`. **45 min.**
+
+**P2-8 · Saved trips have no schema version.** *(`lib/storage.ts:68-83` stores a raw `TripState`; readers assume current shape.)* The shape has already changed twice here. Paired with P0-6 this is the difference between "old trips are quietly dropped" and "the app crashes for returning users". *Fix:* add `schemaVersion` to `SavedTrip`, filter mismatches on read, tell the user once. **30 min.**
+
+**P2-9 · `Connect` mood is offered on the solo path but its rule assumes companions.** *(D-015 audit.)* `app/api/agent/route.ts:34` — the Connect row of MOOD_RULES says *"socialSetting names the companions; nonNegotiables include shared social experiences"*, and `MOODS` (`components/mode-forms.tsx:20-27`) offers Connect on the solo form. Solo + Connect is a perfectly sensible thing to want — it is arguably the *most* interesting solo mood — and it currently sends `travelers: 1` into a rule demanding named companions. *Fix:* qualify the row — "…or, when travelling alone, sociable settings where meeting people is easy: hostels, group treks, community events, a table you can join." **15 min.**
+
+**P2-10 · `hotelLink` misrepresents the party to Booking.com.** *(D-015 audit.)* `lib/agents-client.ts:441-449` — family mode passes `household.length` as `group_adults`, counting an 8-year-old as an adult, with no `group_children` or `age` params; there is no `no_rooms`, so four travellers search as four adults in one room; and `checkout = addDays(start, durationDays - 1)` makes check-in equal check-out on a one-day trip. *Why it matters:* "See real options →" is the link that connects our simulated bookings to real inventory — the one place the demo touches the actual world. It currently lands on a search that does not describe the trip we planned. *Fix:* pass adults/children separately from the household age bands, add `no_rooms`, and floor the checkout at start + 1. **45 min.**
+
+### 8.4 P3 — Hygiene
+
+**P3-1 · The advertised lint script cannot run.** `package.json` declares `"lint": "eslint ."` but `eslint` isn't in `devDependencies` and there's no config in the repo — the one quality gate we advertise fails on a clean install. Install and configure `eslint-config-next`, or drop the script. **20 min.**
+
+**P3-2 · `typescript.ignoreBuildErrors: true`** (`next.config.mjs:3-5`) lets type errors ship. `npx tsc --noEmit` is **currently clean** — verified during this audit — so it can be turned off today at zero cost, and from then on the build actually protects us. **5 min.**
+
+**P3-3 · Zero automated tests.** No test files, no CI. Every regression so far was caught by driving the browser by hand (D-009/D-010 — which found real bugs, so the practice works). Not worth a suite before the deadline; worth stating in the PRD risk section as a conscious trade-off rather than an omission. **A decision, not a task.**
+
+**P3-4 · Booking gates are labelled "Referee gate" but the Referee didn't set them.** `app/trip/page.tsx:676` renders `⚖️ Referee gate: {needsApprovalReason}`, but that field comes from the **Booking Agent's** own output (`app/api/agent/route.ts:179`). A small mislabel that inflates the Referee's role in exactly the place we're asking to be believed about it. Re-label to "Approval gate". **5 min.**
+
+**P3-5 · `agentsRun` is counted arithmetically, not observed.** `app/run/page.tsx:408-414` computes the headline agent count from a hardcoded `5 + 1 + …`, so a skipped Notification Agent still counts. The page already tracks `agentCount` from real completions — use it. **15 min.**
+
+**P3-7 · Pilgrimage's party size is internally incoherent.** *(D-015 audit.)* Three different counts coexist on that path: the form collects exactly **one** person's constraints — one `accessibility`, one `dietary`, one `tradition` (`components/mode-forms.tsx:226-312`); `travelers` defaults to **2**; and the `mood_pilgrimage` prompt is written wholly in the singular — *"this traveller is going for darshan"*, *"how someone with the stated mobility level completes this circuit"* (`app/api/agent/route.ts:63-65`). Keeping 2 is defensible on booking economics, but then the prompt should say "the traveller(s)"; defaulting to 1 is the cheaper way to make all three agree. Either way, decide it rather than leaving three answers in the codebase. **15 min once decided.**
+
+**P3-6 · Decide the login question and record it.** Open since D-011 and listed as item 11 in §6. **PM recommendation: don't build it.** "No accounts, your trip data never leaves your browser" is a stronger privacy/DPDP story than a cosmetic gate, rubric 2.3 rewards minimal MVPs, and **P1-4 delivers the actual user need behind "I want to come back to my plan" without auth**. Write the decision into §0 so it stops being reopened. **A decision.**
+
+### 8.5 A–Z coverage — what was examined and the verdict
+
+| Area | Verdict | Items |
+|---|---|---|
+| Information architecture (`/`, `/run`, `/trip`, `/trips`, `/how-it-works`) | Clean and correct. Flow legible, nothing extraneous. No change proposed | — |
+| Landing / entry | Strong hero, honest stat strip, six well-differentiated paths. Two input defects | P0-3, P1-5 |
+| Mode forms | Genuinely differentiated per persona — the product's best structural idea. D-009 input fix holds | — |
+| Pipeline UX (`/run`) | Excellent: visible handoffs, loopback steps distinct, pause-and-resume properly built. Padded timing; serial advocates; no cancel; not announced to screen readers | P0-5, P2-2, P2-4 |
+| Agent architecture | Real differentiation. Opposing objectives, deterministic money maths, mode-variant prompts, feedback edge. No structural criticism | — |
+| Referee mechanisms | Strongest claim, weakest follow-through — three of four surfaces present a decision the user can't act on | P0-4, P1-1, P1-2 |
+| Trip page | Dense, well-designed, prints cleanly. Split excludes couple/family; approvals irreversible; switch degrades the header | P1-3, P2-1, P2-3 |
+| Persistence | Sensible zero-backend choice, well-encapsulated. Unversioned, unguarded on read, unshareable | P0-6, P1-4, P2-8 |
+| API / backend | Good separation, key server-side only, guardrails in code not prompts. Unauthenticated, unthrottled, unvalidated, one hardcoded model, no `maxDuration` | P0-7, P1-6, P1-7 |
+| Error handling | Per-step retry on `/run` genuinely well done (D-010). Nothing above it — no boundaries at all | P0-6 |
+| Performance | three.js correctly gated and lazily loaded (D-013 did this properly). Logos are now the largest avoidable payload | P2-6 |
+| Accessibility | Basics present (`aria-pressed`, labels, `role="alert"`, reduced-motion throughout). Live regions, dialogs, non-text status need work | P2-4 |
+| SEO / sharing | Title, description, favicon good. No OG/Twitter cards, no per-page titles | P2-5 |
+| Copy & consistency | Voice is excellent — specific, honest, no filler. Two public surfaces contradict the build | P0-1 |
+| Analytics | Pageviews only | P2-7 |
+| Repo hygiene | Tidy, small, comments explain *why* — rare, worth preserving. Broken lint script, disabled type gate, over-broad gitignore | P0-2, P3-1, P3-2 |
+| Security | No secret leakage (`GROQ_API_KEY` server-only, bundle audited). Endpoint exposure is the open risk | P0-7, P1-7 |
+
+### 8.6 Sequencing
+
+**Before recording the demo (~4 hrs):** ~~P0-1 → P0-2 → P0-3~~ **P0-3** → P0-1 → P0-2 → P3-2 → P3-4 → P3-5 → P0-6 → P0-4 → P0-5 → P0-7.
+**Re-ordered (D-015): P0-3 moved ahead of P0-1.** Same cost, opposite reversibility — README and `how-it-works` prose can be corrected at any hour with no regression risk, but a wrong traveller count is on camera in demo-script beat 3 and gets frozen into the recording. P0-1 also folds into §6 item 6 during the PRD draft, so doing it standalone today risks doing it twice. From there, unchanged: the trivial-but-public fixes, then the two a click-through will expose, then day-of resilience.
+
+**Between submission and the 8 Aug presentation (~1 day):** P1-3 → P1-6 → P1-2 → P1-1 → P1-5.
+P1-2 earns its slot as a **demo beat**, not just a fix.
+
+**If the product continues past the capstone:** P1-4 first (sharing is the real gap), then P2-1, P2-7, P2-4.
+
+**Explicitly not doing, and why:** login/auth (P3-6 — weakens a strong privacy story and solves nothing P1-4 doesn't solve better); real booking APIs (already correctly scoped out in §3; the rubric deducts when the MVP is the full product); a test suite before the deadline (browser verification has been catching the real bugs — state it as a trade-off in the PRD, don't pretend otherwise).
+
+*Every finding above was verified against source at commit `c67e1fe`. Where a fix depends on something not checkable from the repo — the deployed function's max duration, current Groq model availability — it is flagged "verify" rather than asserted.*
