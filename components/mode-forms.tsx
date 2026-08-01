@@ -26,7 +26,13 @@ export const MOODS: { key: MoodKey; emoji: string }[] = [
   { key: 'Celebrate', emoji: '🎉' },
 ];
 
-const input = 'w-full px-3 py-2 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+/**
+ * Base carries no width — callers set it. Keeping `w-full` here made it
+ * collide with `flex-1` / `w-20` on the same element, and Tailwind resolves
+ * that conflict by stylesheet order, which silently collapsed the name fields.
+ */
+const inputBase = 'px-3 py-2 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+const input = `${inputBase} w-full`;
 const chip = (on: boolean) =>
   `px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
     on ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'
@@ -63,7 +69,7 @@ export function TravellersForm({
                 value={p.name}
                 onChange={(e) => update(i, { name: e.target.value })}
                 placeholder="Name"
-                className={`${input} flex-1 font-semibold`}
+                className={`${inputBase} flex-1 min-w-0 font-semibold`}
                 maxLength={24}
               />
               <input
@@ -72,7 +78,7 @@ export function TravellersForm({
                 step={1000}
                 value={p.budgetINR}
                 onChange={(e) => update(i, { budgetINR: Math.max(2000, Number(e.target.value) || 2000) })}
-                className={`${input} w-28 font-mono`}
+                className={`${inputBase} w-28 shrink-0 font-mono`}
                 aria-label={`Budget for ${p.name}`}
               />
               {people.length > 2 && (
@@ -158,7 +164,7 @@ export function HouseholdForm({
                 value={m.name}
                 onChange={(e) => update(i, { name: e.target.value })}
                 placeholder="Name"
-                className={`${input} flex-1 font-semibold`}
+                className={`${inputBase} flex-1 min-w-0 font-semibold`}
                 maxLength={24}
               />
               <input
@@ -167,7 +173,7 @@ export function HouseholdForm({
                 max={100}
                 value={m.age}
                 onChange={(e) => update(i, { age: Math.min(100, Math.max(1, Number(e.target.value) || 1)) })}
-                className={`${input} w-20 font-mono`}
+                className={`${inputBase} w-20 shrink-0 font-mono`}
                 aria-label={`Age of ${m.name}`}
               />
               {household.length > 2 && (

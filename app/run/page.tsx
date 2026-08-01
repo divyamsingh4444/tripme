@@ -82,6 +82,25 @@ export default function RunPage() {
 
   const push = (step: Step) => setSteps((prev) => [...prev, step]);
 
+  /*
+   * Timers live in their own effect, deliberately WITHOUT the start-once guard.
+   * Under StrictMode the guarded effect below returns early on its second mount,
+   * so if the intervals lived there their cleanup would have killed them after
+   * the first unmount — leaving the elapsed timer frozen at 0s.
+   */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!finished.current && timerStart.current) {
+        setElapsed(Math.floor((Date.now() - timerStart.current) / 1000));
+      }
+    }, 500);
+    const tipTimer = setInterval(() => setTip((t) => (t + 1) % TIPS.length), 5000);
+    return () => {
+      clearInterval(timer);
+      clearInterval(tipTimer);
+    };
+  }, []);
+
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -93,18 +112,7 @@ export default function RunPage() {
     }
     ctxRef.current = { input };
     timerStart.current = Date.now();
-
-    const timer = setInterval(() => {
-      if (!finished.current) setElapsed(Math.floor((Date.now() - timerStart.current) / 1000));
-    }, 500);
-    const tipTimer = setInterval(() => setTip((t) => (t + 1) % TIPS.length), 5000);
-
     void runPipeline(input);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(tipTimer);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

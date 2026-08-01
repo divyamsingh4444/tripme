@@ -15,3 +15,10 @@ node_modules
 .DS_Store
 # TS build cache
 tsconfig.tsbuildinfo
+
+# Playwright MCP session output (snapshots, screenshots, traces)
+.playwright-mcp/
+
+# Playwright MCP output
+.playwright-mcp/
+*.png
