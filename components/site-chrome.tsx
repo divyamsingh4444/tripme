@@ -11,6 +11,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { LanguageSwitch } from '@/components/language-switch';
 
 const LINKS = [
   { href: '/', label: 'Plan', hint: 'Start a new trip' },
@@ -94,9 +95,10 @@ export function SiteNav() {
                 </Link>
               );
             })}
+            <LanguageSwitch onDark={!solid} />
             <Link
               href="/"
-              className="ml-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
+              className="ml-1 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
             >
               Plan a trip
             </Link>
@@ -178,6 +180,9 @@ export function SiteNav() {
           </nav>
 
           <div className="px-5 pb-7 pt-4 shrink-0">
+            <div className="mb-3 flex justify-center [&_button]:text-white/85 [&_button:hover]:bg-white/10">
+              <LanguageSwitch onDark />
+            </div>
             <Link
               href="/"
               onClick={() => setOpen(false)}

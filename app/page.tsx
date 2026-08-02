@@ -16,7 +16,7 @@ import type {
 } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
-import { Marquee, RecentTrips, TrendingDestinations, TripIdeas } from '@/components/landing-sections';
+import { Marquee, RecentTrips, SampleGallery, TrendingDestinations, TripIdeas } from '@/components/landing-sections';
 import type { TripIdea, TrendingPlace } from '@/lib/inspiration';
 import { CorporateForm, HouseholdForm, MOODS, PilgrimageForm, TravellersForm } from '@/components/mode-forms';
 
@@ -483,6 +483,7 @@ export default function PlanPage() {
       {/* ---------------- INSPIRATION ---------------- */}
       <TrendingDestinations onPick={pickTrending} />
       <TripIdeas onPick={pickIdea} />
+      <SampleGallery />
       <RecentTrips />
       <Marquee />
 

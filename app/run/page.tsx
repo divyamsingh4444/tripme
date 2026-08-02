@@ -38,7 +38,7 @@ import { buildSampleTrip } from '@/lib/sample-trip';
 type StepState =
   | { kind: 'pending' }
   | { kind: 'running' }
-  | { kind: 'waiting'; secondsLeft: number }
+  | { kind: 'waiting'; secondsLeft: number; attempt?: number }
   | { kind: 'done'; summary: string }
   | { kind: 'conflict'; summary: string }
   | { kind: 'error'; message: string };
@@ -174,12 +174,20 @@ export default function RunPage() {
         return data;
       } catch (err) {
         const e = err instanceof AgentError ? err : new AgentError('server_error');
-        if (e.code === 'rate_limited' && rateRetries < 2) {
+        /*
+         * Quota waits resolve themselves — the free tier refills every minute —
+         * so the run keeps waiting rather than dead-ending on a button the
+         * visitor has to babysit. Previously it gave up after two attempts and
+         * showed "wait a few seconds, then retry", which read as a failure when
+         * it was really a queue. Five attempts covers several refill windows.
+         */
+        if (e.code === 'rate_limited' && rateRetries < 5) {
           rateRetries++;
-          const wait = e.retryAfterSeconds ?? 12;
+          const wait = e.retryAfterSeconds ?? 60;
+          if (rateRetries >= 2) setOfferSample(true); // an out, without forcing it
           beginPause(); // queueing for quota is not planning
           for (let s = wait; s > 0; s--) {
-            patch(id, { kind: 'waiting', secondsLeft: s });
+            patch(id, { kind: 'waiting', secondsLeft: s, attempt: rateRetries });
             await sleep(1000);
           }
           endPause();
@@ -191,7 +199,7 @@ export default function RunPage() {
           kind: 'error',
           message:
             e.code === 'rate_limited'
-              ? 'Free-tier rate limit reached — wait a few seconds, then retry.'
+              ? 'Free-tier quota is still busy after several waits. Retry, or see a sample trip.'
               : e.code === 'missing_key'
                 ? 'The AI backend is not configured on this deployment.'
                 : e.code === 'network'
@@ -546,7 +554,13 @@ export default function RunPage() {
               <div className="text-sm text-muted-foreground mt-0.5 break-words">
                 {s.state.kind === 'pending' && 'Waiting…'}
                 {s.state.kind === 'running' && s.running}
-                {s.state.kind === 'waiting' && <>High demand — retrying in {s.state.secondsLeft}s…</>}
+                {s.state.kind === 'waiting' && (
+                  <>
+                    Waiting for free-tier quota to refill — resuming automatically in{' '}
+                    <span className="font-mono font-semibold text-foreground">{s.state.secondsLeft}s</span>
+                    {s.state.attempt && s.state.attempt > 1 ? ` · attempt ${s.state.attempt}` : ''}
+                  </>
+                )}
                 {s.state.kind === 'done' && (
                   <span className="text-foreground font-medium">✓ {s.state.summary}</span>
                 )}

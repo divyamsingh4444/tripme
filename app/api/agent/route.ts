@@ -16,13 +16,32 @@ import { NextRequest, NextResponse } from 'next/server';
  * GROQ_API_KEY lives only here, server-side.
  */
 
-const MODEL = 'llama-3.3-70b-versatile';
+/**
+ * Right-sized model per agent — and the reason is quota, measured not guessed.
+ *
+ * Groq's free tier meters TOKENS PER MINUTE, and crucially each model has its
+ * OWN bucket: llama-3.3-70b 12k/min, llama-3.1-8b 6k/min. A full plan costs
+ * ~10k tokens, so on one model it barely fits inside a single minute — one
+ * retry, or two people planning at once, and the run stalls midway. That is
+ * exactly the "it takes forever and then never finishes" failure.
+ *
+ * So the agents that genuinely reason — reading intent, choosing a destination,
+ * building an itinerary, negotiating between people — stay on 70B, which is
+ * what Phase 1 committed to. The agents that mostly emit structure from figures
+ * already computed for them move to 8B, which is faster and draws on a separate
+ * bucket. Both reassignments were verified against the real schemas before
+ * being trusted here.
+ */
+const MODEL_REASONING = 'llama-3.3-70b-versatile';
+const MODEL_STRUCTURAL = 'llama-3.1-8b-instant';
 
 interface AgentConfig {
   system: string;
   temperature: number;
   maxTokens: number;
   requiredKeys: string[];
+  /** defaults to the reasoning model */
+  model?: string;
 }
 
 /** Shared mood-fidelity contract — the fix for "Spiritual" collapsing into a hill station. */
@@ -75,6 +94,7 @@ Rules: primaryMood is always "Business". Echo payload.corporate values exactly i
   },
 
   advocate: {
+    model: MODEL_STRUCTURAL,
     temperature: 0.6,
     maxTokens: 600,
     requiredKeys: ['traveller', 'primaryMood', 'topPriorities', 'mustHave', 'dealBreaker', 'advocacyLine'],
@@ -173,6 +193,7 @@ Rules: check every booking against payload.policyBrief — the per-night hotel c
   },
 
   booking: {
+    model: MODEL_STRUCTURAL,
     temperature: 0.4,
     maxTokens: 1000,
     requiredKeys: ['simulated', 'bookings', 'totalCommittedINR', 'remainingBudgetINR'],
@@ -183,6 +204,7 @@ PARTY SIZE IS payload.travelers AND IT IS OFTEN 1. Room type, seat count and act
   },
 
   notification: {
+    model: MODEL_STRUCTURAL,
     temperature: 0.5,
     maxTokens: 1200,
     requiredKeys: ['reminders', 'channelStrategy'],
@@ -402,7 +424,7 @@ async function callModel(config: AgentConfig, payload: object, strict: boolean):
     ? config.system + '\nReturn ONLY valid JSON matching the schema. No prose.'
     : config.system;
   const res = await getGroq().chat.completions.create({
-    model: MODEL,
+    model: config.model ?? MODEL_REASONING,
     temperature: config.temperature,
     max_tokens: config.maxTokens,
     response_format: { type: 'json_object' },

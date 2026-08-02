@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlacePhoto } from '@/components/place-photo';
 import { TRENDING, TRIP_IDEAS, type TripIdea, type TrendingPlace } from '@/lib/inspiration';
+import { SAMPLES, type SampleEntry } from '@/lib/sample-trips';
 import { fmtDate, fmtINR, readTrips, setCurrentTrip } from '@/lib/storage';
 import type { SavedTrip } from '@/lib/types';
 
@@ -234,6 +235,58 @@ export function RecentTrips() {
             </button>
           ))}
         </Rail>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- sample gallery ---------- */
+export function SampleGallery() {
+  const router = useRouter();
+  const open = (s: SampleEntry) => {
+    setCurrentTrip(s.build());
+    router.push('/trip');
+  };
+  return (
+    <section className="mt-20 sm:mt-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="mb-6">
+          <h2 className="type-section font-display font-extrabold">See a finished plan first</h2>
+          <p className="mt-2 text-muted-foreground max-w-2xl">
+            Four real plans, each showing a different part of the system. They open instantly — no
+            waiting, and they work even if the free-tier quota is busy.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {SAMPLES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => open(s)}
+              className="text-left rounded-3xl overflow-hidden border border-border bg-card card-lift"
+            >
+              <PlacePhoto
+                place={s.place}
+                region={s.region}
+                className="h-32"
+                overlay="bg-gradient-to-t from-[#0e1f1a]/90 via-[#0e1f1a]/30 to-transparent"
+              >
+                <div className="h-32 flex flex-col justify-between p-4">
+                  <span className="self-start px-2.5 py-1 rounded-full bg-black/40 backdrop-blur border border-white/20 text-white text-[11px] font-semibold">
+                    {s.label}
+                  </span>
+                  <span className="font-display text-xl font-extrabold text-white drop-shadow">
+                    {s.place}
+                  </span>
+                </div>
+              </PlacePhoto>
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground leading-snug min-h-[60px]">{s.demonstrates}</p>
+                <div className="mt-2 text-sm font-semibold text-primary">Open this plan →</div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
