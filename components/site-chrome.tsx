@@ -3,7 +3,8 @@
 /**
  * Nav + footer.
  * The nav rides transparently over the hero on the home page and solidifies on
- * scroll — the reference pattern. Everywhere else it is solid from the start.
+ * scroll. On mobile it opens a slide-in drawer on the brand's deep surface —
+ * a white dropdown read as an unstyled default against the dark hero.
  */
 
 import Image from 'next/image';
@@ -12,9 +13,10 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const LINKS = [
-  { href: '/', label: 'Plan' },
-  { href: '/trips', label: 'My Trips' },
-  { href: '/how-it-works', label: 'How it works' },
+  { href: '/', label: 'Plan', hint: 'Start a new trip' },
+  { href: '/trips', label: 'My Trips', hint: 'Saved plans & Travel DNA' },
+  { href: '/how-it-works', label: 'How it works', hint: 'The seven agents' },
+  { href: '/contact', label: 'Contact', hint: 'Talk to the team' },
 ];
 
 export function SiteNav() {
@@ -33,134 +35,211 @@ export function SiteNav() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // While the drawer is open: lock the page behind it and let Escape close it.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   const solid = !overHero || scrolled;
 
   return (
-    <nav
-      className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${
-        solid ? 'bg-card/90 backdrop-blur-md border-b border-border' : 'bg-transparent'
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[70px] sm:h-20 flex items-center justify-between gap-3">
-        {/* The mark IS the wordmark — no duplicate text beside it */}
-        <Link href="/" className="shrink-0" aria-label="TripME home">
-          <Image
-            src={solid ? '/logo.svg' : '/logo-white.svg'}
-            alt="TripME"
-            width={169}
-            height={150}
-            className="h-12 sm:h-14 w-auto object-contain"
-            priority
-          />
-        </Link>
+    <>
+      <nav
+        className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${
+          solid ? 'bg-card/90 backdrop-blur-md border-b border-border' : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[70px] sm:h-20 flex items-center justify-between gap-3">
+          {/* The mark IS the wordmark — no duplicate text beside it */}
+          <Link href="/" className="shrink-0" aria-label="TripME home">
+            <Image
+              src={solid ? '/logo.svg' : '/logo-white.svg'}
+              alt="TripME"
+              width={169}
+              height={150}
+              className="h-12 sm:h-14 w-auto object-contain"
+              priority
+            />
+          </Link>
 
-        {/* desktop */}
-        <div className="hidden md:flex items-center gap-1 text-sm font-medium">
-          {LINKS.map((l) => {
-            const active = pathname === l.href;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`px-3 py-2 rounded-lg transition-colors ${
-                  solid
-                    ? active
-                      ? 'bg-muted text-foreground'
-                      : 'hover:bg-muted'
-                    : active
-                      ? 'bg-white/15 text-white'
-                      : 'text-white/85 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
-          <span
-            className={`ml-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
-              solid ? 'bg-accent/20 border-accent/50 text-foreground' : 'bg-white/10 border-white/25 text-white'
-            }`}
-          >
-            Demo Mode
-          </span>
-        </div>
-
-        {/* mobile */}
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className={`md:hidden p-2 rounded-lg ${solid ? 'hover:bg-muted' : 'text-white hover:bg-white/10'}`}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            {open ? <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></> : <><path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" /></>}
-          </svg>
-        </button>
-      </div>
-
-      {open && (
-        <div className="md:hidden bg-card border-t border-border px-4 py-3 space-y-1">
-          {LINKS.map((l) => (
+          {/* desktop */}
+          <div className="hidden md:flex items-center gap-1 text-sm font-medium">
+            {LINKS.map((l) => {
+              const active = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`px-3 py-2 rounded-lg transition-colors ${
+                    solid
+                      ? active
+                        ? 'bg-muted text-foreground'
+                        : 'hover:bg-muted'
+                      : active
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/85 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
             <Link
-              key={l.href}
-              href={l.href}
-              className={`block px-3 py-2.5 rounded-lg font-medium ${
-                pathname === l.href ? 'bg-muted' : 'hover:bg-muted'
-              }`}
+              href="/"
+              className="ml-2 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
             >
-              {l.label}
+              Plan a trip
             </Link>
-          ))}
-          <div className="px-3 pt-1">
-            <span className="inline-block px-3 py-1.5 rounded-full bg-accent/20 border border-accent/50 text-xs font-semibold">
-              Demo Mode
-            </span>
           </div>
+
+          {/* mobile trigger */}
+          <button
+            onClick={() => setOpen(true)}
+            className={`md:hidden p-2 -mr-2 rounded-lg transition-colors ${
+              solid ? 'hover:bg-muted' : 'text-white hover:bg-white/10'
+            }`}
+            aria-label="Open menu"
+            aria-expanded={open}
+            aria-controls="mobile-drawer"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" />
+            </svg>
+          </button>
         </div>
-      )}
-    </nav>
+      </nav>
+
+      {/* ---- mobile drawer ---- */}
+      <div
+        className={`md:hidden fixed inset-0 z-[60] ${open ? '' : 'pointer-events-none'}`}
+        aria-hidden={!open}
+      >
+        {/* scrim */}
+        <div
+          onClick={() => setOpen(false)}
+          className={`absolute inset-0 bg-[#0e1f1a]/60 backdrop-blur-sm transition-opacity duration-300 ${
+            open ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
+        {/* panel */}
+        <aside
+          id="mobile-drawer"
+          className={`absolute right-0 top-0 h-full w-[84%] max-w-sm surface-deep-grad shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+            open ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between px-5 h-[70px] shrink-0">
+            <Image src="/logo-white.svg" alt="TripME" width={169} height={150} className="h-11 w-auto object-contain" />
+            <button
+              onClick={() => setOpen(false)}
+              className="p-2 -mr-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close menu"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="perforation perforation-light" />
+
+          <nav className="flex-1 overflow-y-auto px-4 py-5">
+            {LINKS.map((l, i) => {
+              const active = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  style={{ transitionDelay: open ? `${80 + i * 45}ms` : '0ms' }}
+                  className={`flex items-center justify-between gap-3 px-4 py-4 rounded-2xl mb-1.5 transition-all duration-300 ${
+                    open ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+                  } ${active ? 'bg-white/15 border border-white/20' : 'hover:bg-white/10 border border-transparent'}`}
+                >
+                  <span>
+                    <span className="font-display font-bold text-lg text-white block leading-tight">{l.label}</span>
+                    <span className="text-xs text-white/55">{l.hint}</span>
+                  </span>
+                  <span className="text-accent text-lg" aria-hidden="true">→</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="px-5 pb-7 pt-4 shrink-0">
+            <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="block w-full text-center px-5 py-3.5 rounded-2xl bg-accent text-accent-foreground font-display font-bold glow-accent"
+            >
+              Plan a trip
+            </Link>
+            <p className="mt-4 text-[11px] text-white/45 text-center leading-relaxed">
+              Demo product · no real bookings are made
+            </p>
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }
 
 export function SiteFooter() {
+  const year = new Date().getFullYear();
   return (
     <footer className="surface-deep mt-16">
       <div className="perforation perforation-light" />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
-          <div className="max-w-sm">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="lg:col-span-2 max-w-sm">
             <Image src="/logo-white.svg" alt="TripME" width={169} height={150} className="h-14 w-auto object-contain" />
-            <p className="mt-3 text-sm opacity-75 leading-relaxed">
-              One mood, one budget, one complete trip — planned by seven AI agents that check each
-              other&apos;s work.
+            <p className="mt-4 text-sm opacity-75 leading-relaxed">
+              One mood, one budget, one complete trip. TripME plans the whole journey — where to go,
+              what it costs, what you do each day — so you never juggle eight tabs again.
             </p>
+            <Link
+              href="/"
+              className="inline-block mt-5 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
+            >
+              Plan a trip
+            </Link>
           </div>
 
-          <div className="flex gap-12 text-sm">
-            <div>
-              <div className="font-display font-bold mb-3">Product</div>
-              <ul className="space-y-2 opacity-75">
-                <li><Link href="/" className="hover:opacity-100 hover:text-accent transition-colors">Plan a trip</Link></li>
-                <li><Link href="/trips" className="hover:opacity-100 hover:text-accent transition-colors">My Trips</Link></li>
-                <li><Link href="/how-it-works" className="hover:opacity-100 hover:text-accent transition-colors">How it works</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-display font-bold mb-3">Built with</div>
-              <ul className="space-y-2 opacity-75">
-                <li>Llama 3.3 70B on Groq</li>
-                <li>Next.js · three.js</li>
-                <li>7-agent pipeline</li>
-              </ul>
-            </div>
+          <div>
+            <div className="font-display font-bold mb-3">Product</div>
+            <ul className="space-y-2.5 text-sm opacity-75">
+              <li><Link href="/" className="hover:opacity-100 hover:text-accent transition-colors">Plan a trip</Link></li>
+              <li><Link href="/trips" className="hover:opacity-100 hover:text-accent transition-colors">My Trips</Link></li>
+              <li><Link href="/how-it-works" className="hover:opacity-100 hover:text-accent transition-colors">How it works</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <div className="font-display font-bold mb-3">Company</div>
+            <ul className="space-y-2.5 text-sm opacity-75">
+              <li><Link href="/contact" className="hover:opacity-100 hover:text-accent transition-colors">Contact us</Link></li>
+              <li><Link href="/contact#support" className="hover:opacity-100 hover:text-accent transition-colors">Support</Link></li>
+              <li><Link href="/contact#privacy" className="hover:opacity-100 hover:text-accent transition-colors">Privacy</Link></li>
+            </ul>
           </div>
         </div>
 
-        <div className="perforation perforation-light my-8" />
+        <div className="perforation perforation-light my-9" />
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs opacity-70">
-          <span>TripME · BITSoM Capstone by Team DEBUGGERS</span>
-          <span>Demo product — no real bookings are made. Your trip data stays in your browser.</span>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs opacity-60">
+          <span>© {year} TripME. All rights reserved.</span>
+          <span>Made in India 🇮🇳 · Demo product — no real bookings are made.</span>
         </div>
       </div>
     </footer>

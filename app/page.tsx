@@ -203,16 +203,35 @@ export default function PlanPage() {
             </button>
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-[11px] sm:text-xs font-medium">
-            {AGENTS.map((a, i) => (
-              <span key={a} className="flex items-center gap-2">
-                <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/80 backdrop-blur">
-                  {a}
-                </span>
-                {/* arrows would orphan at line-ends on narrow screens */}
-                {i < AGENTS.length - 1 && <span className="text-accent/70 hidden sm:inline">→</span>}
-              </span>
-            ))}
+          {/*
+            The seven agents as a flight path — the same dashed arc as the logo.
+            Seven pills wrapped into ragged rows on a phone and read as loose
+            chrome; a single line that never wraps reads as one journey.
+          */}
+          <div className="mt-12 sm:mt-14">
+            <div className="relative mx-auto max-w-2xl px-2">
+              <span
+                className="absolute left-2 right-2 top-[7px] border-t-2 border-dashed border-white/20"
+                aria-hidden="true"
+              />
+              <ol className="relative flex items-start justify-between">
+                {AGENTS.map((a, i) => (
+                  <li key={a} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                    <span
+                      className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                        i === AGENTS.length - 1
+                          ? 'bg-accent border-accent'
+                          : 'bg-[#0e1f1a] border-white/40'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span className="text-[9px] sm:text-[11px] font-medium text-white/65 text-center leading-tight truncate w-full">
+                      {a}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
         </div>
       </section>
@@ -401,8 +420,14 @@ export default function PlanPage() {
             <button type="submit" className="w-full py-4 rounded-2xl bg-accent text-accent-foreground font-display font-bold text-lg glow-accent hover:brightness-95 active:scale-[0.99] transition">
               {ctaLabel}
             </button>
+            {/*
+              This used to read "…· nothing is ever really booked", which
+              apologised for the product at the exact moment of commitment.
+              The Demo Mode badge in the nav and the label on every booking card
+              already carry that disclosure honestly, without undercutting.
+            */}
             <p className="text-center text-xs text-muted-foreground">
-              Takes about 20 seconds · nothing is ever really booked
+              Your whole trip, planned in about 20 seconds
             </p>
           </div>
         </form>
