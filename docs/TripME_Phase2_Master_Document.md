@@ -16,6 +16,35 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-026 · The plan became something you can argue with, then commit to (commits `e721c59`, auth pending).**
+
+**Requested:** reminders should arrive *after* confirming you are going; the traveller should be able to choose destination, transport and stay with budget and approvals updating; customise the itinerary; confirm and start the trip with notifications; and a login page.
+
+**The scope call, recorded because it was mine to flag and yours to make:** this reopens a build I had recommended freezing, with wireframes, the journey map, the PRD and the demo recording still unbanked. Flagged, then built as asked.
+
+**The architectural decision that matters most: the model produces the menu, code prices the choice.** An Options Agent generates three ways of travelling and three places to stay. It never picks. Picking recomputes totals, remaining budget, approval gates and corporate per-night caps **deterministically in `lib/recompute.ts`** — because a model re-pricing the trip on every tap could quietly undo the allocation the Budget Agent and the Referee argued their way to. This is the same "LLM for judgment, code for money" rule the budget already lives under, and it is the answer to "how do agents stay trustworthy once users can edit their output".
+
+**Quota discipline held.** Options are fetched on demand, not with every plan — most travellers never open them, and a spare agent call on every run is exactly what emptied the daily budget in D-022. The assistant follows the same logic: lookups ("when do I leave", "what needs approval") are answered from the trip JSON, instantly and free; only genuinely open questions reach a model.
+
+**Confirming is now a real state change.** Reminders used to sit on the page unconditionally — telling someone to leave for a journey they had not agreed to take. They now live behind an explicit *"I'm going"*, which also locks the plan, because reminders that go stale when the itinerary moves underneath them are worse than none.
+
+**On notification honesty (rubric 2.3).** The agent writes `"Day 1, 6:00 AM"` — right for a human, useless to a timer — so those are parsed into real times anchored to the start date. Reminders due while the app is open fire as **genuine browser notifications**. The rest show exact times and are labelled not-yet-deliverable. Delivering to a closed tab needs a push server; SMS and voice need telephony. Both are real infrastructure, neither is free, and the product says so rather than implying a promise it cannot keep.
+
+**Three bugs found by testing rather than assuming — each one a category worth remembering:**
+1. **Confirming awaited the notification-permission prompt before committing.** An ignored or auto-dismissed prompt left the promise unsettled and the trip silently unconfirmed. *A bonus must never be able to block the decision it decorates.*
+2. **A traveller who changed hotel was still told to check in at the one they rejected.** The Notification Agent had run against the plan as first proposed. Confirming now rebuilds the schedule from the final plan — and only when something actually changed.
+3. **A ₹3,000 booking still carried "Above ₹3,000 spend gate"** from the Booking Agent. *Once we own the gate, we own the sentence.*
+
+Also caught: the Booking Agent was pricing **three nights for a three-day trip**.
+
+**Login — real auth, and the one design rule that governs it.** NextAuth v5 + Google OAuth + Supabase, as chosen. The rule: **TripME must work with none of it configured.** The product had no accounts at all and that was defensible; adding auth must not convert that into "broken unless four environment variables are set". So credentials are optional at runtime — no Google keys means no account control at all rather than a dead button, and no Supabase means sessions still work as signed cookies with nothing written anywhere.
+
+*A build-time trap caught in the built output:* reading `process.env` in the layout and passing a prop **looks** right and is quietly wrong — most pages here are statically prerendered, so the value freezes at build time, and adding credentials later would leave the nav insisting sign-in was unavailable until someone thought to rebuild. The check now asks NextAuth's own providers endpoint at runtime. *Verified both ways: with credentials the Sign-in link appears even on the statically prerendered home page; without them, no link, and the planner still works end to end.*
+
+**Owed by you before this is live:** Google Cloud OAuth credentials and (optionally) a Supabase project — full steps in [`docs/AUTH_SETUP.md`](AUTH_SETUP.md). Note the step people forget: while the consent screen is in Testing, only accounts listed under **Test users** can sign in, so add every demo account.
+
+**Still true and worth stating plainly in the PRD:** signing in does **not** sync trips across devices. Trips remain in the browser. Moving them server-side is a real design decision about where a traveller's data lives, and not one to make quietly as a side effect of adding a login button.
+
 **D-025 · A hard-coded city was leaking into every plan (commit `0196061`).**
 
 **Reported:** reminders still named Bengaluru after choosing a different starting city — *"see to it that there is no such bias or pre assumed things."* Two causes, and only one of them was the obvious one.

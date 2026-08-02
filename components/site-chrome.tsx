@@ -11,6 +11,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { AccountMenu } from '@/components/account-menu';
 import { LanguageSwitch, useT } from '@/components/language-switch';
 
 const LINKS = [
@@ -97,6 +98,7 @@ export function SiteNav() {
               );
             })}
             <LanguageSwitch onDark={!solid} />
+            <AccountMenu onDark={!solid} />
             <Link
               href="/"
               className="ml-1 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
@@ -183,6 +185,7 @@ export function SiteNav() {
           <div className="px-5 pb-7 pt-4 shrink-0">
             <div className="mb-3 flex justify-center [&_button]:text-white/85 [&_button:hover]:bg-white/10">
               <LanguageSwitch onDark />
+              <AccountMenu onDark />
             </div>
             <Link
               href="/"

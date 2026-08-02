@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google'
 import { AutoTranslate } from '@/components/auto-translate'
 import { LanguageProvider } from '@/components/language-switch'
+import { AuthSessionProvider } from '@/components/session-provider'
 import { SiteFooter, SiteNav } from '@/components/site-chrome'
 import './globals.css'
 
@@ -42,13 +43,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bricolage.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="antialiased min-h-screen flex flex-col overflow-x-hidden">
-        <LanguageProvider>
-          <SiteNav />
-          <div className="flex-1">{children}</div>
-          <SiteFooter />
-          {/* Translates whatever is on screen, including text the agents write. */}
-          <AutoTranslate />
-        </LanguageProvider>
+        <AuthSessionProvider>
+          <LanguageProvider>
+            <SiteNav />
+            <div className="flex-1">{children}</div>
+            <SiteFooter />
+            {/* Translates whatever is on screen, including text the agents write. */}
+            <AutoTranslate />
+          </LanguageProvider>
+        </AuthSessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
