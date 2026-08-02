@@ -16,6 +16,16 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-021 · The language switch was decorative; it now works. Samples made findable (commit `e5e9275`).**
+
+**Called out correctly:** *"even after changing the language nothing changes."* True, and the fault was mine — I shipped a control that stored a preference and set `document.lang` while changing **no visible text**. That is worse than not shipping it, because it looks functional. Two defects:
+1. **Per-component state.** `useLanguage()` held its own `useState` in every consumer, so switching in the nav updated the nav and nothing else. Replaced with a single **LanguageProvider context** — all consumers read one value and re-render together.
+2. **No dictionary existed.** There was nothing to translate *into*. Added ~60 strings × **seven languages** (English, Hindi, Marathi, Bengali, Tamil, Telugu, Kannada) across nav, hero, planner form, mode cards, section headings and footer, with English fallback per missing key.
+
+*Verified live rather than assumed:* Tamil turns the nav into **திட்டம்**, the hero into **ஒரு மனநிலை. ஒரு பட்ஜெட். ஒரு முழு பயணம்.** and the form heading into **யார் யார் வருகிறார்கள்?** — and it survives a reload. Scope stays stated on the control: it translates chrome, not agent output. Where Indian speakers genuinely use the English word (mood names, "budget"), the English is kept — a stilted translation reads worse than honest code-mixing. **This makes the Phase 1 multilingual promise real rather than gestured at**, which matters for the Pilgrimage persona's accessibility argument (rubric 3.3).
+
+**Samples were unreachable.** Also correct: three of four could not be found. The hero button opened Gokarna and only Gokarna, and the gallery sits well below the fold — so the group, family and corporate plans were invisible to exactly the people who most needed them. **"See a sample trip" now opens a chooser** with all four, each showing its photo, mode and what it demonstrates. *Verified: dialog opens, four cards, picking Manali lands on Manali.* Given the quota ceiling, this is now the most reliable way to show the Referee, the consensus matrix and the compliance report in a demo.
+
 **D-020 · The stalling run diagnosed and fixed, plus a language switch and four samples (commit `6a38b43`).**
 
 **The stall — and two measurements that redirected the fix.** Reported as "takes too long, then never plans". The instinct is "quota exhausted"; the key said otherwise — **999/1000 requests, 11,954/12,000 tokens remaining** at the time. Two experiments then decided everything:
