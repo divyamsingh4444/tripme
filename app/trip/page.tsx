@@ -23,6 +23,7 @@ import type {
   ItineraryOutput,
   TripState,
 } from '@/lib/types';
+import { PlacePhoto } from '@/components/place-photo';
 import { addDays, fmtDate, fmtINR, getCurrentTrip, saveTrip, setCurrentTrip } from '@/lib/storage';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -71,6 +72,9 @@ export default function TripPage() {
   const [chosenResolution, setChosenResolution] = useState<number | null>(null);
   const [offline, setOffline] = useState(false);
   const switchBusy = useRef(false);
+  /** Free Wikimedia photograph of the destination — purely decorative. */
+  const [placeImage, setPlaceImage] = useState<{ image: string; pageUrl: string; attribution: string } | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     const t = getCurrentTrip();
@@ -91,6 +95,27 @@ export default function TripPage() {
     () => (state ? computeSplit(state, approved) : []),
     [state, approved],
   );
+
+  // Fetch a photo of wherever we ended up. Re-runs when you switch destination.
+  const placeName = state?.destination.selected.name;
+  const placeRegion = state?.destination.selected.region;
+  useEffect(() => {
+    if (!placeName) return;
+    let cancelled = false;
+    setPlaceImage(null);
+    setImageLoaded(false);
+    fetch(`/api/place-image?place=${encodeURIComponent(placeName)}&region=${encodeURIComponent(placeRegion ?? '')}`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (!cancelled && body?.data?.image) setPlaceImage(body.data);
+      })
+      .catch(() => {
+        /* decorative only — a missing photo must never surface as an error */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [placeName, placeRegion]);
 
   if (missing) {
     return (
@@ -197,8 +222,26 @@ export default function TripPage() {
       )}
 
       {/* Header — the destination gets to be a statement, not a form field */}
-      <section className="surface-deep-grad rounded-3xl overflow-hidden shadow-lg print-block">
-        <div className="p-6 sm:p-10">
+      <section className="relative surface-deep-grad rounded-3xl overflow-hidden shadow-lg print-block">
+        {/* A real photograph of the actual place, behind the type. */}
+        {placeImage && (
+          <div className="absolute inset-0 no-print" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={placeImage.image}
+              alt=""
+              className={`w-full h-full object-cover transition-opacity duration-700 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setPlaceImage(null)}
+            />
+            {/* Keep the type legible whatever the photo turns out to be. */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0e1f1a]/95 via-[#0e1f1a]/85 to-[#14453d]/80" />
+          </div>
+        )}
+
+        <div className="relative p-6 sm:p-10">
           <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold mb-5">
             {state.isSample && <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20">Sample</span>}
             <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/20">
@@ -246,6 +289,18 @@ export default function TripPage() {
           </div>
 
           <p className="mt-6 leading-relaxed text-white/85">{destination.selected.whyMatched}</p>
+
+          {/* Wikimedia content is CC-licensed; the source link is the attribution. */}
+          {placeImage && imageLoaded && (
+            <a
+              href={placeImage.pageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-print inline-block mt-4 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+            >
+              {placeImage.attribution}
+            </a>
+          )}
         </div>
 
         {/* Non-negotiables contract — the Discovery Agent's receipt */}
@@ -270,17 +325,43 @@ export default function TripPage() {
       </section>
 
       <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-5 sm:p-6 print-block">
+        {/* The Discovery Agent's own reasoning, surfaced instead of buried in the log. */}
+        {destination.decisionNote && (
+          <div className="flex gap-3 mb-4">
+            <span className="shrink-0 w-8 h-8 rounded-full bg-secondary border border-secondary flex items-center justify-center text-sm">
+              🗺️
+            </span>
+            <div className="text-sm">
+              <span className="font-semibold">Why the Discovery Agent chose this</span>
+              <p className="text-muted-foreground mt-0.5">{destination.decisionNote}</p>
+            </div>
+          </div>
+        )}
         <div className="no-print">
           <button onClick={() => setShowAlternates((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showAlternates}>
-            {showAlternates ? '− Hide alternates' : 'Switch destination →'}
+            {showAlternates ? '− Hide the runners-up' : 'It also considered these →'}
           </button>
           {showAlternates && (
-            <div className="mt-3 grid sm:grid-cols-2 gap-2">
+            <div className="mt-3 grid sm:grid-cols-2 gap-3">
               {destination.alternates.map((alt) => (
-                <button key={alt.name} onClick={() => switchDestination(alt)} className="text-left rounded-xl border border-input bg-card px-4 py-3 hover:border-primary transition-colors">
-                  <div className="font-semibold">{alt.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{alt.oneLineReason}</div>
-                  <div className="text-xs font-semibold text-primary mt-1.5">Re-plan budget, days &amp; bookings →</div>
+                <button
+                  key={alt.name}
+                  onClick={() => switchDestination(alt)}
+                  className="text-left rounded-2xl border border-input bg-card overflow-hidden hover:border-primary transition-colors card-lift"
+                >
+                  <PlacePhoto
+                    place={alt.name}
+                    className="h-24"
+                    overlay="bg-gradient-to-t from-[#0e1f1a]/85 to-transparent"
+                  >
+                    <div className="h-24 flex items-end p-3">
+                      <span className="font-display font-bold text-lg text-white drop-shadow">{alt.name}</span>
+                    </div>
+                  </PlacePhoto>
+                  <div className="px-4 py-3">
+                    <div className="text-xs text-muted-foreground">{alt.oneLineReason}</div>
+                    <div className="text-xs font-semibold text-primary mt-2">Re-plan around this instead →</div>
+                  </div>
                 </button>
               ))}
             </div>

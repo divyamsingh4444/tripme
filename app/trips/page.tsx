@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PlacePhoto } from '@/components/place-photo';
 import { useRouter } from 'next/navigation';
 import type { SavedTrip } from '@/lib/types';
 import {
@@ -138,29 +139,42 @@ export default function TripsPage() {
           {trips.map((trip) => {
             const s = trip.state;
             return (
-              <article key={trip.id} className="bg-card rounded-2xl border border-border shadow-sm p-5 flex flex-col">
-                <button onClick={() => openTrip(trip)} className="text-left flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-display text-xl font-bold hover:text-primary transition-colors">
-                      {s.destination.selected.name}
-                    </h3>
-                    <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold whitespace-nowrap">
-                      {MOOD_EMOJI[s.mood.moodProfile.primaryMood] ?? ''} {s.mood.moodProfile.primaryMood}
-                    </span>
+              <article key={trip.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col card-lift">
+                <button onClick={() => openTrip(trip)} className="text-left flex-1 group">
+                  {/* the place itself, not just its name */}
+                  <PlacePhoto
+                    place={s.destination.selected.name}
+                    region={s.destination.selected.region}
+                    className="h-36"
+                    overlay="bg-gradient-to-t from-[#0e1f1a]/90 via-[#0e1f1a]/35 to-transparent"
+                  >
+                    <div className="h-36 flex flex-col justify-between p-4">
+                      <div className="flex justify-end">
+                        <span className="px-2.5 py-1 rounded-full bg-black/35 backdrop-blur border border-white/20 text-white text-xs font-semibold whitespace-nowrap">
+                          {MOOD_EMOJI[s.mood.moodProfile.primaryMood] ?? ''} {s.mood.moodProfile.primaryMood}
+                        </span>
+                      </div>
+                      <h3 className="font-display text-2xl font-extrabold text-white drop-shadow">
+                        {s.destination.selected.name}
+                      </h3>
+                    </div>
+                  </PlacePhoto>
+
+                  <div className="p-5">
+                    <p className="text-sm text-muted-foreground">
+                      {fmtDate(s.input.startDate)} · {s.input.durationDays}{' '}
+                      {s.input.durationDays === 1 ? 'day' : 'days'} · {s.input.travelers}{' '}
+                      {s.input.travelers === 1 ? 'traveller' : 'travellers'}
+                    </p>
+                    <p className="text-sm font-mono font-semibold mt-1.5">{fmtINR(s.input.budgetTotalINR)}</p>
+                    {s.isSample && (
+                      <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold">
+                        Sample
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {fmtDate(s.input.startDate)} · {s.input.durationDays}{' '}
-                    {s.input.durationDays === 1 ? 'day' : 'days'} · {s.input.travelers}{' '}
-                    {s.input.travelers === 1 ? 'traveller' : 'travellers'}
-                  </p>
-                  <p className="text-sm font-mono font-semibold mt-1.5">{fmtINR(s.input.budgetTotalINR)}</p>
-                  {s.isSample && (
-                    <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold">
-                      Sample
-                    </span>
-                  )}
                 </button>
-                <div className="mt-4 pt-3 border-t border-border flex gap-2 text-xs font-semibold">
+                <div className="px-5 pb-5 pt-1 flex gap-2 text-xs font-semibold">
                   <button onClick={() => openTrip(trip)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90">
                     Open
                   </button>
