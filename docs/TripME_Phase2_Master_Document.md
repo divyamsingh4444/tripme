@@ -16,6 +16,14 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-019 · Landing page filled out — trending destinations, trip ideas, recent trips (commit `f535c50`).**
+The page ended at the planner form; below it was empty. It now carries the editorial furniture that makes the reference site feel alive — built so every claim on it is true.
+- **Trending destinations** — eight hand-picked places in a snap-scrolling rail with real Wikimedia photography, a mood chip, best season and an indicative budget. Tapping one **pins that destination** and fills a matching brief. *Verified end to end: Rishikesh pins, Spiritual selects, budget lands at ₹18,000.* This cost no new agent work — Discovery already accepts `pinnedDestination` (built for the P0-4 switch fix), so it justifies a chosen place rather than re-choosing. `TripInput` now carries it from the form to the pipeline. **It also answers a real gap:** until now there was no path for "I already know where I want to go."
+- **Trip ideas** — six mood-led briefs that deliberately **do not** pin a place, so the mood-in/destination-out thesis still holds intact for anyone starting from a feeling rather than a map.
+- **Your recent trips** — the honest counterpart to their *"Recently booked itineraries · 143+ trips booked last week"*. Ours reads the visitor's **own saved trips** and hides itself entirely when there are none. Inventing named strangers with timestamps would be fabricated social proof, which is precisely what rubric 3.3 grades — and it would be indefensible if a reviewer asked where the number came from.
+- Brand marquee, motion-safe.
+*Verified at 375 / 768 / 1280 — `scrollWidth == clientWidth` at every width; the rails scroll inside themselves.*
+
 **D-018 · Researched Pickyourtrail's "AI features" — there are none. The gap is photography, and we closed the free half of it (commit `b903de9`).**
 
 **The finding, because it reframes the brief.** A full crawl of pickyourtrail.com returns **zero AI mentions** anywhere on the page. They are a **human-concierge travel agency** with an excellent media budget, not an AI product. Their "Trippie" is a support/mascot widget. There is no AI feature to draw inspiration from — **TripME is already far more AI-first than the site we were told to learn from.**
