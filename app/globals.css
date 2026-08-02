@@ -152,6 +152,20 @@
   }
 }
 
+/* ---- brand ticker ---- */
+@keyframes tripme-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: tripme-marquee 28s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
 /* ---- pipeline shimmer (motion-safe only) ---- */
 @keyframes tripme-shimmer {
   0% { background-position: -200% 0; }

@@ -60,6 +60,12 @@ export interface TripInput {
   travelers: number;
   foodPref: FoodPref;
   pace: Pace;
+  /**
+   * Set when the traveller starts from a place rather than a feeling — picked
+   * off Trending destinations. Discovery then justifies that choice instead of
+   * making one, so the rest of the pipeline is unchanged.
+   */
+  pinnedDestination?: string;
 }
 
 /* ---- Agent 1: Mood & Intent ---- */

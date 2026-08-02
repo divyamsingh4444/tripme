@@ -146,7 +146,11 @@ export default function RunPage() {
       setNoInput(true);
       return;
     }
-    ctxRef.current = { input };
+    ctxRef.current = {
+      input,
+      // "I already know where" — Discovery justifies rather than re-chooses.
+      ...(input.pinnedDestination ? { pinnedDestinationName: input.pinnedDestination } : {}),
+    };
     timerStart.current = Date.now();
     void runPipeline(input);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -16,6 +16,8 @@ import type {
 } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
+import { Marquee, RecentTrips, TrendingDestinations, TripIdeas } from '@/components/landing-sections';
+import type { TripIdea, TrendingPlace } from '@/lib/inspiration';
 import { CorporateForm, HouseholdForm, MOODS, PilgrimageForm, TravellersForm } from '@/components/mode-forms';
 
 const GlobeBackdrop = dynamic(() => import('@/components/globe-backdrop'), { ssr: false });
@@ -54,6 +56,8 @@ export default function PlanPage() {
   const [showMore, setShowMore] = useState(false);
   const [error, setError] = useState('');
   const [prefillNote, setPrefillNote] = useState(false);
+  /** Set when you start from Trending rather than from a mood. */
+  const [pinned, setPinned] = useState<{ name: string; region: string } | null>(null);
 
   const [people, setPeople] = useState<Traveller[]>([
     { name: 'Priya', mood: 'Adventure', budgetINR: 20000, note: '' },
@@ -103,6 +107,30 @@ export default function PlanPage() {
   // stepper going to 8 under a button labelled "Solo" contradicts itself.
   const usesTravellerCount = !usesPeople && mode !== 'family' && mode !== 'solo';
 
+  const goToForm = () => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  /** Trending: pin the place and fill a brief that suits it. */
+  const pickTrending = (p: TrendingPlace) => {
+    setMode('solo');
+    setMood(p.mood);
+    setBudget(p.fromINR);
+    setDuration(p.days);
+    setPinned({ name: p.name, region: p.region });
+    setError('');
+    goToForm();
+  };
+
+  /** Trip ideas stay mood-led — Discovery still chooses the destination. */
+  const pickIdea = (idea: TripIdea) => {
+    setMode('solo');
+    setMood(idea.mood);
+    setBudget(idea.budgetINR);
+    setDuration(idea.days);
+    setPinned(null);
+    setError('');
+    goToForm();
+  };
+
   const pickMode = (m: TripMode) => {
     setMode(m);
     setTravelers(defaultTravellers(m)); // a count set in one mode must never leak into the next
@@ -145,6 +173,8 @@ export default function PlanPage() {
       travelers: effectiveTravellers,
       foodPref: mode === 'pilgrimage' ? 'Veg' : foodPref,
       pace,
+      // Only solo-style modes can pin; group/family briefs are negotiated.
+      ...(pinned && !usesPeople ? { pinnedDestination: pinned.name } : {}),
     } satisfies TripInput);
     router.push('/run');
   };
@@ -292,6 +322,23 @@ export default function PlanPage() {
             </div>
           )}
 
+          {pinned && (
+            <div className="flex items-start justify-between gap-3 text-sm bg-accent/15 border border-accent/40 rounded-xl px-4 py-3">
+              <span>
+                Starting from <strong>{pinned.name}</strong> — the agents will still work out the
+                budget, the days and the bookings.
+              </span>
+              <button
+                type="button"
+                onClick={() => setPinned(null)}
+                className="font-semibold hover:opacity-70 shrink-0"
+                aria-label="Clear destination and let the agents choose"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {mode === 'solo' && (
             <div>
               <label className="block font-display font-semibold mb-3">
@@ -432,6 +479,12 @@ export default function PlanPage() {
           </div>
         </form>
       </section>
+
+      {/* ---------------- INSPIRATION ---------------- */}
+      <TrendingDestinations onPick={pickTrending} />
+      <TripIdeas onPick={pickIdea} />
+      <RecentTrips />
+      <Marquee />
 
       {/* ---------------- WHY IT'S DIFFERENT ---------------- */}
       <section className="mt-20 surface-deep-grad">
