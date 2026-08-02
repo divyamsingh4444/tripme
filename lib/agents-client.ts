@@ -86,6 +86,9 @@ export const AGENT_META: Record<AgentKey, AgentMeta> = {
   referee_policy: { key: 'referee_policy', name: 'Referee Agent · compliance audit', emoji: '⚖️', running: 'Checking every booking against travel policy…' },
   booking: { key: 'booking', name: 'Booking Agent', emoji: '🎫', running: 'Preparing your bookings (demo)…' },
   notification: { key: 'notification', name: 'Notification Agent', emoji: '🔔', running: 'Scheduling your trip reminders…' },
+  // Neither of these runs in the pipeline — they answer the traveller after it.
+  options: { key: 'options', name: 'Options Agent', emoji: '🔀', running: 'Finding travel and stay alternatives…' },
+  assistant: { key: 'assistant', name: 'TripME Assistant', emoji: '💬', running: 'Thinking…' },
 };
 
 /** Which Intent-agent variant each entry path uses. */
@@ -329,6 +332,17 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         ...modeBrief,
       };
     }
+    case 'options':
+      return {
+        selected: ctx.destination!.selected,
+        originCity: input.originCity,
+        startDate: input.startDate,
+        durationDays: input.durationDays,
+        travelers: input.travelers,
+        allocation: ctx.budget!.allocation,
+        totalINR: input.budgetTotalINR,
+        ...modeBrief,
+      };
     case 'notification':
       return {
         destination: ctx.destination!.selected.name,

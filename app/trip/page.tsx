@@ -24,6 +24,10 @@ import type {
   TripState,
 } from '@/lib/types';
 import { PlacePhoto } from '@/components/place-photo';
+import { TripAssistant } from '@/components/trip-assistant';
+import { TripChoices } from '@/components/trip-choices';
+import { TripConfirm } from '@/components/trip-confirm';
+import { applyChoices, itineraryWithEdits } from '@/lib/recompute';
 import { addDays, fmtDate, fmtINR, getCurrentTrip, saveTrip, setCurrentTrip } from '@/lib/storage';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -129,12 +133,35 @@ export default function TripPage() {
   }
   if (!state) return null;
 
-  const { input, mood, destination, budget, itinerary, booking, referee, consensus, advocates, notification, familyAudit, policyAudit } = state;
+  const { input, mood, destination, budget, booking, referee, consensus, advocates, notification, familyAudit, policyAudit } = state;
   const endDate = addDays(input.startDate, Math.max(0, input.durationDays - 1));
-  const approvedTotal = booking.bookings.reduce((sum, b, i) => sum + (approved[i] ? b.amountINR : 0), 0);
+
+  /*
+   * Everything below renders the trip AS CHOSEN, not as first proposed. The
+   * agents' original output is still in state (and in the agent log) — but a
+   * page that showed the planned stay while the traveller had picked another
+   * would be lying about their own trip.
+   */
+  const money = applyChoices(state);
+  const itinerary = itineraryWithEdits(state.itinerary, state.choices);
+  const bookings = money.bookings;
+  const approvedTotal = bookings.reduce((sum, b, i) => sum + (approved[i] ? b.amountINR : 0), 0);
   const isGroup = input.mode === 'group' && (consensus?.perTraveller?.length ?? 0) > 0;
 
   const doSave = () => setSaved(saveTrip(state) ? 'saved' : 'failed');
+
+  /**
+   * Every traveller change goes through here so the working copy and the stored
+   * copy never disagree — a choice that survives a re-render but not a refresh
+   * is worse than no choice at all.
+   */
+  const updateState = (next: TripState) => {
+    setState(next);
+    setCurrentTrip(next);
+    if (saved === 'saved') saveTrip(next); // keep an already-saved trip in step
+  };
+
+  const confirmed = state.status === 'confirmed';
 
   const switchDestination = async (alt: { name: string; oneLineReason: string }) => {
     if (switchBusy.current) return;
@@ -770,7 +797,7 @@ export default function TripPage() {
           Nothing is booked without your approval — and in this demo, nothing is ever really booked.
         </p>
         <div className="space-y-4">
-          {booking.bookings.map((item, i) => {
+          {bookings.map((item, i) => {
             const isApproved = !!approved[i];
             const reference = bookingRef(destination.selected.name + item.title, i);
             return (
@@ -872,37 +899,20 @@ export default function TripPage() {
           ))}
       </section>
 
-      {/* Notification schedule */}
+      {/*
+        Choices, then commitment. The order matters: reminders used to sit here
+        unconditionally, telling people to leave for a journey they had not yet
+        agreed to take. Now the plan is something you shape, and confirming is
+        what turns the schedule on.
+      */}
+      <TripChoices state={state} onChange={updateState} locked={confirmed} />
+
       {notification && notification.reminders?.length > 0 && (
-        <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
-          <h2 className="type-section font-display font-extrabold">🔔 Your reminder schedule</h2>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">
-            Scheduled by the Notification Agent. In this MVP the schedule is real; delivery over
-            push/SMS/voice is post-MVP.
-          </p>
-          <ol className="space-y-2.5">
-            {notification.reminders.map((r, i) => (
-              <li key={i} className="flex gap-3 items-start rounded-xl border border-input px-4 py-3">
-                <span className="text-lg mt-0.5">{CHANNEL_ICON[r.channel] ?? '🔔'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{r.title}</span>
-                    {r.priority === 'high' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-bold uppercase">Critical</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{r.body}</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    {r.whenLabel} · {r.offsetLabel} · via {r.channel}
-                    {r.forWhom ? ` · ${r.forWhom}` : ''}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-4 text-sm italic text-muted-foreground">{notification.channelStrategy}</p>
-          {notification.quietHoursNote && <p className="mt-1 text-xs text-muted-foreground">{notification.quietHoursNote}</p>}
-        </section>
+        <TripConfirm state={state} onChange={updateState} />
+      )}
+
+      {notification?.channelStrategy && confirmed && (
+        <p className="mt-3 text-sm italic text-muted-foreground px-1">{notification.channelStrategy}</p>
       )}
 
       {/* Agent log */}
@@ -956,6 +966,8 @@ export default function TripPage() {
         </div>
         {saved === 'failed' && <p className="text-center text-xs text-destructive pb-2">Couldn&apos;t save on this device — the plan still works this session.</p>}
       </div>
+
+      <TripAssistant state={state} />
 
       {switching && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center px-4">

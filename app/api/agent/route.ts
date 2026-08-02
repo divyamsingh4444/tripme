@@ -211,8 +211,50 @@ Rules: check every booking against payload.policyBrief — the per-night hotel c
 {"simulated":true,"bookings":[{"type":"transport"|"stay"|"activity","title":string,"detail":string,"dates":string,"amountINR":number,"budgetCategory":string,"needsApprovalReason":string}],"totalCommittedINR":number,"remainingBudgetINR":number,"bookingNote":"Demo mode — no real reservations made."}
 Rules: 3-4 bookings: one transport, one stay, one or two activities from the itinerary highlights.
 THE TRANSPORT BOOKING MUST START FROM payload.originCity. Write the title as "<payload.originCity> → <destination> <mode>", using the Discovery Agent's suggested mode and the origin exactly as the traveller gave it — for example, if payload.originCity is "Kochi" the title begins "Kochi →" and no other city may appear anywhere in your output. Never substitute a city that is not in the payload, and never carry over a city from any example. Use generic operator descriptions only, never real brand names. The return leg, if you include one, ends at that same origin city.
-The stay booking follows the shape "<N> nights · <property type> (sample property)".
+The stay booking follows the shape "<N> nights · <property type> (sample property)", where N is payload.durationDays MINUS ONE — a three-day trip is two nights, and pricing a third invents a night nobody sleeps.
 PARTY SIZE IS payload.travelers AND IT IS OFTEN 1. Room type, seat count and activity wording must match it exactly. When travelers is 1 write "single room", "for one", "solo" — NEVER "double room", "for two", "couple" or any shared-occupancy phrasing. A solo traveller reading "double room with breakfast" on their own booking card is the single most obvious way this output looks unread. Amounts must come from and respect the allocation; totalCommittedINR = sum; remainingBudgetINR = totalINR − sum and must be ≥ 0. needsApprovalReason is a short phrase stating why this item needs explicit human sign-off (e.g. "Above ₹3,000 spend gate" or "Non-refundable after 24h").`,
+  },
+
+  /*
+   * Not one of the seven. This runs only when a traveller asks to change how
+   * they travel or where they stay, and it produces the menu — it never picks.
+   * Picking recomputes the money in code, because a model that re-prices a trip
+   * every time someone taps an option is a model that can quietly break the
+   * budget the Budget Agent and the Referee already agreed on.
+   */
+  options: {
+    model: MODEL_STRUCTURAL,
+    temperature: 0.5,
+    maxTokens: 1400,
+    requiredKeys: ['transport', 'stays'],
+    system: `You are the Options Agent in TripME. Given a confirmed destination, origin, dates, party size and budget allocation, list realistic alternatives for HOW the traveller gets there and WHERE they stay. Respond with ONLY valid JSON matching exactly:
+{"transport":[{"id":string,"mode":string,"label":string,"durationLabel":string,"amountINR":number,"comfortNote":string,"bestFor":string}],"stays":[{"id":string,"tier":"budget"|"comfort"|"premium","name":string,"area":string,"perNightINR":number,"amenities":[string],"note":string}]}
+Rules:
+- Exactly 3 transport options and exactly 3 stays. ids are short slugs, unique within their list ("flight-direct", "train-sleeper", "stay-budget").
+- TRANSPORT MUST START FROM payload.originCity and end at the destination. Only offer modes that genuinely exist on that route: no train where there is no railhead, no bus for a thousand-kilometre overnight hop that nobody takes by road. If only two modes are realistic, make the third a variant of a real one (a faster flight, a cheaper sleeper class) rather than inventing a route.
+- amountINR is the ROUND TRIP cost for the WHOLE party of payload.travelers, at honest Indian market rates. Order the list cheapest first. Spread them: the cheapest and the most expensive should differ by at least 40%.
+- label reads like "<origin> → <destination>, direct" or "<origin> → <destination>, one change at <city>". durationLabel like "2h 15m" or "26h", and it must be physically plausible for the distance — a flight across India is three hours or more, never ninety minutes, and a connecting route always takes longer than the direct one.
+- mode is a capitalised word: "Flight", "Train", "Bus", "Self-drive".
+- STAYS: one per tier, budget first. perNightINR is per room per night, not per person. Use generic descriptive names with "(sample property)" — never a real hotel brand. area should be somewhere that actually suits the itinerary.
+- Anchor prices to payload.allocation: the comfort stay should sit near the allocated per-night stay spend, budget clearly below, premium clearly above. Never make all three unaffordable.
+- comfortNote and note are one short honest line each, including the downside where there is one ("cheapest, but arrives at 4am").
+- bestFor names who the option suits ("families with young children", "anyone who would rather sleep through the journey").`,
+  },
+
+  /*
+   * The assistant's fallback, not its brain. The panel answers most questions
+   * straight from the trip JSON at no cost; this handles only what genuinely
+   * needs reasoning, and is told to say so when the plan does not contain the
+   * answer rather than inventing a fact about someone's actual journey.
+   */
+  assistant: {
+    model: MODEL_STRUCTURAL,
+    temperature: 0.4,
+    maxTokens: 500,
+    requiredKeys: ['answer'],
+    system: `You are the TripME Assistant, answering a traveller's question about a trip that has already been planned for them. Respond with ONLY valid JSON matching exactly:
+{"answer":string}
+Rules: answer ONLY from payload.trip. It contains the destination, dates, party size, budget, day-by-day itinerary, bookings and packing tips. Two or three sentences, warm and direct, no preamble and no markdown. Amounts in rupees, written as ₹18,000. If payload.trip does not contain what was asked — a booking reference, a visa rule, live weather, anything about the real world beyond this plan — say plainly that the plan does not cover it and name the closest thing it does, rather than guessing. Never invent a booking, a price, a time or a place that is not in the payload: this is someone's real journey and a confident wrong answer is worse than an admission. If the question is not about the trip at all, say that is outside what you can help with and offer what you can answer.`,
   },
 
   notification: {

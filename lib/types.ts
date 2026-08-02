@@ -278,6 +278,62 @@ export interface NotificationOutput {
   quietHoursNote?: string;
 }
 
+/* ---- Traveller choices: options the plan offers, and what was picked ---- */
+
+/** One priced way of reaching the destination. Amounts are for the whole party. */
+export interface TransportOption {
+  id: string;
+  mode: string; // Flight · Train · Bus · Self-drive
+  label: string; // "Guwahati → Kochi, one stop"
+  durationLabel: string;
+  amountINR: number;
+  comfortNote: string;
+  bestFor: string;
+}
+
+/** One priced place to stay. `perNightINR` is per room, not per person. */
+export interface StayOption {
+  id: string;
+  tier: 'budget' | 'comfort' | 'premium';
+  name: string;
+  area: string;
+  perNightINR: number;
+  amenities: string[];
+  note: string;
+}
+
+/**
+ * Generated on demand rather than with the plan. Most travellers never open
+ * these, and a spare agent call on every run is exactly the kind of spending
+ * that emptied the daily quota in the first place.
+ */
+export interface TripOptions {
+  transport: TransportOption[];
+  stays: StayOption[];
+}
+
+/** A single itinerary slot the traveller has changed. */
+export interface SlotEdit {
+  activity: string;
+  approxCostINR: number;
+  /** Set when the traveller cleared the slot rather than replacing it. */
+  cleared?: boolean;
+}
+
+export interface TripChoices {
+  transportId?: string;
+  stayId?: string;
+  /** Keyed `${day}-${slot}`, e.g. "2-morning". */
+  slotEdits?: Record<string, SlotEdit>;
+}
+
+/**
+ * A plan is a proposal until the traveller says they are actually going.
+ * Reminders only mean something after that, which is why they stay hidden
+ * until it happens.
+ */
+export type TripStatus = 'planned' | 'confirmed';
+
 /* ---- Assembled trip ---- */
 export interface TripState {
   input: TripInput;
@@ -295,6 +351,12 @@ export interface TripState {
   budgetV1?: BudgetOutput; // pre-arbitration allocation, kept for the audit trail
   booking: BookingOutput;
   notification?: NotificationOutput;
+  /** Travel and stay alternatives, fetched the first time they are asked for. */
+  options?: TripOptions;
+  choices?: TripChoices;
+  /** Absent on trips planned before the confirm step existed — treat as 'planned'. */
+  status?: TripStatus;
+  confirmedAt?: number;
   agentsRun: number;
   plannedInSeconds: number;
   hadHistory: boolean;
@@ -336,7 +398,9 @@ export type AgentKey =
   | 'referee_family'
   | 'referee_policy'
   | 'booking'
-  | 'notification';
+  | 'notification'
+  | 'options'
+  | 'assistant';
 
 export interface AgentApiResponse {
   ok: boolean;
