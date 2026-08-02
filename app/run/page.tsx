@@ -195,6 +195,13 @@ export default function RunPage() {
         }
         hardFails.current++;
         setOfferSample(true); // always give an escape hatch, not just after two
+        /*
+         * Say what actually happened. "This agent hit a snag" was reported as
+         * genuinely baffling — it covered every non-quota failure, so the one
+         * message appeared whether the backend was misconfigured, the models
+         * had all refused, or something upstream had broken. Nobody could act
+         * on it, including us: the screenshot alone could not tell us which.
+         */
         patch(id, {
           kind: 'error',
           message:
@@ -206,7 +213,9 @@ export default function RunPage() {
                 ? 'The AI backend is not configured on this deployment.'
                 : e.code === 'network'
                   ? 'Network hiccup — check your connection and retry.'
-                  : 'This agent hit a snag.',
+                  : e.code === 'parse_failed'
+                    ? "The models returned output this step couldn't read. Retrying usually clears it."
+                    : 'Something failed on our side, not yours. Retrying usually clears it.',
         });
         setFailedStep(id);
 

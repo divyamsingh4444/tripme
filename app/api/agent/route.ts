@@ -461,12 +461,43 @@ const CHAIN_STRUCTURAL = [MODEL_STRUCTURAL, MODEL_ARBITER, MODEL_REASONING];
  */
 const CHAIN_NESTED = [MODEL_REASONING, MODEL_STRUCTURAL, MODEL_ARBITER];
 
+/*
+ * The persona variants of the Mood agent carry an extra nested object on top of
+ * destinationParameters — faithContext, householdConstraints, policy — and that
+ * is one level more than gpt-oss's JSON validator will accept. Measured: the
+ * Pilgrimage variant is rejected outright there and answers cleanly elsewhere.
+ * They also run first and set the direction of the whole plan, so they are
+ * worth the reasoning model's scarce daily budget.
+ */
+const NESTED_SCHEMA_AGENTS = new Set([
+  'destination',
+  'budget',
+  'mood_family',
+  'mood_pilgrimage',
+  'mood_corporate',
+]);
+
 function chainFor(agent: string, config: AgentConfig): string[] {
-  if (agent === 'destination' || agent === 'budget') return CHAIN_NESTED;
+  if (NESTED_SCHEMA_AGENTS.has(agent)) return CHAIN_NESTED;
   const primary = config.model ?? MODEL_REASONING;
   if (primary === MODEL_ARBITER) return CHAIN_ARBITER;
   if (primary === MODEL_STRUCTURAL) return CHAIN_STRUCTURAL;
   return CHAIN_REASONING;
+}
+
+/**
+ * Should the chain move on to the next model?
+ *
+ * 429 is quota. 400 is the provider's own JSON validator rejecting what the
+ * model produced — which is a property of THAT model, not of the request, and
+ * is exactly what the Pilgrimage agent hit in production: gpt-oss cannot
+ * validate its nested schema, the 400 escaped the loop, and the traveller was
+ * told "this agent hit a snag" while two models that could have answered went
+ * untried. Any provider-side refusal now means try the next model.
+ */
+function shouldFailOver(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  return status === 429 || status === 400 || status === 413 || status === 422 || status === 503;
 }
 
 function isRateLimit(err: unknown): boolean {
@@ -585,9 +616,10 @@ export async function POST(request: NextRequest) {
         }
         if (i > 0) console.warn(`[TripME] ${agentKey}: served by fallback ${model}`);
       } catch (err) {
-        if (isRateLimit(err)) {
-          lastRateLimit = err;
-          console.warn(`[TripME] ${agentKey}: ${model} out of quota, trying next`);
+        if (shouldFailOver(err)) {
+          if (isRateLimit(err)) lastRateLimit = err;
+          const status = (err as { status?: number })?.status;
+          console.warn(`[TripME] ${agentKey}: ${model} refused (${status}), trying next`);
           continue;
         }
         throw err;
@@ -596,8 +628,11 @@ export async function POST(request: NextRequest) {
 
     if (!data) {
       if (lastRateLimit) throw lastRateLimit; // every model exhausted
-      console.error(`[TripME] ${agentKey}: parse failed on every model`);
-      return NextResponse.json({ ok: false, error: 'parse_failed' }, { status: 502 });
+      console.error(`[TripME] ${agentKey}: no model produced valid output`);
+      return NextResponse.json(
+        { ok: false, error: 'parse_failed', detail: `${chain.length} models tried` },
+        { status: 502 },
+      );
     }
     const processed = postProcess(agentKey, data, body.payload as Record<string, unknown>);
     cacheSet(key, processed);

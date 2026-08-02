@@ -16,6 +16,20 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-024 · The failover had a hole, and the error message hid it (commit pending).**
+
+**Reported from production:** the Pilgrimage path died on its very first agent — *"Mood & Intent Agent · faith / This agent hit a snag"* — with *"I don't even understand what the issue was."* Both halves of that were fair, and the second is the more serious one.
+
+**The hole.** D-022's chain moved to the next model on a 429. It did not move on a **400** — and a 400 is what Groq returns when its own JSON validator rejects what a model produced. That is a property of *that model*, not of the request. Reproduced exactly: the Pilgrimage variant of the Mood agent is rejected outright by `gpt-oss-120b`, which was its primary. The 400 escaped the loop, the whole request failed, **and two models that could have answered were never tried.** Any provider-side refusal (400, 413, 422, 429, 503) now advances the chain.
+
+**Why that variant specifically.** The persona variants of the Mood agent carry an extra nested object on top of `destinationParameters` — `faithContext`, `householdConstraints`, policy — one level more than gpt-oss's validator accepts. They now share the nested-schema chain with Discovery and Budget. They also run *first* and set the direction of the whole plan, so they are worth the reasoning model's scarce daily budget.
+
+**The message was the worse defect.** *"This agent hit a snag"* covered every non-quota failure, so the same sentence appeared whether the backend was misconfigured, every model had refused, or something upstream had broken. It was unactionable for the traveller **and for us** — the screenshot alone could not tell us which had happened. Failures now name what went wrong, and the server logs which model refused and with what status.
+
+**Verified against the exact reported case, under the hardest possible conditions:** a complete Char Dham plan ran end to end with the 70B model's daily budget already fully spent. Every agent failed over and the plan finished — including `referee: gpt-oss-120b refused (400), trying next`, the precise bug class that killed the production run.
+
+**The lesson for the write-up:** D-022 built the failover and proved it against the failure that was visible at the time (quota). One release later a *different* refusal walked straight through it. Breadth of failure handling is not established by the case that motivated the feature.
+
 **D-023 · Translation reaches the trip itself, not just the chrome (commit pending).**
 
 **The instruction:** *"the translation should work on all pages, no matter how deep, everything should be translated… if there is something dynamic happening like the agents at work then it should be translated after the work is done."*
