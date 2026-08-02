@@ -747,7 +747,13 @@ export default function TripPage() {
           {itinerary.languageCard.phrases.map((p, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3 border-b border-primary-foreground/15 pb-2">
               <span className="opacity-80">{p.english}</span>
-              <span className="text-right">
+              {/*
+                The whole point of this column is that it is in the destination's
+                language. The page translation pass must not touch it — the
+                romanised line especially, which looks like ordinary Latin text
+                and would otherwise be "translated" into nonsense.
+              */}
+              <span className="text-right" data-no-translate>
                 <span className="font-semibold">{p.local}</span>
                 <span className="block text-xs opacity-70 font-mono">{p.phonetic}</span>
               </span>

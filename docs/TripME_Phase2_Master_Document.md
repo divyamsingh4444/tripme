@@ -16,6 +16,40 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-023 · Translation reaches the trip itself, not just the chrome (commit pending).**
+
+**The instruction:** *"the translation should work on all pages, no matter how deep, everything should be translated… if there is something dynamic happening like the agents at work then it should be translated after the work is done."*
+
+D-021 built a hand-written dictionary. That was the smaller half of the problem, and continuing down that road would have failed: **most of what a traveller actually reads is written by the agents at runtime** — the destination rationale, the day-by-day itinerary, the Referee's ruling, the packing list. No dictionary can ever contain those, so a plan in Tamil would still have had an English trip inside it. Hand-writing entries for the remaining ~2,200 lines of UI would also have left every future string untranslated by default.
+
+**So translation moved from source strings to the rendered page.** A pass walks the DOM, sends what it finds to a batch endpoint, and writes the result back. Two design consequences worth recording:
+
+1. **It watches instead of running once.** A `MutationObserver` re-runs the pass whenever the DOM changes, which is precisely what "translated after the work is done" requires — each agent's output is translated as it lands, with no coordination between the translator and the pipeline. The pages do not know this exists.
+2. **It is cache-first, so re-running constantly is affordable.** Known strings are applied synchronously with no request; only genuinely new text — a freshly generated plan — waits. The cache is seeded from the D-021 dictionary by English text, so the nav, hero and footer are never sent to a model we already paid a human cost to translate.
+
+**Guards, each of which fixed an observed failure:**
+- A string containing Devanagari–Kannada characters is skipped, so the pass never re-translates its own output. Without it, a translated line still holding an English acronym ("travel DNA") looked translatable and went round again.
+- The **phrasebook's local column is exempt** (`data-no-translate`). Its romanised line ("Namaskāra") is Latin text that would have been "translated" into nonsense — destroying the one card whose whole purpose is to be in the destination's language. The language menu is exempt for the same class of reason: a menu that renames "Hindi" into Hindi cannot be used to find Hindi.
+- Raw JSON in the agent log is exempt by tag, and **two failed attempts retire a string** for the session — without that, a string the model kept failing on would be retried on every DOM change, forever.
+
+**Verified live, not assumed.** A plan generated in Hindi came back as **शिवनासमुद्रा**, with the Discovery Agent's reasoning rendered as *"बेंगलुरु के निकटता और सुंदर बैकवॉटर के कारण शिवनासमुद्रा शीर्ष विकल्प बनता है…"* — agent-written text, translated after the agents finished. On the trip page, 183 of 186 lines translated; the three left in Latin were "JSON", the brand name and the copyright line, all correct.
+
+**Cost is deliberately kept off the planning budget:** translation leads with the 8B model, whose daily allowance is by far the largest, and falls through the same three-model chain as D-022. It therefore competes with planning for quota only when the small model is already gone.
+
+**D-022 · The free-tier ceiling was tokens-per-DAY, and it is not in the headers (commit `81cbf41`).**
+
+**Reported as:** *"the free tier gets over too quickly, I am not able to use the product properly even to plan one trip."* Correct, and the cause was not what either of us assumed.
+
+**The measurement that settled it.** The `x-ratelimit-*` headers read **11,963 of 12,000 tokens free** — apparently healthy — while every call failed. The daily figure appears **only in the body of the 429**: `TPD: Limit 100000, Used 99724`. `llama-3.3-70b-versatile` allows **100,000 tokens a day** on the free tier, which at roughly 10k a plan is about **ten plans and then a hard stop until tomorrow**. Because that number is absent from the headers, it cannot be checked before a call — only reacted to. This is why the problem read as a per-minute one for so long, and it is a genuine lesson about instrumenting against the limit you can see rather than the one that binds.
+
+**The fix answers "do I need another model?" with: we already had three.** Each model meters separately, so every agent now walks an ordered chain and a model that is out of quota is **skipped immediately rather than waited on** — another model's daily budget is untouched, so stalling gains nothing. Only when all three are exhausted does the traveller see a limit. Every agent was validated against every model in its chain before being trusted.
+
+*Observed on a live run, which is the whole argument for the design:* Budget went `llama-3.3-70b` (out of quota) → `gpt-oss-120b` (malformed) → `llama-3.1-8b-instant` (served), **and the plan finished normally**. Under the old code that run would have stopped dead.
+
+Two supporting moves: **Itinerary, the heaviest single agent, moved off 70B** to protect its small daily budget; and **Discovery and Budget use a different chain order** (70B → 8B → gpt-oss) because their deeply nested objects are exactly what gpt-oss malforms, so trying it second only burned a call.
+
+**Also corrected, in the same breath: our own throttle was masquerading as the provider's.** `RATE_MAX_CALLS` was set to 30 when a plan was ~8 calls; a group plan is now 13+, so two plans in a minute tripped **our** limiter, which returned `rate_limited` — and the UI told the traveller the free tier was exhausted. Doubly wrong: the message was false, and waiting for a refill could never clear it. Raised to 90 with a distinct `too_many_requests` code and its own honest message.
+
 **D-021 · The language switch was decorative; it now works. Samples made findable (commit `e5e9275`).**
 
 **Called out correctly:** *"even after changing the language nothing changes."* True, and the fault was mine — I shipped a control that stored a preference and set `document.lang` while changing **no visible text**. That is worse than not shipping it, because it looks functional. Two defects:

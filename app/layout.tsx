@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google'
+import { AutoTranslate } from '@/components/auto-translate'
 import { LanguageProvider } from '@/components/language-switch'
 import { SiteFooter, SiteNav } from '@/components/site-chrome'
 import './globals.css'
@@ -45,6 +46,8 @@ export default function RootLayout({
           <SiteNav />
           <div className="flex-1">{children}</div>
           <SiteFooter />
+          {/* Translates whatever is on screen, including text the agents write. */}
+          <AutoTranslate />
         </LanguageProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

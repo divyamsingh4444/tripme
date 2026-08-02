@@ -8,9 +8,10 @@
  * changed no visible text. One shared context fixes that: every consumer reads
  * the same value and re-renders together.
  *
- * Scope is stated on the control itself: this translates the product's own
- * chrome. Trip plans come back from the model in English, and pretending
- * otherwise would be worse than saying so.
+ * This context supplies the hand-written dictionary, which is instant and covers
+ * the chrome. Everything else on the page — including the trip the agents write
+ * — is handled by the pass in components/auto-translate.tsx, which reads the
+ * same `lang` value from here.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -92,7 +93,9 @@ export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
   const current = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
 
   return (
-    <div ref={wrap} className="relative">
+    // Exempt from the page translation pass: a language menu that renamed
+    // "Hindi" into Hindi would be unusable to the person looking for it.
+    <div ref={wrap} className="relative" data-no-translate>
       <button
         onClick={() => setOpen((o) => !o)}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
