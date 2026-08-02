@@ -52,7 +52,14 @@ export default function PlanPage() {
   const [moodNote, setMoodNote] = useState('');
   const [budget, setBudget] = useState(25000);
   const [duration, setDuration] = useState(3);
-  const [origin, setOrigin] = useState('Bengaluru');
+  /*
+   * Deliberately empty. This used to be pre-filled with "Bengaluru", which is
+   * an assumption about who is using the product — and one a traveller from
+   * anywhere else has to notice and undo. The field is required, and returning
+   * travellers get their own last origin from Travel DNA below, so nothing is
+   * gained by guessing a city on someone's behalf.
+   */
+  const [origin, setOrigin] = useState('');
   const [startDate, setStartDate] = useState('');
   const [travelers, setTravelers] = useState(defaultTravellers('solo'));
   const [foodPref, setFoodPref] = useState<FoodPref>('Anything');

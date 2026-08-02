@@ -281,6 +281,9 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         mode: input.mode,
         selected: ctx.destination!.selected,
         destinationParameters: ctx.mood!.destinationParameters,
+        // Day 1 arrives and the last day departs, so this agent needs to know
+        // from where — otherwise it invents an origin for those two moments.
+        originCity: input.originCity,
         durationDays: input.durationDays,
         startDate: input.startDate,
         moodProfile: ctx.mood!.moodProfile,
@@ -312,6 +315,11 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
       return {
         mode: input.mode,
         selected: ctx.destination!.selected,
+        // Without this the Booking Agent had no idea where the traveller was
+        // starting from, and fell back on the city named in its own prompt.
+        // The bookings then carried that city into the reminders, so a trip
+        // from anywhere in India was told to leave from Bengaluru.
+        originCity: input.originCity,
         startDate: input.startDate,
         durationDays: input.durationDays,
         travelers: input.travelers,
