@@ -16,6 +16,24 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-018 · Researched Pickyourtrail's "AI features" — there are none. The gap is photography, and we closed the free half of it (commit `b903de9`).**
+
+**The finding, because it reframes the brief.** A full crawl of pickyourtrail.com returns **zero AI mentions** anywhere on the page. They are a **human-concierge travel agency** with an excellent media budget, not an AI product. Their "Trippie" is a support/mascot widget. There is no AI feature to draw inspiration from — **TripME is already far more AI-first than the site we were told to learn from.**
+
+**What they actually have — 123 images and 11 videos on one homepage:**
+- a commissioned brand film (`PYT+FAMILY+FILM…mp4`) autoplaying muted and looped behind the hero
+- named customer testimonial videos (`Nakul_subree`, `Mayur_sonia`, `Aishwarya_bal`)
+- shot photography per persona — `couple_`, `family_`, `friends_`, `solo_desktop_`
+- social proof sections: *Recently booked itineraries*, *What the press says*, *Partnered with the best*
+
+Their warmth is **bought, not coded**. Most of it — film crews, photoshoots, real customers, press — is unavailable at ₹0 and cannot be faked. **Fabricated testimonials or invented press quotes are off the table**, both ethically and because rubric 3.3 grades exactly that kind of judgement.
+
+**What was free, and is now built.** The one thing separating a real travel product from a form was that our destinations were *text*. New `/api/place-image` resolves any place to a properly-licensed **Wikimedia photograph** — no API key, no quota, legally clean with attribution linking to source. Resolution is **search-first**, because `/page/summary/Gokarna` returns a disambiguation stub with no image while searching *"Gokarna India"* finds *"Gokarna, Karnataka"* which has one; same failure for Manali. Verified across Rishikesh, Hyderabad, Udaipur, Char Dham, Gokarna, Manali. Applied to: the **trip header** (real photo behind the type, gradient tuned so it stays legible whatever the photo is), **My Trips cards**, and the **runners-up**, which are now photo cards. Photography is *decorative by contract* — it fades in if it arrives and is simply absent if not; nothing downstream depends on it.
+
+**Also surfaced the Discovery Agent's `decisionNote`** — *why this destination beat the alternates* — next to the runners-up instead of leaving it buried in the agent log. That is AI reasoning made visible, which is the actual answer to "make it feel AI-first": not more chrome, but showing the thinking that already exists.
+
+*Still unclosed and honestly unclosable for free: video, real customer stories, press logos. If any of those matter for the presentation, the only legitimate route is real footage of real testers — which the JTBD interviews are already generating.*
+
 **D-017 · Acted on the 2 Aug UI review — five changes (commit `c673b9f`).**
 Teammate review on a real phone. All five points were right, and three of them were about the product apologising for itself rather than about pixels:
 - **Mobile menu → slide-in drawer.** The white dropdown read as an unstyled browser default against the dark hero. Now a drawer on the brand deep surface with a dimmed scrim, 300ms transform, staggered links, marigold CTA pinned bottom, body-scroll lock, Escape/scrim close. *Verified: x=62 open → x=375 closed, scroll restored.* The reference examples given (Amazon, Wakefit, RottenTomatoes) all use exactly this pattern.
