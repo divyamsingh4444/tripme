@@ -16,6 +16,20 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-020 · The stalling run diagnosed and fixed, plus a language switch and four samples (commit `6a38b43`).**
+
+**The stall — and two measurements that redirected the fix.** Reported as "takes too long, then never plans". The instinct is "quota exhausted"; the key said otherwise — **999/1000 requests, 11,954/12,000 tokens remaining** at the time. Two experiments then decided everything:
+1. **Groq bills actual tokens, not the `max_tokens` reservation.** Sent `max_tokens: 4000` with a two-token reply and watched the remaining counter fall by 40. So the obvious fix — trimming `max_tokens` across the agents — **would have achieved nothing**. Worth recording because it is exactly the change a reasonable person would have shipped.
+2. **Each model has its own bucket:** 70B 12k/min · 8B 6k/min · gpt-oss-20b 8k/min. Total available is 26k/min, not 12k.
+
+**Root cause:** a full plan costs **~10k tokens against a 12k/min ceiling on one model** — it fits, with no margin at all. One retry, or two people planning in the same minute (which is what happened: my own testing was competing with the live run), and it stalls midway. Not a bug in the pipeline; a capacity ceiling.
+
+**Fixes.** Booking, Notification and Advocate moved to `llama-3.1-8b-instant` — they emit structure from figures already computed for them, and both reassignments were **validated against the real schemas before being trusted** (valid JSON, all required keys). Everything that genuinely reasons stays on 70B, so the Phase 1 model commitment holds where it matters. In group mode this shifts ~2.6k tokens per run onto a separate bucket. Separately, rate-limit waits now retry **five** times with a **full 60s** refill window instead of two at 12s — a quota wait resolves itself, so the run should keep waiting rather than dead-ending on a button someone has to babysit. The copy no longer claims "rate limit reached" when the truthful state is "queued, resuming in Ns". *This is a good PM talking point: right-sized model per agent, decided by measurement, tripling effective throughput at zero cost.*
+
+**Language switch** — seven Indian languages in the nav and drawer, persisted, sets `document.lang`. **Scope is stated on the control itself:** it translates chrome, not agent output. Phase 1 promised multilingual support and the Pilgrimage persona makes it a genuine accessibility argument, so the surface is real and the limit disclosed rather than quietly implied.
+
+**Four samples instead of one.** Gokarna only ever showed the solo path, so the consensus matrix, the family pacing audit and the corporate compliance report were **invisible to anyone who never got a live run to complete** — which, given the stall above, was most people. Added **Manali** (group, three advocates), **Agra** (family, three generations, with the pacing audit finding two real conflicts) and **Hyderabad** (corporate, compliant, with the expense report). Verified: each opens instantly and renders its distinctive Referee section. These also de-risk the demo — every headline feature is now reachable with zero quota.
+
 **D-019 · Landing page filled out — trending destinations, trip ideas, recent trips (commit `f535c50`).**
 The page ended at the planner form; below it was empty. It now carries the editorial furniture that makes the reference site feel alive — built so every claim on it is true.
 - **Trending destinations** — eight hand-picked places in a snap-scrolling rail with real Wikimedia photography, a mood chip, best season and an indicative budget. Tapping one **pins that destination** and fills a matching brief. *Verified end to end: Rishikesh pins, Spiritual selects, budget lands at ₹18,000.* This cost no new agent work — Discovery already accepts `pinnedDestination` (built for the P0-4 switch fix), so it justifies a chosen place rather than re-choosing. `TripInput` now carries it from the form to the pipeline. **It also answers a real gap:** until now there was no path for "I already know where I want to go."
