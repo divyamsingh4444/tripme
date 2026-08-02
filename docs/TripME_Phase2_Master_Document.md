@@ -1,6 +1,6 @@
 # TripME — Phase 2 Master Document
 **Team DEBUGGERS · BITSoM "Product Management with Generative & Agentic AI" Capstone**
-**Started: 1 Aug 2026 · Last updated: 1 Aug 2026 · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
+**Started: 1 Aug 2026 · Last updated: 2 Aug 2026 (D-024) · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
 
 This is the single source of truth for where the Phase 2 submission stands: everything we know, everything built, everything still owed, and exactly how we finish the last three build deliverables (wireframes, MVP demo recording, PRD).
 
@@ -243,7 +243,7 @@ The original plan (`TripME_Build_Spec.md`) assumed building via Lovable with ~5 
 | Marks | Total 40. Phase 1 = 10 (submitted). Phase 2 = 20 (PDF, due 2 Aug). Live presentation = 10 (8 Aug onwards). Mentor's rubric re-organises this as 5 tabs: P1·5, P2·5, P3·10, P4·10, P5·10 |
 | Live app | https://tripme-khaki.vercel.app (⚠ confirm this is OUR repo's deployment — see §6, Risk 1) |
 | Repo | https://github.com/divyamsingh4444/tripme (auto-deploys to Vercel on every push to `main`) |
-| Model / stack | Llama 3.3 70B on Groq (free tier) · Next.js + React + Tailwind · localStorage (no server DB) · everything ₹0 |
+| Model / stack | **Three models on Groq (free tier), routed per agent with automatic failover** — `llama-3.3-70b-versatile` (judgment), `openai/gpt-oss-120b` (arbitration), `llama-3.1-8b-instant` (structural + translation). Next.js + React + Tailwind · localStorage (no server DB) · everything ₹0. See D-022/D-024 for why one model was not enough |
 
 ### What the rubric rewards (patterns across every section)
 1. **Reasoning and mechanisms, not assertions** — every "deducts for" column punishes claims without logic.
@@ -273,6 +273,10 @@ The original plan (`TripME_Build_Spec.md`) assumed building via Lovable with ~5 
 1. **v0.dev skeleton** (31 Jul) — generated the repo, Vercel pipeline, and a thin single-page app. Problem: it implemented the *wrong product* (user typed the destination; 5 unrelated agents got the same prompt; prose output; no handoffs).
 2. **Rebuild to spec** (1 Aug, commit `d576e1c`) — true sequential pipeline: Mood → Destination → Budget → Itinerary → Booking with structured JSON handoffs, live pipeline UI with timer, boarding-pass simulated bookings with approval + real outbound links, budget guardrails, My Trips + Travel DNA, sample-trip fallback, TripME design system.
 3. **"Generic" fix — the 7-agent system** (1 Aug, commit `ed871de`) — the big one, answering the team's critique with architecture, not paint:
+4. **Six persona entry paths** (1 Aug, `92dae69`) — Family, Pilgrimage and Corporate skip the mood quiz entirely, because for those personas the intent is already known.
+5. **Brand, atmosphere and a landing page worth arriving on** (2 Aug, D-017–D-019) — Pickyourtrail-informed pass: three.js globe (device-gated), the real logo, trending destinations, trip ideas, a sample gallery, free Wikimedia destination photography, a real footer and a contact page.
+6. **Seven languages, reaching the plan itself** (2 Aug, D-021/D-023) — a hand-written dictionary for the chrome, plus a whole-page pass that translates the agent-written trip *after* the agents finish.
+7. **Quota resilience** (2 Aug, D-022/D-024) — per-agent model failover, after discovering the real free-tier ceiling is tokens-per-day. The product no longer hard-stops when one model runs dry.
 
 ### Current architecture (matches the Q&A doc's 7 agents)
 | # | Agent | What it does | The anti-generic mechanism |
@@ -305,6 +309,8 @@ The original plan (`TripME_Build_Spec.md`) assumed building via Lovable with ~5 
 - **Corporate, real run:** city held at exactly **Hyderabad** with **HITEC City** as district (alternates Kukatpally/Gachibowli); stay clamped to **₹6,000/night exactly** against the cap, food held to per-diem, buffer absorbed the difference, total exact; compliance audit produced the expense report by category with reimbursable flags.
 - **Speed:** full solo pipeline ~11–25s (<60s Phase 1 claim substantiated by the on-screen timer). Browser-verified end to end: a solo Spiritual run reported **"7 agents · 14s"** on the trip header.
 - **Browser-verified UI (Playwright, 1 Aug):** plan page renders correctly (logo blending, Pine/Marigold system, all 7 agent chips); Family entry path renders and submits; full family pipeline reaches the trip page; the **pacing audit card renders with real conflicts named by person** ("Day 2 affects Ira — long guided tour without explicit snack breaks → add a 15-minute snack break"; "Day 3 affects Dadi, Ira — back-to-back outdoor activities without a rest window"); **zero console errors** across the session.
+- **Seven languages, including the agent output (2 Aug):** a plan generated in Hindi returned as **शिवनासमुद्रा**, with the Discovery Agent's own reasoning rendered in Hindi — *"बेंगलुरु के निकटता और सुंदर बैकवॉटर के कारण शिवनासमुद्रा शीर्ष विकल्प बनता है…"*. On the trip page **183 of 186 lines translated**; the three left in Latin were "JSON", the brand name and the copyright line — all correct. The phrasebook's local column is deliberately exempt.
+- **Quota resilience, proven under the worst case (2 Aug):** a full Char Dham plan completed with the 70B model's **daily budget entirely spent**. Server log from that run: `mood_pilgrimage: llama-3.3-70b refused (429), trying next → served by 8b-instant`, and `referee: gpt-oss-120b refused (400), trying next`. **This is the strongest single piece of evidence that the multi-agent system is engineered rather than demo-ware** — worth showing an evaluator.
 - Plus: live spend tracker + per-person settle-up ("Splitwise meets a travel agent" made real), agent log (raw JSON per agent), sample trip works offline, `GROQ_API_KEY` server-side only (bundle audited), print stylesheet, 375px mobile OK.
 
 ### Consciously NOT built (defend, don't apologise)
@@ -313,7 +319,7 @@ The original plan (`TripME_Build_Spec.md`) assumed building via Lovable with ~5 
 | Login/auth | Teammate's own Q6 lists it as Must-have — but "no accounts, trip data stays in your browser" is a *stronger* DPDP/GDPR ethics story and rubric 2.3 rewards minimal MVPs. If the team insists, a cosmetic localStorage "profile" gate is ~1–2 hrs. Decide once, before recording |
 | Real flight/taxi booking APIs | Q6 MoSCoW itself puts automated booking in **Should-have, not MVP**. Booking Agent simulates + deep-links to real inventory. Rubric deducts when MVP = full product |
 | SMS/push actually firing | Notification Agent produces the real schedule; delivery infra is post-MVP (stated honestly in-app) |
-| Multi-language UI | Language *card* per destination covers the Phase 1 promise at MVP depth |
+| ~~Multi-language UI~~ | **NO LONGER TRUE — this was built (D-021, D-023).** Seven languages, and the translation reaches the agent-written plan, not just the interface. Moved to §3's verified list. *Left visible deliberately: the rubric hunts contradictions between the doc and the product, and this line was one.* |
 
 ---
 
@@ -414,10 +420,29 @@ MCP = a connector that lets an AI assistant work directly inside another tool. *
 
 **Parallelism note:** items 7, 8 and 9 do not depend on the build at all and are the team's to run *now*, in parallel with product work. Items 2–5 are all derived from the product and should be batched together after a freeze.
 
+### Open product items as of 2 Aug (stage A — the only things still moving)
+
+| Item | Owner | Note |
+|---|---|---|
+| **Contact page phone number is a placeholder** | You | Deliberate — replace with a real number, or remove the line, before anyone outside the team sees it |
+| **Re-test all six modes on the live URL** | You/Claude | Family and Corporate share the nested schema shape that broke Pilgrimage in production (D-024). The fix is general and Pilgrimage is verified, but the other two have not been re-run on Vercel since |
+| **Translation quality on the small model** | Accepted as-is | Product terms occasionally read transliterated. A glossary is in the prompt; it is honest MVP quality, not professional localisation. **Warm the cache before demoing in a non-English language** — a fresh plan takes ~60–90s to translate |
+| **Persona photography on the mode cards** | Deferred | Needs a properly licensed people-photo source; Wikimedia covers places, not faces |
+| Second LLM provider (e.g. Gemini free tier) | **Not needed yet** | The three-model chain restored the headroom. Revisit only if quota binds during demo week — it needs a new free key from you, so it is your call, not an assumption to build on |
+
+**Recommendation on the freeze:** the product has now absorbed the two things that were genuinely broken (quota, translation depth). Unless testing surfaces something new, **stage A should end here** and the four derived deliverables (§7 stage C) should begin — they are the marks still unbanked.
+
 ### Risks to kill
 1. ~~**Two parallel builds?**~~ **RESOLVED (D-004).** One repo, one deployment, confirmed canonical. `tripme-khaki.vercel.app` is this repo. No divergence.
 2. **Deadline math:** the guidelines put Phase 2 at 2 Aug with the presentation from 8 Aug. Given wireframes are now deferred (D-006) and the product is still moving, the team must decide what actually ships tomorrow vs. what lands before the presentation. **The experimental-task recordings (~13 interviews) remain the item most likely to slip** — they consume calendar days nobody can compress. Flag to the team.
-3. **Groq rate limits during evaluation.** ~~Free tier ≈ 1 full plan/minute.~~ **Corrected (D-016), and the correction matters:** the binding limit is **12,000 tokens per minute**, not requests — measured from the key's own headers mid-stall (999/1000 requests still available, tokens exhausted). Our agents are token-heavy, so two of them inside one minute can close the window. Three defences now in place: an identical-brief cache (a rehearsed demo trip costs zero quota and returns instantly), a corrected backoff that waits a full window instead of retrying into the same one, and the sample-trip fallback. Still mention the fallback in the demo *before* it is needed, so a pause reads as designed resilience rather than a crash. Full detail on **P0-7** in §8.2.
+3. **Groq quota during evaluation.** Corrected **twice**, and the final answer is different from both earlier ones — worth reading as a small case study in diagnosing against the limit you can *see* rather than the one that binds.
+   - ~~Free tier ≈ 1 full plan/minute.~~ Wrong.
+   - ~~The binding limit is 12,000 tokens per minute (D-016).~~ Also wrong — that is *a* limit, but not the one that was stopping us.
+   - **Settled (D-022): the binding limit is tokens per DAY.** `llama-3.3-70b-versatile` allows **100,000 tokens/day**, which at ~10k a plan is about **ten plans, then nothing until tomorrow**. Groq does not expose that number in any response header — it appears only in the body of the 429 — so it cannot be checked before a call, only reacted to. The per-minute headers read *11,963 of 12,000 free* while the daily bucket was already empty, which is precisely why the wrong diagnosis survived so long.
+   
+   **Four defences now in place:** each agent walks an **ordered chain of three models** and skips instantly past any that refuses (D-022, D-024) — so a single model running dry no longer stops a plan; an identical-brief cache (a rehearsed demo trip costs zero quota and returns instantly); a corrected backoff; and the sample-trip fallback.
+   
+   **Evidence this is genuinely fixed:** a complete Char Dham plan ran end to end with 70B's daily budget **already fully spent** — every agent failed over, and the plan finished. That is the honest thing to demo if quota is tight on the day. Still mention the fallback *before* it is needed, so a pause reads as designed resilience rather than a crash.
 4. **Product still in motion → downstream artifacts blocked.** Wireframes, the user journey map, and the PRD's feature-level sections all describe the product, so each one churns while the build churns. Sequence deliberately: stabilise the build → freeze → then generate all three from the frozen state (see §7).
 
 ---
@@ -440,6 +465,8 @@ Now that wireframes are deferred (D-006), the plan reorganises around one princi
 ---
 
 ## 8. Product audit & prioritised backlog (D-014)
+
+> **Read §8 as a dated snapshot, not a live list.** It was written against commit `c67e1fe` and much of it has since shipped (see the Decision Log, D-015 onward). It is kept because the *reasoning and priority model* are reusable for the PRD, not because every line is still open.
 
 **Audit basis: commit `c67e1fe`, main, clean tree.** This is the answer to "what would a PM owning this fix?" — §7 stage A, made concrete. Pick an item, do it, tick it. Every item is self-contained; none depends on another unless stated.
 
