@@ -16,6 +16,9 @@ import type {
 } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
+import { SAMPLES } from '@/lib/sample-trips';
+import { PlacePhoto } from '@/components/place-photo';
+import { useT } from '@/components/language-switch';
 import { Marquee, RecentTrips, SampleGallery, TrendingDestinations, TripIdeas } from '@/components/landing-sections';
 import type { TripIdea, TrendingPlace } from '@/lib/inspiration';
 import { CorporateForm, HouseholdForm, MOODS, PilgrimageForm, TravellersForm } from '@/components/mode-forms';
@@ -40,6 +43,7 @@ const PACES: Pace[] = ['Chill', 'Balanced', 'Packed'];
 const defaultTravellers = (m: TripMode) => (m === 'solo' || m === 'corporate' ? 1 : 2);
 
 export default function PlanPage() {
+  const t = useT();
   const router = useRouter();
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +62,8 @@ export default function PlanPage() {
   const [prefillNote, setPrefillNote] = useState(false);
   /** Set when you start from Trending rather than from a mood. */
   const [pinned, setPinned] = useState<{ name: string; region: string } | null>(null);
+  /** hero button opens a chooser — one hardcoded sample hid the other three */
+  const [showSamples, setShowSamples] = useState(false);
 
   const [people, setPeople] = useState<Traveller[]>([
     { name: 'Priya', mood: 'Adventure', budgetINR: 20000, note: '' },
@@ -185,11 +191,11 @@ export default function PlanPage() {
   };
 
   const ctaLabel =
-    mode === 'corporate' ? 'Plan within policy'
-      : usesPeople ? 'Negotiate our trip'
-      : mode === 'family' ? 'Plan for everyone'
-      : mode === 'pilgrimage' ? 'Plan the yatra'
-      : 'Plan my trip';
+    mode === 'corporate' ? t('form.submitCorporate')
+      : usesPeople ? t('form.submitGroup')
+      : mode === 'family' ? t('form.submitFamily')
+      : mode === 'pilgrimage' ? t('form.submitPilgrimage')
+      : t('form.submit');
 
   const fieldCls =
     'w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';
@@ -202,20 +208,19 @@ export default function PlanPage() {
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center pt-24 pb-16">
           <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur text-white/90 text-xs sm:text-sm font-medium rise">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Seven agents · one pipeline · live on Llama 3.3 70B
+            {t('hero.badge')}
           </span>
 
           <h1 className="type-hero font-display font-extrabold text-white mt-6 rise">
-            One mood.
+            {t('hero.l1')}
             <br />
-            One budget.
+            {t('hero.l2')}
             <br />
-            <span className="text-accent">One complete trip.</span>
+            <span className="text-accent">{t('hero.l3')}</span>
           </h1>
 
           <p className="mt-6 text-base sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed rise">
-            Stop juggling eight tabs. Tell us how you want to feel and what you can spend — seven AI
-            agents do the rest, and when two of them disagree, a Referee settles it in front of you.
+            {t('hero.sub')}
           </p>
 
           <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center rise">
@@ -223,13 +228,13 @@ export default function PlanPage() {
               onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               className="px-8 py-4 rounded-2xl bg-accent text-accent-foreground font-display font-bold text-lg glow-accent hover:brightness-95 active:scale-[0.99] transition"
             >
-              Start planning
+              {t('hero.start')}
             </button>
             <button
-              onClick={loadSample}
+              onClick={() => setShowSamples(true)}
               className="px-8 py-4 rounded-2xl bg-white/10 border border-white/25 backdrop-blur text-white font-display font-semibold text-lg hover:bg-white/20 transition"
             >
-              See a sample trip
+              {t('hero.sample')}
             </button>
           </div>
 
@@ -285,10 +290,9 @@ export default function PlanPage() {
       {/* ---------------- PLANNER ---------------- */}
       <section ref={formRef} className="max-w-3xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 scroll-mt-20">
         <div className="text-center mb-8">
-          <h2 className="type-section font-display font-extrabold">Who&apos;s coming along?</h2>
+          <h2 className="type-section font-display font-extrabold">{t('form.who')}</h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Each path runs a different Intent agent. Family, Pilgrimage and Corporate skip the mood
-            quiz entirely — because for them, the intent is already known.
+            {t('form.whoSub')}
           </p>
         </div>
 
@@ -306,7 +310,7 @@ export default function PlanPage() {
               aria-pressed={mode === m.key}
             >
               <div className="text-2xl leading-none">{m.emoji}</div>
-              <div className={`font-display font-bold mt-2 ${mode === m.key ? 'text-white' : ''}`}>{m.label}</div>
+              <div className={`font-display font-bold mt-2 ${mode === m.key ? 'text-white' : ''}`}>{t('mode.' + m.key)}</div>
               <div className={`text-[11px] mt-0.5 ${mode === m.key ? 'text-white/70' : 'text-muted-foreground'}`}>
                 {m.sub}
               </div>
@@ -342,7 +346,7 @@ export default function PlanPage() {
           {mode === 'solo' && (
             <div>
               <label className="block font-display font-semibold mb-3">
-                What&apos;s the mood? <span className="text-destructive">*</span>
+                {t('form.mood')} <span className="text-destructive">*</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {MOODS.map((m) => (
@@ -364,7 +368,7 @@ export default function PlanPage() {
                   type="text"
                   value={moodNote}
                   onChange={(e) => setMoodNote(e.target.value)}
-                  placeholder="Describe your vibe — “slow mornings, sea breeze, no alarms”"
+                  placeholder={t('form.moodPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl bg-card text-sm focus:outline-none"
                   maxLength={120}
                 />
@@ -380,7 +384,7 @@ export default function PlanPage() {
           {!usesPeople && (
             <div>
               <label className="block font-display font-semibold mb-2">
-                Total budget <span className="font-mono text-primary ml-1">{fmtINR(budget)}</span>
+                {t('form.budget')} <span className="font-mono text-primary ml-1">{fmtINR(budget)}</span>
               </label>
               <div className="flex items-center gap-4">
                 <input
@@ -406,7 +410,7 @@ export default function PlanPage() {
           {/* four fields pair up 2×2 rather than squeezing the date input into a quarter column */}
           <div className={`grid gap-4 sm:gap-5 ${usesTravellerCount ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
             <div>
-              <label className="block font-display font-semibold mb-2">Days</label>
+              <label className="block font-display font-semibold mb-2">{t('form.days')}</label>
               <div className="flex items-center rounded-xl border border-input overflow-hidden">
                 <button type="button" onClick={() => setDuration((d) => Math.max(1, d - 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="Fewer days">−</button>
                 <span className="flex-1 text-center font-mono font-semibold">{duration}</span>
@@ -415,7 +419,7 @@ export default function PlanPage() {
             </div>
             {usesTravellerCount && (
               <div>
-                <label className="block font-display font-semibold mb-2">Travellers</label>
+                <label className="block font-display font-semibold mb-2">{t('form.travellers')}</label>
                 <div className="flex items-center rounded-xl border border-input overflow-hidden">
                   <button type="button" onClick={() => setTravelers((t) => Math.max(1, t - 1))} className="px-4 py-3 hover:bg-muted font-bold" aria-label="Fewer travellers">−</button>
                   <span className="flex-1 text-center font-mono font-semibold">{travelers}</span>
@@ -424,24 +428,24 @@ export default function PlanPage() {
               </div>
             )}
             <div>
-              <label htmlFor="origin" className="block font-display font-semibold mb-2">From</label>
-              <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Your city" className={fieldCls} />
+              <label htmlFor="origin" className="block font-display font-semibold mb-2">{t('form.from')}</label>
+              <input id="origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder={t('form.fromPlaceholder')} className={fieldCls} />
             </div>
             <div>
-              <label htmlFor="start" className="block font-display font-semibold mb-2">Start date</label>
+              <label htmlFor="start" className="block font-display font-semibold mb-2">{t('form.startDate')}</label>
               <input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldCls} />
             </div>
           </div>
 
           <div>
             <button type="button" onClick={() => setShowMore((s) => !s)} className="text-sm font-semibold text-primary hover:opacity-80" aria-expanded={showMore}>
-              {showMore ? '− Fewer preferences' : '+ More preferences'}
+              {showMore ? '− ' + t('form.fewerPrefs') : '+ ' + t('form.morePrefs')}
             </button>
             {showMore && (
               <div className="mt-4 grid sm:grid-cols-2 gap-5">
                 {mode !== 'pilgrimage' && (
                   <div>
-                    <label className="block text-sm font-semibold mb-2">Food</label>
+                    <label className="block text-sm font-semibold mb-2">{t('form.food')}</label>
                     <div className="flex gap-1.5 flex-wrap">
                       {FOODS.map((f) => (
                         <button key={f} type="button" onClick={() => setFoodPref(f)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${foodPref === f ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{f}</button>
@@ -450,7 +454,7 @@ export default function PlanPage() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Pace</label>
+                  <label className="block text-sm font-semibold mb-2">{t('form.pace')}</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {PACES.map((p) => (
                       <button key={p} type="button" onClick={() => setPace(p)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${pace === p ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input hover:bg-muted'}`}>{p}</button>
@@ -474,11 +478,71 @@ export default function PlanPage() {
               already carry that disclosure honestly, without undercutting.
             */}
             <p className="text-center text-xs text-muted-foreground">
-              Your whole trip, planned in about 20 seconds
+              {t('form.reassure')}
             </p>
           </div>
         </form>
       </section>
+
+      {/* Sample chooser — the hero button used to open Gokarna and only Gokarna,
+          so the group, family and corporate plans were effectively hidden. */}
+      {showSamples && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('sec.samples')}
+        >
+          <div className="absolute inset-0 bg-[#0e1f1a]/70 backdrop-blur-sm" onClick={() => setShowSamples(false)} />
+          <div className="relative w-full max-w-4xl bg-card rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl max-h-[88svh] overflow-y-auto">
+            <div className="sticky top-0 bg-card/95 backdrop-blur px-5 sm:px-7 py-4 border-b border-border flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-display text-xl sm:text-2xl font-extrabold">{t('sec.samples')}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{t('sec.samplesSub')}</p>
+              </div>
+              <button
+                onClick={() => setShowSamples(false)}
+                className="shrink-0 p-2 -mr-2 rounded-lg hover:bg-muted"
+                aria-label={t('nav.closeMenu')}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5 sm:p-7 grid sm:grid-cols-2 gap-4">
+              {SAMPLES.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setCurrentTrip(s.build());
+                    router.push('/trip');
+                  }}
+                  className="text-left rounded-2xl overflow-hidden border border-border card-lift"
+                >
+                  <PlacePhoto
+                    place={s.place}
+                    region={s.region}
+                    className="h-28"
+                    overlay="bg-gradient-to-t from-[#0e1f1a]/90 via-[#0e1f1a]/25 to-transparent"
+                  >
+                    <div className="h-28 flex flex-col justify-between p-3">
+                      <span className="self-start px-2.5 py-1 rounded-full bg-black/45 backdrop-blur border border-white/20 text-white text-[11px] font-semibold">
+                        {s.label}
+                      </span>
+                      <span className="font-display text-xl font-extrabold text-white drop-shadow">{s.place}</span>
+                    </div>
+                  </PlacePhoto>
+                  <div className="p-4">
+                    <p className="text-sm text-muted-foreground leading-snug">{s.demonstrates}</p>
+                    <div className="mt-2 text-sm font-semibold text-primary">{t('sec.openPlan')}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---------------- INSPIRATION ---------------- */}
       <TrendingDestinations onPick={pickTrending} />

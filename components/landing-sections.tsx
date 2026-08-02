@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlacePhoto } from '@/components/place-photo';
+import { useT } from '@/components/language-switch';
 import { TRENDING, TRIP_IDEAS, type TripIdea, type TrendingPlace } from '@/lib/inspiration';
 import { SAMPLES, type SampleEntry } from '@/lib/sample-trips';
 import { fmtDate, fmtINR, readTrips, setCurrentTrip } from '@/lib/storage';
@@ -65,15 +66,15 @@ export function TrendingDestinations({
 }: {
   onPick: (place: TrendingPlace) => void;
 }) {
+  const t = useT();
   return (
     <section className="mt-20 sm:mt-28">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="type-section font-display font-extrabold">Trending destinations</h2>
+            <h2 className="type-section font-display font-extrabold">{t('sec.trending')}</h2>
             <p className="mt-2 text-muted-foreground max-w-xl">
-              Hand-picked for this season. Tap one and we&apos;ll start your plan there — the agents
-              still work out the budget, the days and the bookings.
+              {t('sec.trendingSub')}
             </p>
           </div>
         </div>
@@ -111,7 +112,7 @@ export function TrendingDestinations({
                     from {fmtINR(p.fromINR)}
                   </span>
                 </div>
-                <div className="mt-3 text-sm font-semibold text-primary">Plan this trip →</div>
+                <div className="mt-3 text-sm font-semibold text-primary">{t('sec.planThis')}</div>
               </div>
             </button>
           ))}
@@ -123,14 +124,14 @@ export function TrendingDestinations({
 
 /* ---------- ready-made briefs ---------- */
 export function TripIdeas({ onPick }: { onPick: (idea: TripIdea) => void }) {
+  const t = useT();
   return (
     <section className="mt-20 sm:mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="mb-6">
-          <h2 className="type-section font-display font-extrabold">Not sure yet? Start from a feeling</h2>
+          <h2 className="type-section font-display font-extrabold">{t('sec.ideas')}</h2>
           <p className="mt-2 text-muted-foreground max-w-xl">
-            Six ready-made briefs. Tap one, and the seven agents decide where it should actually
-            take you.
+            {t('sec.ideasSub')}
           </p>
         </div>
 
@@ -171,6 +172,7 @@ export function TripIdeas({ onPick }: { onPick: (idea: TripIdea) => void }) {
 
 /* ---------- the visitor's own history ---------- */
 export function RecentTrips() {
+  const t = useT();
   const router = useRouter();
   const [trips, setTrips] = useState<SavedTrip[]>([]);
 
@@ -190,7 +192,7 @@ export function RecentTrips() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="type-section font-display font-extrabold">Your recent trips</h2>
+            <h2 className="type-section font-display font-extrabold">{t('sec.recent')}</h2>
             <p className="mt-2 text-muted-foreground">
               Saved on this device — {trips.length} {trips.length === 1 ? 'plan' : 'plans'} you can
               reopen any time.
@@ -200,7 +202,7 @@ export function RecentTrips() {
             onClick={() => router.push('/trips')}
             className="hidden sm:block shrink-0 px-4 py-2.5 rounded-xl border border-input text-sm font-semibold hover:bg-muted transition-colors"
           >
-            See all
+            {t('sec.seeAll')}
           </button>
         </div>
 
@@ -242,6 +244,7 @@ export function RecentTrips() {
 
 /* ---------- sample gallery ---------- */
 export function SampleGallery() {
+  const t = useT();
   const router = useRouter();
   const open = (s: SampleEntry) => {
     setCurrentTrip(s.build());
@@ -251,10 +254,9 @@ export function SampleGallery() {
     <section className="mt-20 sm:mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="mb-6">
-          <h2 className="type-section font-display font-extrabold">See a finished plan first</h2>
+          <h2 className="type-section font-display font-extrabold">{t('sec.samples')}</h2>
           <p className="mt-2 text-muted-foreground max-w-2xl">
-            Four real plans, each showing a different part of the system. They open instantly — no
-            waiting, and they work even if the free-tier quota is busy.
+            {t('sec.samplesSub')}
           </p>
         </div>
 
@@ -282,7 +284,7 @@ export function SampleGallery() {
               </PlacePhoto>
               <div className="p-4">
                 <p className="text-sm text-muted-foreground leading-snug min-h-[60px]">{s.demonstrates}</p>
-                <div className="mt-2 text-sm font-semibold text-primary">Open this plan →</div>
+                <div className="mt-2 text-sm font-semibold text-primary">{t('sec.openPlan')}</div>
               </div>
             </button>
           ))}

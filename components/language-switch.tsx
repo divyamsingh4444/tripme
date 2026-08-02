@@ -1,59 +1,77 @@
 'use client';
 
 /**
- * Language switcher.
+ * Language provider + switcher.
  *
- * Honest scope: this translates the interface chrome, not agent output — plans
- * are generated live and come back in English. Saying so on the control itself
- * is better than letting someone switch to हिन्दी, receive an English itinerary
- * and conclude the feature is broken.
+ * The first version stored the choice in per-component state, so switching in
+ * the nav updated the nav and nothing else — the control looked functional and
+ * changed no visible text. One shared context fixes that: every consumer reads
+ * the same value and re-renders together.
  *
- * Phase 1 committed to multilingual support and the accessibility argument is
- * real (the Pilgrimage persona in particular), so the surface is built and the
- * chrome genuinely translates. Full agent-output localisation is a declared
- * post-MVP item rather than something quietly implied.
+ * Scope is stated on the control itself: this translates the product's own
+ * chrome. Trip plans come back from the model in English, and pretending
+ * otherwise would be worse than saying so.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { LANGUAGES, translate, type LangCode } from '@/lib/i18n';
 
-export const LANGUAGES = [
-  { code: 'en', label: 'English', native: 'English' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
-  { code: 'mr', label: 'Marathi', native: 'मराठी' },
-  { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
-  { code: 'te', label: 'Telugu', native: 'తెలుగు' },
-  { code: 'bn', label: 'Bengali', native: 'বাংলা' },
-  { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
-] as const;
-
-export type LangCode = (typeof LANGUAGES)[number]['code'];
+export { LANGUAGES } from '@/lib/i18n';
+export type { LangCode } from '@/lib/i18n';
 
 const KEY = 'tripme.lang';
 
-export function useLanguage(): [LangCode, (c: LangCode) => void] {
-  const [lang, setLang] = useState<LangCode>('en');
+interface Ctx {
+  lang: LangCode;
+  setLang: (c: LangCode) => void;
+  t: (key: string) => string;
+}
+
+const LanguageContext = createContext<Ctx>({
+  lang: 'en',
+  setLang: () => {},
+  t: (k) => translate('en', k),
+});
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<LangCode>('en');
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(KEY) as LangCode | null;
-      if (saved && LANGUAGES.some((l) => l.code === saved)) setLang(saved);
+      if (saved && LANGUAGES.some((l) => l.code === saved)) {
+        setLangState(saved);
+        document.documentElement.lang = saved;
+      }
     } catch {
       /* storage unavailable — English is a fine default */
     }
   }, []);
-  const set = (c: LangCode) => {
-    setLang(c);
+
+  const setLang = useCallback((c: LangCode) => {
+    setLangState(c);
+    document.documentElement.lang = c;
     try {
       localStorage.setItem(KEY, c);
     } catch {
       /* ignore */
     }
-    document.documentElement.lang = c;
-  };
-  return [lang, set];
+  }, []);
+
+  const value = useMemo<Ctx>(
+    () => ({ lang, setLang, t: (key: string) => translate(lang, key) }),
+    [lang, setLang],
+  );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
+export const useLanguage = () => useContext(LanguageContext);
+/** Shorthand for components that only need the lookup. */
+export const useT = () => useContext(LanguageContext).t;
+
 export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
-  const [lang, setLang] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -80,7 +98,7 @@ export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           onDark ? 'text-white/85 hover:text-white hover:bg-white/10' : 'hover:bg-muted'
         }`}
-        aria-label={`Change language — currently ${current.label}`}
+        aria-label={`${t('lang.aria')} — ${current.label}`}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
@@ -94,7 +112,7 @@ export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
       {open && (
         <div
           role="listbox"
-          aria-label="Language"
+          aria-label={t('lang.aria')}
           className="absolute right-0 top-full mt-2 w-60 rounded-2xl border border-border bg-card shadow-xl overflow-hidden z-50"
         >
           <div className="max-h-72 overflow-y-auto py-1">
@@ -112,7 +130,7 @@ export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
                 }`}
               >
                 <span>
-                  <span className="block">{l.native}</span>
+                  <span className="block text-foreground">{l.native}</span>
                   <span className="block text-xs text-muted-foreground">{l.label}</span>
                 </span>
                 {l.code === lang && <span className="text-primary shrink-0">✓</span>}
@@ -120,8 +138,7 @@ export function LanguageSwitch({ onDark = false }: { onDark?: boolean }) {
             ))}
           </div>
           <p className="px-4 py-3 border-t border-border text-[11px] text-muted-foreground leading-relaxed">
-            Translates the interface. Trip plans are generated live and currently come back in
-            English — full plan translation is next.
+            {t('lang.note')}
           </p>
         </div>
       )}

@@ -11,16 +11,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { LanguageSwitch } from '@/components/language-switch';
+import { LanguageSwitch, useT } from '@/components/language-switch';
 
 const LINKS = [
-  { href: '/', label: 'Plan', hint: 'Start a new trip' },
-  { href: '/trips', label: 'My Trips', hint: 'Saved plans & Travel DNA' },
-  { href: '/how-it-works', label: 'How it works', hint: 'The seven agents' },
-  { href: '/contact', label: 'Contact', hint: 'Talk to the team' },
+  { href: '/', key: 'plan' },
+  { href: '/trips', key: 'trips' },
+  { href: '/how-it-works', key: 'how' },
+  { href: '/contact', key: 'contact' },
 ];
 
 export function SiteNav() {
+  const t = useT();
   const pathname = usePathname();
   const overHero = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
@@ -91,7 +92,7 @@ export function SiteNav() {
                         : 'text-white/85 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  {l.label}
+                  {t('nav.' + l.key)}
                 </Link>
               );
             })}
@@ -100,7 +101,7 @@ export function SiteNav() {
               href="/"
               className="ml-1 px-4 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
             >
-              Plan a trip
+              {t('nav.cta')}
             </Link>
           </div>
 
@@ -110,7 +111,7 @@ export function SiteNav() {
             className={`md:hidden p-2 -mr-2 rounded-lg transition-colors ${
               solid ? 'hover:bg-muted' : 'text-white hover:bg-white/10'
             }`}
-            aria-label="Open menu"
+            aria-label={t('nav.openMenu')}
             aria-expanded={open}
             aria-controls="mobile-drawer"
           >
@@ -146,7 +147,7 @@ export function SiteNav() {
             <button
               onClick={() => setOpen(false)}
               className="p-2 -mr-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              aria-label="Close menu"
+              aria-label={t('nav.closeMenu')}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />
@@ -170,8 +171,8 @@ export function SiteNav() {
                   } ${active ? 'bg-white/15 border border-white/20' : 'hover:bg-white/10 border border-transparent'}`}
                 >
                   <span>
-                    <span className="font-display font-bold text-lg text-white block leading-tight">{l.label}</span>
-                    <span className="text-xs text-white/55">{l.hint}</span>
+                    <span className="font-display font-bold text-lg text-white block leading-tight">{t('nav.' + l.key)}</span>
+                    <span className="text-xs text-white/55">{t('nav.hint.' + l.key)}</span>
                   </span>
                   <span className="text-accent text-lg" aria-hidden="true">→</span>
                 </Link>
@@ -188,7 +189,7 @@ export function SiteNav() {
               onClick={() => setOpen(false)}
               className="block w-full text-center px-5 py-3.5 rounded-2xl bg-accent text-accent-foreground font-display font-bold glow-accent"
             >
-              Plan a trip
+              {t('nav.cta')}
             </Link>
             <p className="mt-4 text-[11px] text-white/45 text-center leading-relaxed">
               Demo product · no real bookings are made
@@ -201,6 +202,7 @@ export function SiteNav() {
 }
 
 export function SiteFooter() {
+  const t = useT();
   const year = new Date().getFullYear();
   return (
     <footer className="surface-deep mt-16">
@@ -209,20 +211,17 @@ export function SiteFooter() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2 max-w-sm">
             <Image src="/logo-white.svg" alt="TripME" width={169} height={150} className="h-14 w-auto object-contain" />
-            <p className="mt-4 text-sm opacity-75 leading-relaxed">
-              One mood, one budget, one complete trip. TripME plans the whole journey — where to go,
-              what it costs, what you do each day — so you never juggle eight tabs again.
-            </p>
+            <p className="mt-4 text-sm opacity-75 leading-relaxed">{t('footer.tagline')}</p>
             <Link
               href="/"
               className="inline-block mt-5 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:brightness-95 transition"
             >
-              Plan a trip
+              {t('nav.cta')}
             </Link>
           </div>
 
           <div>
-            <div className="font-display font-bold mb-3">Product</div>
+            <div className="font-display font-bold mb-3">{t('footer.product')}</div>
             <ul className="space-y-2.5 text-sm opacity-75">
               <li><Link href="/" className="hover:opacity-100 hover:text-accent transition-colors">Plan a trip</Link></li>
               <li><Link href="/trips" className="hover:opacity-100 hover:text-accent transition-colors">My Trips</Link></li>
@@ -231,11 +230,11 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <div className="font-display font-bold mb-3">Company</div>
+            <div className="font-display font-bold mb-3">{t('footer.company')}</div>
             <ul className="space-y-2.5 text-sm opacity-75">
-              <li><Link href="/contact" className="hover:opacity-100 hover:text-accent transition-colors">Contact us</Link></li>
-              <li><Link href="/contact#support" className="hover:opacity-100 hover:text-accent transition-colors">Support</Link></li>
-              <li><Link href="/contact#privacy" className="hover:opacity-100 hover:text-accent transition-colors">Privacy</Link></li>
+              <li><Link href="/contact" className="hover:opacity-100 hover:text-accent transition-colors">{t('footer.contact')}</Link></li>
+              <li><Link href="/contact#support" className="hover:opacity-100 hover:text-accent transition-colors">{t('footer.support')}</Link></li>
+              <li><Link href="/contact#privacy" className="hover:opacity-100 hover:text-accent transition-colors">{t('footer.privacy')}</Link></li>
             </ul>
           </div>
         </div>
@@ -243,8 +242,8 @@ export function SiteFooter() {
         <div className="perforation perforation-light my-9" />
 
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-xs opacity-60">
-          <span>© {year} TripME. All rights reserved.</span>
-          <span>Made in India 🇮🇳 · Demo product — no real bookings are made.</span>
+          <span>© {year} TripME. {t('footer.rights')}</span>
+          <span>Made in India 🇮🇳 · {t('footer.demo')}</span>
         </div>
       </div>
     </footer>

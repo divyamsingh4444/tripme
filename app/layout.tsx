@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google'
+import { LanguageProvider } from '@/components/language-switch'
 import { SiteFooter, SiteNav } from '@/components/site-chrome'
 import './globals.css'
 
@@ -40,9 +41,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bricolage.variable} ${inter.variable} ${plexMono.variable}`}>
       <body className="antialiased min-h-screen flex flex-col overflow-x-hidden">
-        <SiteNav />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <LanguageProvider>
+          <SiteNav />
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </LanguageProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
