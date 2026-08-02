@@ -40,7 +40,7 @@ const en: Dict = {
   'nav.hint.how': 'The seven agents',
   'nav.hint.contact': 'Talk to the team',
 
-  'hero.badge': 'Seven agents · one pipeline · live on Llama 3.3 70B',
+  'hero.badge': 'Seven agents · one pipeline · live on Groq',
   'hero.l1': 'One mood.',
   'hero.l2': 'One budget.',
   'hero.l3': 'One complete trip.',
@@ -127,7 +127,7 @@ const hi: Dict = {
   'nav.hint.how': 'सात एजेंट',
   'nav.hint.contact': 'टीम से बात करें',
 
-  'hero.badge': 'सात एजेंट · एक पाइपलाइन · Llama 3.3 70B पर लाइव',
+  'hero.badge': 'सात एजेंट · एक पाइपलाइन · Groq पर लाइव',
   'hero.l1': 'एक मूड।',
   'hero.l2': 'एक बजट।',
   'hero.l3': 'एक पूरी यात्रा।',
@@ -214,7 +214,7 @@ const mr: Dict = {
   'nav.hint.how': 'सात एजंट',
   'nav.hint.contact': 'टीमशी बोला',
 
-  'hero.badge': 'सात एजंट · एक पाइपलाइन · Llama 3.3 70B वर लाइव्ह',
+  'hero.badge': 'सात एजंट · एक पाइपलाइन · Groq वर लाइव्ह',
   'hero.l1': 'एक मूड.',
   'hero.l2': 'एक बजेट.',
   'hero.l3': 'एक संपूर्ण सहल.',
@@ -301,7 +301,7 @@ const bn: Dict = {
   'nav.hint.how': 'সাতটি এজেন্ট',
   'nav.hint.contact': 'টিমের সঙ্গে কথা বলুন',
 
-  'hero.badge': 'সাতটি এজেন্ট · একটি পাইপলাইন · Llama 3.3 70B-তে লাইভ',
+  'hero.badge': 'সাতটি এজেন্ট · একটি পাইপলাইন · Groq-তে লাইভ',
   'hero.l1': 'একটি মুড।',
   'hero.l2': 'একটি বাজেট।',
   'hero.l3': 'একটি সম্পূর্ণ ভ্রমণ।',
@@ -388,7 +388,7 @@ const ta: Dict = {
   'nav.hint.how': 'ஏழு ஏஜென்ட்கள்',
   'nav.hint.contact': 'குழுவுடன் பேசு',
 
-  'hero.badge': 'ஏழு ஏஜென்ட்கள் · ஒரு பைப்லைன் · Llama 3.3 70B-இல் நேரலை',
+  'hero.badge': 'ஏழு ஏஜென்ட்கள் · ஒரு பைப்லைன் · Groq-இல் நேரலை',
   'hero.l1': 'ஒரு மனநிலை.',
   'hero.l2': 'ஒரு பட்ஜெட்.',
   'hero.l3': 'ஒரு முழு பயணம்.',
@@ -475,7 +475,7 @@ const te: Dict = {
   'nav.hint.how': 'ఏడు ఏజెంట్లు',
   'nav.hint.contact': 'టీమ్‌తో మాట్లాడండి',
 
-  'hero.badge': 'ఏడు ఏజెంట్లు · ఒక పైప్‌లైన్ · Llama 3.3 70B పై లైవ్',
+  'hero.badge': 'ఏడు ఏజెంట్లు · ఒక పైప్‌లైన్ · Groq పై లైవ్',
   'hero.l1': 'ఒక మూడ్.',
   'hero.l2': 'ఒక బడ్జెట్.',
   'hero.l3': 'ఒక పూర్తి ప్రయాణం.',
@@ -562,7 +562,7 @@ const kn: Dict = {
   'nav.hint.how': 'ಏಳು ಏಜೆಂಟ್‌ಗಳು',
   'nav.hint.contact': 'ತಂಡದೊಂದಿಗೆ ಮಾತನಾಡಿ',
 
-  'hero.badge': 'ಏಳು ಏಜೆಂಟ್‌ಗಳು · ಒಂದು ಪೈಪ್‌ಲೈನ್ · Llama 3.3 70B ನಲ್ಲಿ ಲೈವ್',
+  'hero.badge': 'ಏಳು ಏಜೆಂಟ್‌ಗಳು · ಒಂದು ಪೈಪ್‌ಲೈನ್ · Groq ನಲ್ಲಿ ಲೈವ್',
   'hero.l1': 'ಒಂದು ಮೂಡ್.',
   'hero.l2': 'ಒಂದು ಬಜೆಟ್.',
   'hero.l3': 'ಒಂದು ಸಂಪೂರ್ಣ ಪ್ರಯಾಣ.',

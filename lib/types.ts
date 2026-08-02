@@ -341,6 +341,6 @@ export type AgentKey =
 export interface AgentApiResponse {
   ok: boolean;
   data?: object;
-  error?: 'parse_failed' | 'rate_limited' | 'server_error' | 'missing_key';
+  error?: 'parse_failed' | 'rate_limited' | 'too_many_requests' | 'server_error' | 'missing_key';
   retryAfterSeconds?: number;
 }

@@ -36,7 +36,7 @@ Three of the six skip the mood quiz entirely, because for those travellers the i
 
 ## Honesty block
 
-- **Real:** live AI planning — every plan is generated fresh by **Llama 3.3 70B on Groq** (JSON mode, per-agent prompts and temperatures). Budget arithmetic and policy caps are enforced deterministically server-side: the model proposes, code guarantees.
+- **Real:** live AI planning — every plan is generated fresh on **Groq**, routed across three models by agent (JSON mode, per-agent prompts and temperatures). Budget arithmetic and policy caps are enforced deterministically server-side: the model proposes, code guarantees.
 - **Simulated:** bookings. Cards are demo artefacts with reference codes and a visible "Demo Mode" label; each links out to real Google Flights / Booking.com searches for that exact trip.
 - **Private by design:** no accounts, no server database. Saved trips live in the browser (localStorage) and feed the Mood Agent's personalisation on the next plan.
 

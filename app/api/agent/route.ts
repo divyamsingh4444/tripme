@@ -16,24 +16,25 @@ import { NextRequest, NextResponse } from 'next/server';
  * GROQ_API_KEY lives only here, server-side.
  */
 
-/**
- * Right-sized model per agent — and the reason is quota, measured not guessed.
+/*
+ * Measured capacities on the free tier. The per-MINUTE buckets are separate per
+ * model, and so are the per-DAY ones — and the daily cap is what actually bites:
+ *   llama-3.3-70b-versatile  12,000 TPM   100,000 tokens/DAY  <- the real ceiling
+ *   openai/gpt-oss-120b       8,000 TPM   1,000 req/day   (shares with gpt-oss-20b)
+ *   llama-3.1-8b-instant      6,000 TPM  14,400 req/day
+ *   qwen/qwen3.6-27b          8,000 TPM  — REJECTED: emits <think> blocks, not usable
  *
- * Groq's free tier meters TOKENS PER MINUTE, and crucially each model has its
- * OWN bucket: llama-3.3-70b 12k/min, llama-3.1-8b 6k/min. A full plan costs
- * ~10k tokens, so on one model it barely fits inside a single minute — one
- * retry, or two people planning at once, and the run stalls midway. That is
- * exactly the "it takes forever and then never finishes" failure.
+ * That is 26,000 TPM available. Cramming a ~10k run into the single 12k bucket
+ * was why one plan could barely finish; spread across three, no bucket carries
+ * more than about half a run and two people can plan at once.
  *
- * So the agents that genuinely reason — reading intent, choosing a destination,
- * building an itinerary, negotiating between people — stay on 70B, which is
- * what Phase 1 committed to. The agents that mostly emit structure from figures
- * already computed for them move to 8B, which is faster and draws on a separate
- * bucket. Both reassignments were verified against the real schemas before
- * being trusted here.
+ * Every assignment below was validated against that agent's real schema before
+ * being trusted. Budget stays on 70B specifically because its nested allocation
+ * object fails gpt-oss's JSON validator.
  */
-const MODEL_REASONING = 'llama-3.3-70b-versatile';
-const MODEL_STRUCTURAL = 'llama-3.1-8b-instant';
+const MODEL_REASONING = 'llama-3.3-70b-versatile';   // destination, itinerary, budget
+const MODEL_ARBITER = 'openai/gpt-oss-120b';         // intent variants, consensus, referee
+const MODEL_STRUCTURAL = 'llama-3.1-8b-instant';     // booking, notification, advocate
 
 interface AgentConfig {
   system: string;
@@ -57,6 +58,7 @@ nonNegotiables are 2-4 short phrases the Discovery Agent is contractually requir
 
 const AGENTS: Record<string, AgentConfig> = {
   mood: {
+    model: MODEL_ARBITER,
     temperature: 0.4,
     maxTokens: 800,
     requiredKeys: ['moodProfile', 'travelIntent', 'destinationParameters', 'personalizationNote'],
@@ -67,6 +69,7 @@ Other rules: moodProfile.primaryMood must be the exact mood word given in payloa
   },
 
   mood_family: {
+    model: MODEL_ARBITER,
     temperature: 0.4,
     maxTokens: 900,
     requiredKeys: ['moodProfile', 'travelIntent', 'destinationParameters', 'personalizationNote'],
@@ -76,6 +79,7 @@ Rules: read payload.household — every member has a name, age band (adult/child
   },
 
   mood_pilgrimage: {
+    model: MODEL_ARBITER,
     temperature: 0.4,
     maxTokens: 900,
     requiredKeys: ['moodProfile', 'travelIntent', 'destinationParameters', 'personalizationNote'],
@@ -85,6 +89,7 @@ Rules: primaryMood is always "Spiritual". settingTypes MUST come only from [pilg
   },
 
   mood_corporate: {
+    model: MODEL_ARBITER,
     temperature: 0.3,
     maxTokens: 900,
     requiredKeys: ['moodProfile', 'travelIntent', 'destinationParameters', 'personalizationNote'],
@@ -104,6 +109,7 @@ Rules: traveller and primaryMood echo the payload exactly. topPriorities is 2-3 
   },
 
   consensus: {
+    model: MODEL_ARBITER,
     temperature: 0.5,
     maxTokens: 1400,
     requiredKeys: ['moodProfile', 'travelIntent', 'destinationParameters', 'consensus', 'personalizationNote'],
@@ -141,6 +147,7 @@ If payload.householdConstraints is present this is FAMILY travel: favour stay op
   },
 
   itinerary: {
+    model: MODEL_ARBITER,
     temperature: 0.7,
     maxTokens: 3400,
     requiredKeys: ['days', 'languageCard', 'packingTips'],
@@ -162,6 +169,7 @@ Other rules: exactly one entry per trip day. Every activity must be real and spe
   },
 
   referee: {
+    model: MODEL_ARBITER,
     temperature: 0.4,
     maxTokens: 900,
     requiredKeys: ['conflictStatement', 'severity', 'recommendation', 'resolutionOptions', 'refereeNote'],
@@ -171,6 +179,7 @@ Rules: conflictStatement is one plain sentence naming BOTH agents and the exact 
   },
 
   referee_family: {
+    model: MODEL_ARBITER,
     temperature: 0.4,
     maxTokens: 1200,
     requiredKeys: ['conflictsFound', 'pacingVerdict', 'refereeNote'],
@@ -180,6 +189,7 @@ Rules: you are given payload.household (each member with name, age band, age and
   },
 
   referee_policy: {
+    model: MODEL_ARBITER,
     temperature: 0.3,
     maxTokens: 1300,
     requiredKeys: ['compliant', 'violations', 'expenseReport', 'complianceNote'],
@@ -396,8 +406,14 @@ function cacheSet(key: string, data: object): void {
 }
 
 const RATE_WINDOW_MS = 60 * 1000;
-/** One full plan is 8-13 calls; this allows ~2 concurrent plans per IP. */
-const RATE_MAX_CALLS = 30;
+/*
+ * Abuse guard, NOT a capacity limit — the provider buckets already do that job.
+ * It was set to 30 when a plan was ~8 calls; a group plan is now 13+, so two
+ * plans in a minute tripped our own limiter and the UI reported it as the
+ * provider's free-tier limit. That was doubly wrong: the message was false, and
+ * waiting for quota to refill could never clear it.
+ */
+const RATE_MAX_CALLS = 90;
 const hits = new Map<string, number[]>();
 
 function throttled(ip: string): boolean {
@@ -419,15 +435,59 @@ function clientIp(request: NextRequest): string {
 /** The Itinerary Agent runs to 3400 tokens; the platform default can be shorter. */
 export const maxDuration = 60;
 
-async function callModel(config: AgentConfig, payload: object, strict: boolean): Promise<string> {
-  const system = strict
-    ? config.system + '\nReturn ONLY valid JSON matching the schema. No prose.'
-    : config.system;
+/**
+ * The fallback chain each agent walks when a model is out of quota.
+ *
+ * Primary is whichever model suits the job; the rest are escape routes. This
+ * exists because the binding constraint turned out to be TOKENS PER DAY, not
+ * per minute — llama-3.3-70b allows 100,000/day, which at ~10k a plan is about
+ * ten plans and then nothing until tomorrow. Groq does not expose the daily
+ * figure in response headers; it only appears in the 429 body, so it cannot be
+ * checked before a call, only reacted to.
+ *
+ * Every agent has been validated on every model in its chain. The nested-schema
+ * agents (destination, budget) fail gpt-oss's strict JSON validator, so
+ * fallback attempts drop `response_format` and lean on the fence-stripping
+ * parser and retry that already exist — verified to produce valid output.
+ */
+const CHAIN_REASONING = [MODEL_REASONING, MODEL_ARBITER, MODEL_STRUCTURAL];
+const CHAIN_ARBITER = [MODEL_ARBITER, MODEL_REASONING, MODEL_STRUCTURAL];
+const CHAIN_STRUCTURAL = [MODEL_STRUCTURAL, MODEL_ARBITER, MODEL_REASONING];
+/*
+ * Discovery and Budget emit deeply nested objects, and gpt-oss truncates or
+ * malforms them often enough that it is the wrong second choice — observed live
+ * on a real run, where budget fell 70B -> gpt-oss (parse failed) -> 8b (fine).
+ * Ordering the small model ahead of it skips a wasted call.
+ */
+const CHAIN_NESTED = [MODEL_REASONING, MODEL_STRUCTURAL, MODEL_ARBITER];
+
+function chainFor(agent: string, config: AgentConfig): string[] {
+  if (agent === 'destination' || agent === 'budget') return CHAIN_NESTED;
+  const primary = config.model ?? MODEL_REASONING;
+  if (primary === MODEL_ARBITER) return CHAIN_ARBITER;
+  if (primary === MODEL_STRUCTURAL) return CHAIN_STRUCTURAL;
+  return CHAIN_REASONING;
+}
+
+function isRateLimit(err: unknown): boolean {
+  return (err as { status?: number })?.status === 429;
+}
+
+async function callModel(
+  config: AgentConfig,
+  payload: object,
+  strict: boolean,
+  model: string,
+  jsonMode: boolean,
+): Promise<string> {
+  const system =
+    (strict ? config.system + '\nReturn ONLY valid JSON matching the schema. No prose.' : config.system) +
+    (jsonMode ? '' : '\nReturn ONLY the JSON object. No markdown fences, no prose.');
   const res = await getGroq().chat.completions.create({
-    model: config.model ?? MODEL_REASONING,
+    model,
     temperature: config.temperature,
     max_tokens: config.maxTokens,
-    response_format: { type: 'json_object' },
+    ...(jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: JSON.stringify(payload) },
@@ -487,21 +547,56 @@ export async function POST(request: NextRequest) {
   }
 
   if (throttled(clientIp(request))) {
+    // Deliberately NOT 'rate_limited' — that code means the provider, and
+    // conflating the two sends people waiting for a refill that is irrelevant.
     return NextResponse.json(
-      { ok: false, error: 'rate_limited', retryAfterSeconds: 20 },
+      { ok: false, error: 'too_many_requests', retryAfterSeconds: 20 },
       { status: 429 },
     );
   }
 
+  /*
+   * Walk the chain. A model that is out of quota is skipped immediately rather
+   * than waited on — another model's budget is untouched, so there is nothing
+   * to gain by stalling. Only when every model is exhausted do we report a rate
+   * limit to the client.
+   */
+  const chain = chainFor(agentKey, config);
+  let lastRateLimit: unknown = null;
+
   try {
-    let raw = await callModel(config, body.payload, false);
-    let data = tryParse(raw, config.requiredKeys);
-    if (!data) {
-      raw = await callModel(config, body.payload, true);
-      data = tryParse(raw, config.requiredKeys);
+    let data: Record<string, unknown> | null = null;
+
+    for (let i = 0; i < chain.length && !data; i++) {
+      const model = chain[i];
+      // Only the primary gets strict JSON mode; fallbacks rely on the parser,
+      // because the nested-schema agents fail gpt-oss's validator outright.
+      const jsonMode = i === 0;
+      try {
+        let raw = await callModel(config, body.payload, false, model, jsonMode);
+        data = tryParse(raw, config.requiredKeys);
+        if (!data) {
+          raw = await callModel(config, body.payload, true, model, jsonMode);
+          data = tryParse(raw, config.requiredKeys);
+        }
+        if (!data) {
+          console.error(`[TripME] ${agentKey}: parse failed on ${model}`);
+          continue; // a different model may well parse cleanly
+        }
+        if (i > 0) console.warn(`[TripME] ${agentKey}: served by fallback ${model}`);
+      } catch (err) {
+        if (isRateLimit(err)) {
+          lastRateLimit = err;
+          console.warn(`[TripME] ${agentKey}: ${model} out of quota, trying next`);
+          continue;
+        }
+        throw err;
+      }
     }
+
     if (!data) {
-      console.error(`[TripME] ${agentKey}: parse failed after retry`);
+      if (lastRateLimit) throw lastRateLimit; // every model exhausted
+      console.error(`[TripME] ${agentKey}: parse failed on every model`);
       return NextResponse.json({ ok: false, error: 'parse_failed' }, { status: 502 });
     }
     const processed = postProcess(agentKey, data, body.payload as Record<string, unknown>);

@@ -364,7 +364,7 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
 
 export class AgentError extends Error {
   constructor(
-    public code: 'parse_failed' | 'rate_limited' | 'server_error' | 'missing_key' | 'network',
+    public code: 'parse_failed' | 'rate_limited' | 'too_many_requests' | 'server_error' | 'missing_key' | 'network',
     public retryAfterSeconds?: number,
   ) {
     super(code);

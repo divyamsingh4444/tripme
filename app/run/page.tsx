@@ -57,7 +57,7 @@ interface Step {
 const TIPS = [
   'Agents pass structured briefs to each other — no context is lost between steps.',
   'The Referee Agent audits the Itinerary against the Budget, and can send it back.',
-  'Every plan is generated live by Llama 3.3 70B — nothing here is pre-written.',
+  'Every plan is generated live on Groq — nothing here is pre-written.',
   'In group mode, one Advocate Agent argues for each traveller before the Referee negotiates.',
   'Bookings are simulated and always wait for your approval. Demo mode, honestly.',
 ];
@@ -181,7 +181,7 @@ export default function RunPage() {
          * showed "wait a few seconds, then retry", which read as a failure when
          * it was really a queue. Five attempts covers several refill windows.
          */
-        if (e.code === 'rate_limited' && rateRetries < 5) {
+        if ((e.code === 'rate_limited' || e.code === 'too_many_requests') && rateRetries < 5) {
           rateRetries++;
           const wait = e.retryAfterSeconds ?? 60;
           if (rateRetries >= 2) setOfferSample(true); // an out, without forcing it
@@ -200,6 +200,8 @@ export default function RunPage() {
           message:
             e.code === 'rate_limited'
               ? 'Free-tier quota is still busy after several waits. Retry, or see a sample trip.'
+              : e.code === 'too_many_requests'
+                ? 'Too many plans from this device in one minute. Give it a moment, then retry.'
               : e.code === 'missing_key'
                 ? 'The AI backend is not configured on this deployment.'
                 : e.code === 'network'

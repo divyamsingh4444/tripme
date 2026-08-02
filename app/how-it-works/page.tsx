@@ -156,7 +156,7 @@ export default function HowItWorksPage() {
         <h2 className="font-display text-xl font-bold mb-3">Under the hood</h2>
         <div className="bg-card rounded-2xl border border-border p-5 text-sm leading-relaxed">
           <p>
-            <span className="font-semibold">Model:</span> Llama 3.3 70B running on Groq — every plan is
+            <span className="font-semibold">Model:</span> three Llama and GPT-OSS models routed on Groq, each agent on the one that suits its job — every plan is
             generated live, in JSON mode, with per-agent prompts and temperatures.
           </p>
           <p className="mt-2">
@@ -177,7 +177,7 @@ export default function HowItWorksPage() {
         <h2 className="font-display text-xl font-bold mb-3">What&apos;s real, what&apos;s simulated</h2>
         <div className="rounded-2xl border-2 border-accent bg-accent/10 p-5 text-sm leading-relaxed">
           <p>
-            <span className="font-bold">Real:</span> live AI planning by Llama 3.3 70B on Groq — mood
+            <span className="font-bold">Real:</span> live AI planning on Groq — mood
             analysis, destination choice, budget allocation, itinerary and language card are generated
             fresh for every request.
           </p>
