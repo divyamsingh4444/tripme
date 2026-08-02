@@ -16,7 +16,23 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
-**D-024 · The failover had a hole, and the error message hid it (commit pending).**
+**D-025 · A hard-coded city was leaking into every plan (commit `0196061`).**
+
+**Reported:** reminders still named Bengaluru after choosing a different starting city — *"see to it that there is no such bias or pre assumed things."* Two causes, and only one of them was the obvious one.
+
+**The defect.** The Booking Agent was **never given the origin at all**. Its payload carried the destination, dates, travellers and budget — but not `originCity`. Its prompt meanwhile instructed it to write transport titles *"like `Bengaluru → Gokarna overnight sleeper bus`"*. With no origin in the data and a city named in the instruction, the model did the only thing available to it and copied the example. Those bookings are then handed to the Notification Agent, so **an invented city propagated into the reminders regardless of what the traveller typed.**
+
+This is worth keeping for the PRD's AI-design section: it is a clean example of a **few-shot example leaking into output**, and the reason it survived testing is that every test had been run from Bengaluru, where a wrong answer and a right answer are indistinguishable.
+
+**The assumption.** Separately, the form pre-filled "Bengaluru" — an assumption about who is using the product, which a traveller from anywhere else has to notice and undo. The field is required, and returning travellers already get their own last origin from Travel DNA, so guessing bought nothing. It now starts empty.
+
+**Fixes:** origin added to the Booking *and* Itinerary payloads (day one arrives and the last day departs, so that agent was inventing an origin for those moments too); the prompt now names no city at all, requires the title to start from `payload.originCity`, forbids any city not in the payload, and returns to the same origin.
+
+*Verified from Guwahati — deliberately as far from Bengaluru as India allows:* **zero occurrences** of Bengaluru anywhere in the rendered plan or its stored data; transport read `Guwahati → Kumarakom Flight`; the return reminder came back to Guwahati.
+
+**Standing check this creates:** any literal example inside an agent prompt is a potential default. Test from an input the examples do not mention.
+
+**D-024 · The failover had a hole, and the error message hid it (commit `eb4445b`).**
 
 **Reported from production:** the Pilgrimage path died on its very first agent — *"Mood & Intent Agent · faith / This agent hit a snag"* — with *"I don't even understand what the issue was."* Both halves of that were fair, and the second is the more serious one.
 
@@ -30,7 +46,7 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 **The lesson for the write-up:** D-022 built the failover and proved it against the failure that was visible at the time (quota). One release later a *different* refusal walked straight through it. Breadth of failure handling is not established by the case that motivated the feature.
 
-**D-023 · Translation reaches the trip itself, not just the chrome (commit pending).**
+**D-023 · Translation reaches the trip itself, not just the chrome (commit `10ca2a6`).**
 
 **The instruction:** *"the translation should work on all pages, no matter how deep, everything should be translated… if there is something dynamic happening like the agents at work then it should be translated after the work is done."*
 
