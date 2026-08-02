@@ -16,6 +16,15 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-017 · Acted on the 2 Aug UI review — five changes (commit `c673b9f`).**
+Teammate review on a real phone. All five points were right, and three of them were about the product apologising for itself rather than about pixels:
+- **Mobile menu → slide-in drawer.** The white dropdown read as an unstyled browser default against the dark hero. Now a drawer on the brand deep surface with a dimmed scrim, 300ms transform, staggered links, marigold CTA pinned bottom, body-scroll lock, Escape/scrim close. *Verified: x=62 open → x=375 closed, scroll restored.* The reference examples given (Amazon, Wakefit, RottenTomatoes) all use exactly this pattern.
+- **Footer → real company footer.** It listed "Llama 3.3 70B on Groq / Next.js · three.js / 7-agent pipeline", which reads as a project README, not a product. Now Product and Company columns, a CTA and a copyright line. **The stack is not lost** — it remains on *How-it-works* under "Under the hood", where it is evidence for an evaluator rather than decoration.
+- **New `/contact` page.** Email, phone and location cards, a reason-tagged message form (mailto, no backend, nothing stored), a support FAQ answering the four questions testers actually hit (rate limits, are bookings real, where trips are stored, something looks wrong), and a plain-English data section that doubles as the **DPDP/GDPR ethics answer** for rubric 3.3. ⚠ **The phone number is a deliberate placeholder** — publishing a real personal number to a public site is not something to do on inference. One constant at the top of the file; replace or delete the block.
+- **Hero pills → flight path.** Seven pills wrapped into ragged rows on a phone. Replaced with the **logo's own dashed flight-path motif**: one line, seven nodes, last one marigold. Never wraps, and it ties the hero to the mark.
+- **Cut "nothing is ever really booked" from under the primary CTA.** The sharpest note of the review: *"it feels like you are saying my product can't do all that."* Correct — it apologised at the exact moment of commitment. Honesty is undamaged: the Demo Mode badge sits in the nav, every booking card is labelled, and How-it-works has the full honesty block. Disclosure belongs where the claim is made, not under the button.
+*Explicitly endorsed and left alone: the colour scheme, and the stat cards below the fold ("very friendly UI").*
+
 **D-016 · The rest of the P0 ship-blockers cleared, plus both findings the D-015 verification threw up (commit pending).**
 Everything §8.6 listed as "before recording the demo" is now done. Six items, and two of them exist only because *running* the verification taught us something *reading* the code could not:
 
