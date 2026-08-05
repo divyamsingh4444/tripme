@@ -417,6 +417,15 @@ export interface TripState {
   /** Absent on trips planned before the confirm step existed — treat as 'planned'. */
   status?: TripStatus;
   confirmedAt?: number;
+  /**
+   * Reminders are OFF until asked for, per trip.
+   *
+   * Confirming a trip is not the same as wanting to be nagged about it. People
+   * save and confirm plans that later fall through, and a browser quietly
+   * reminding someone about a cancelled trip is the fastest way to make them
+   * mute the product entirely. Absent means off.
+   */
+  notificationsEnabled?: boolean;
   agentsRun: number;
   plannedInSeconds: number;
   hadHistory: boolean;

@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collectReminders, groupReminders, KIND_ICON, markRead, type AppReminder } from '@/lib/reminders';
-import { listTrips, setCurrentTrip } from '@/lib/storage';
+import { listTrips, setCurrentTrip, TRIPS_CHANGED_EVENT } from '@/lib/storage';
 
 const TICK_MS = 30_000;
 
@@ -47,7 +47,11 @@ export function ReminderToast() {
   useEffect(() => {
     check();
     const timer = setInterval(check, TICK_MS);
-    return () => clearInterval(timer);
+    window.addEventListener(TRIPS_CHANGED_EVENT, check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener(TRIPS_CHANGED_EVENT, check);
+    };
   }, [check]);
 
   if (!toast) return null;

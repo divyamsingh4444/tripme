@@ -32,7 +32,7 @@ import {
   type AppReminder,
 } from '@/lib/reminders';
 import { fmtWhen } from '@/lib/notifications';
-import { listTrips, setCurrentTrip } from '@/lib/storage';
+import { listTrips, setCurrentTrip, TRIPS_CHANGED_EVENT } from '@/lib/storage';
 
 /** Often enough to feel live, rare enough to be invisible. */
 const TICK_MS = 30_000;
@@ -121,11 +121,13 @@ export function NotificationCenter({ onDark = false }: { onDark?: boolean }) {
   useEffect(() => {
     refresh();
     const timer = setInterval(refresh, TICK_MS);
+    window.addEventListener(TRIPS_CHANGED_EVENT, refresh);
     const onFocus = () => refresh();
     window.addEventListener('focus', onFocus);
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener(TRIPS_CHANGED_EVENT, refresh);
     };
   }, [refresh]);
 

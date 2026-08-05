@@ -11,9 +11,11 @@
  * worse than no reminder at all. The only thing persisted is which ones you
  * have read or dismissed.
  *
- * ONLY CONFIRMED TRIPS. A draft plan is a proposal; reminding someone to leave
- * for a journey they have not agreed to take is noise. This mirrors the rule
- * the trip page already enforces.
+ * ONLY CONFIRMED TRIPS THAT ASKED FOR IT. A draft plan is a proposal, so
+ * reminding someone about it is noise — and confirming is still not consent to
+ * be nagged. Reminders are enabled per trip, deliberately off by default:
+ * people save and confirm plans that later fall through, and being reminded
+ * about a cancelled trip is how someone ends up muting the product entirely.
  *
  * The Notification Agent writes the booking reminders. The per-day itinerary
  * reminders are generated here, in code, because they are pure derivation from
@@ -152,17 +154,24 @@ function tripStartReminder(trip: TripState, tripId: string): AppReminder | null 
   };
 }
 
-/** Every confirmed trip in this browser, current one included, deduped by id. */
+/** Every trip that is confirmed AND has reminders switched on, deduped by id. */
 function confirmedTrips(): { tripId: string; state: TripState }[] {
   const out = new Map<string, TripState>();
+  const wants = (t?: TripState | null) => t?.status === 'confirmed' && t.notificationsEnabled === true;
+
   for (const saved of listTrips() as SavedTrip[]) {
     const id = saved.state?.tripId ?? saved.id;
-    if (saved.state?.status === 'confirmed' && id) out.set(id, saved.state);
+    if (wants(saved.state) && id) out.set(id, saved.state);
   }
   const current = getCurrentTrip();
   // The open trip may be confirmed but not yet saved, so it is added last and
-  // wins — it is the freshest version of that plan.
-  if (current?.status === 'confirmed' && current.tripId) out.set(current.tripId, current);
+  // wins — it is the freshest version of that plan. It is also removed when
+  // reminders have been turned off on it, so switching them off takes effect
+  // immediately rather than after the next save.
+  if (current?.tripId) {
+    if (wants(current)) out.set(current.tripId, current);
+    else out.delete(current.tripId);
+  }
   return [...out.entries()].map(([tripId, state]) => ({ tripId, state }));
 }
 

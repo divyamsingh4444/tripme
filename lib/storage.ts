@@ -12,11 +12,31 @@ const PENDING_KEY = 'tripme.pending';
 
 const isBrowser = () => typeof window !== 'undefined';
 
+/**
+ * Anything that changes a trip announces it.
+ *
+ * The reminder bell derives from stored trips, so without this it only noticed
+ * a change on its next 30-second poll — turning reminders on left the bell
+ * absent for up to half a minute, which reads as the switch not working. The
+ * listeners just re-read localStorage, so firing this often is cheap.
+ */
+export const TRIPS_CHANGED_EVENT = 'tripme:trips-changed';
+
+function announceTripsChanged(): void {
+  if (!isBrowser()) return;
+  try {
+    window.dispatchEvent(new Event(TRIPS_CHANGED_EVENT));
+  } catch {
+    /* ignore */
+  }
+}
+
 /* ---- current trip (sessionStorage) ---- */
 export function setCurrentTrip(state: TripState): void {
   if (!isBrowser()) return;
   try {
     sessionStorage.setItem(CURRENT_KEY, JSON.stringify(state));
+    announceTripsChanged();
   } catch {
     /* ignore */
   }
@@ -164,6 +184,7 @@ export function saveTrip(state: TripState): boolean {
       });
     }
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    announceTripsChanged();
     return true;
   } catch {
     return false;
@@ -181,6 +202,7 @@ export function deleteTrip(id: string): void {
   try {
     const trips = listTrips().filter((t) => t.id !== id);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    announceTripsChanged();
   } catch {
     /* ignore */
   }

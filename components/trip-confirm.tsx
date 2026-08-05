@@ -44,6 +44,7 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
   const disarm = useRef<(() => void) | null>(null);
 
   const confirmed = state.status === 'confirmed';
+  const remindersOn = state.notificationsEnabled === true;
   const reminders = state.notification?.reminders ?? [];
   const schedule = scheduleView(reminders, state.input.startDate);
   const deliverableCount = schedule.filter((s) => s.deliverable).length;
@@ -57,14 +58,14 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
   useEffect(() => {
     disarm.current?.();
     disarm.current = null;
-    if (!confirmed || notificationSupport() !== 'granted') return;
+    if (!confirmed || !remindersOn || notificationSupport() !== 'granted') return;
     disarm.current = armReminders(reminders, state.input.startDate, state.destination.selected.name);
     return () => {
       disarm.current?.();
       disarm.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmed, state.input.startDate, state.destination.selected.name, reminders.length]);
+  }, [confirmed, remindersOn, state.input.startDate, state.destination.selected.name, reminders.length]);
 
   const confirm = async () => {
     /*
@@ -77,6 +78,8 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
      * being taken. This is the only agent call the confirm step makes, and only
      * when something was changed.
      */
+    // Confirming does NOT switch reminders on — that is a separate, explicit
+    // choice below. See TripState.notificationsEnabled for why.
     let next: TripState = { ...state, status: 'confirmed', confirmedAt: Date.now() };
     if (hasChoices(state.choices)) {
       setRebuilding(true);
@@ -109,14 +112,25 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
     onChange(next);
     setJustConfirmed(true);
 
+  };
+
+  /** Turning reminders on is where the browser permission is actually earned. */
+  const enableReminders = async () => {
+    onChange({ ...state, notificationsEnabled: true });
     const granted = await requestPermission();
     setPermission(granted);
     if (granted === 'granted') {
       notify(
-        `Trip confirmed — ${state.destination.selected.name}`,
-        `${reminders.length} reminders are set. The first one is ${schedule[0]?.at ? fmtWhen(schedule[0].at) : 'scheduled'}.`,
+        `Reminders on — ${state.destination.selected.name}`,
+        `${reminders.length} reminders are set. The first is ${schedule[0]?.at ? fmtWhen(schedule[0].at) : 'scheduled'}.`,
       );
     }
+  };
+
+  const disableReminders = () => {
+    disarm.current?.();
+    disarm.current = null;
+    onChange({ ...state, notificationsEnabled: false });
   };
 
   const unconfirm = () => {
@@ -131,8 +145,8 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
       <section className="mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 no-print">
         <h2 className="font-display text-xl font-bold">Going ahead with this?</h2>
         <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-2xl">
-          Confirming locks the plan and switches on the {reminders.length} reminders the Notification Agent
-          wrote — departure, check-in, each booked activity and the way home. Nothing is booked for real: this
+          Confirming locks the plan so it stops changing under you. Reminders stay off until you ask for
+          them — you can switch them on for this trip straight afterwards. Nothing is booked for real: this
           is still a demo product.
         </p>
 
@@ -184,8 +198,7 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
         )}
         {session?.user && unapprovedCount === 0 && (
           <p className="text-xs text-muted-foreground mt-3">
-            You can undo this at any time, and your browser will ask permission before any notification
-            appears.
+            You can undo this at any time.
           </p>
         )}
       </section>
@@ -200,8 +213,9 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
             Trip confirmed{justConfirmed ? ' 🎉' : ''}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {reminders.length} reminders are live for {state.destination.selected.name}
-            {session?.user?.name ? ` · ${session.user.name}` : ''}.
+            {state.destination.selected.name}
+            {session?.user?.name ? ` · ${session.user.name}` : ''} ·{' '}
+            {remindersOn ? `${reminders.length} reminders on` : 'reminders off'}
           </p>
           {session?.user?.isDemo && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -218,22 +232,55 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
         </button>
       </div>
 
-      {permission !== 'granted' && (
-        <div className="mt-4 rounded-xl bg-secondary/50 border border-secondary px-4 py-3 text-sm no-print">
-          {permission === 'denied' ? (
-            <>
-              Notifications are blocked for this site, so reminders will only appear here on the page. Your
-              browser&apos;s site settings can re-enable them.
-            </>
-          ) : permission === 'unsupported' ? (
-            <>This browser cannot show notifications, so reminders appear here on the page instead.</>
-          ) : (
-            <button onClick={confirm} className="font-semibold text-primary hover:underline">
-              Turn on notifications →
-            </button>
-          )}
+      {/*
+        The opt-in. Kept separate from confirming because they are different
+        decisions: one says the trip is happening, the other says keep telling
+        me about it. Somebody with a dozen saved trips wants reminders for the
+        one they are actually taking, not for the eleven that fell through.
+      */}
+      <div className="mt-5 rounded-2xl border-2 border-border p-5 no-print">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display font-bold flex items-center gap-2">
+              <span aria-hidden="true">{remindersOn ? '🔔' : '🔕'}</span>
+              Reminders for this trip
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+              {remindersOn
+                ? 'On. These appear in the bell in the navigation whenever you open TripME, and pop up here if one falls due while you are using it.'
+                : 'Off. Switch them on and this trip’s schedule shows up in the bell in the navigation — departure, check-in, each activity and every day’s plan.'}
+            </p>
+          </div>
+          <button
+            onClick={remindersOn ? disableReminders : enableReminders}
+            aria-pressed={remindersOn}
+            className={`px-5 py-2.5 rounded-xl font-semibold text-sm shrink-0 transition-colors ${
+              remindersOn
+                ? 'border-2 border-input hover:bg-muted'
+                : 'bg-primary text-primary-foreground hover:opacity-95'
+            }`}
+          >
+            {remindersOn ? 'Turn off' : 'Turn on reminders'}
+          </button>
         </div>
-      )}
+
+        {remindersOn && permission !== 'granted' && (
+          <div className="mt-4 rounded-xl bg-secondary/50 border border-secondary px-4 py-3 text-sm">
+            {permission === 'denied' ? (
+              <>
+                Your browser is blocking notifications for this site, so reminders appear in the app only —
+                in the bell and on this page. Site settings can re-enable them.
+              </>
+            ) : permission === 'unsupported' ? (
+              <>This browser cannot show notifications, so reminders appear in the app only.</>
+            ) : (
+              <button onClick={enableReminders} className="font-semibold text-primary hover:underline">
+                Also allow browser notifications →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <ul className="mt-5 space-y-2.5">
         {schedule.map((item, i) => (
