@@ -493,6 +493,54 @@ The original plan (`TripME_Build_Spec.md`) assumed building via Lovable with ~5 
 
 ---
 
+## 3A. What the MVP has — the answer to "what features will your MVP have"
+
+**Submission-ready answer. Everything listed under "In the MVP" is built and working today, not planned.** The scoping note at the end matters as much as the list: rubric 2.3 deducts when the MVP *is* the full product, so what we left out is part of the answer.
+
+**One line:** *One mood, one budget, one duration in — one complete, arguable, confirmable trip out, planned by seven agents that can disagree with each other in front of you.*
+
+### 1 · Planning — the core loop
+- **Mood-first input.** You give a feeling, a budget, a duration, a starting city and dates. You never type a destination.
+- **Seven specialised agents** with structured JSON handoffs: Mood & Intent → Discovery → Budget → Itinerary → Booking → Referee → Notification.
+- **A Referee that can reject work.** The Itinerary Agent is never shown the budget, so it prices honestly; the Budget Agent argues for thrift; when they conflict the Referee states the gap in rupees on screen and **sends the plan backwards** to be re-done. This is what makes it a system rather than one long prompt.
+- **Three conflict classes arbitrated:** money (budget vs itinerary), pacing (family), policy (corporate).
+- **A live pipeline view** — you watch each agent work, with a timer that counts agent time only.
+
+### 2 · Six entry paths, because six travellers are not one traveller
+Solo · Couple · Group · Family · Pilgrimage · Corporate. Each **changes what the agents do**, not just the form: one Traveller Advocate per person in couple/group with a published concession matrix and a fairness floor; family pacing set by the most constrained member and audited by name; pilgrimage circuits sequenced traditionally with darshan timing and access; corporate drops the mood quiz entirely and enforces travel policy in code.
+
+### 3 · The plan you get
+Destination plus two alternates with line-by-line proof of your non-negotiables · budget split across transport, stay, food, activities and buffer · day-by-day itinerary with swap suggestions · a pocket phrase card in the local language · packing tips · simulated bookings with approval gates and deep links to real inventory · a reminder schedule.
+
+### 4 · Arguing with the plan — the traveller has the last word
+- **Change how you get there and back**, how you **get around once there**, and **where you stay**.
+- **Real hotels and attractions** from OpenStreetMap with Wikipedia photographs — real, named, mappable places, not invented ones.
+- **Edit any day**: swap an activity for a real place nearby, take the agent's own alternative, or clear the slot.
+- **Switch destination entirely** — Discovery, Budget, Itinerary and Booking re-run for the new place.
+- **Every change re-prices the trip in code, not by asking the model again**, and approvals reset when amounts move.
+
+### 5 · Committing to it
+Approve each booking → confirm the trip → save it. **Enforced in that order**, because confirming switches on a reminder schedule built from bookings you have actually agreed to.
+
+### 6 · After you commit
+- **Reminders, opt-in per trip**: departure countdown, check-in, each activity, the return leg, and every day's plan.
+- **In-app notification centre** — a bell on every page grouped by urgency, plus a toast when something falls due while you are using the app, and real browser notifications while it is open.
+
+### 7 · Around all of it
+Saved trips and **Travel DNA** that makes your next plan smarter · **seven Indian languages**, including translation of what the agents wrote · **an assistant on every page** that answers about the product and your own trips without calling a model · sign-in with Google or a one-tap demo account · four sample trips that need no AI quota · **three-model failover** so a busy free tier does not end a plan · settle-up for group trips · a compliance report for corporate ones · print stylesheet · a raw agent log.
+
+### Deliberately NOT in the MVP — and why that is the right call
+| Left out | Why |
+|---|---|
+| **Real bookings and payments** | Every booking is simulated and labelled. Building real transactions would make the MVP the full product, which rubric 2.3 penalises. Each card deep-links to Google Flights / Booking.com so a traveller can act on it. |
+| **Live prices** | Real fares and hotel rates need paid inventory APIs. Every figure is marked "est." — inventing a number and printing it beside a real hotel's name would be the one genuinely dishonest thing available to us. |
+| **Push when the app is closed, SMS and voice** | Needs a push server and telephony. The agent still *chooses* those channels for low-connectivity pilgrimage routes and shows the schedule; delivery is stated as post-MVP. |
+| **Trips syncing across devices** | Trips live in your browser and are never uploaded. Signing in does not move them. This is a privacy position, not an oversight, and the sign-in page says so. |
+| **Travel outside India** | Prices, languages and local knowledge are all Indian. Out-of-scope requests are caught at the input and offered the nearest Indian equivalent, and the Discovery Agent explains the swap rather than making it silently. |
+| **Timed email reminders** | The blocker is architectural, not cost: the server does not know your trips exist. Sending them at the right time would mean uploading every traveller's itinerary — reversing the privacy commitment above. |
+
+---
+
 ## 4. Original plan vs. how we actually progressed
 
 | Original spec (TripME_Build_Spec.md) | What actually happened |
