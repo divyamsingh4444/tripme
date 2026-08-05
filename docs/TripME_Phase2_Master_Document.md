@@ -1,6 +1,6 @@
 # TripME — Phase 2 Master Document
 **Team DEBUGGERS · BITSoM "Product Management with Generative & Agentic AI" Capstone**
-**Started: 1 Aug 2026 · Last updated: 2 Aug 2026 (D-024) · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
+**Started: 1 Aug 2026 · Last updated: 6 Aug 2026 (D-026) · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
 
 This is the single source of truth for where the Phase 2 submission stands: everything we know, everything built, everything still owed, and exactly how we finish the last three build deliverables (wireframes, MVP demo recording, PRD).
 
@@ -169,6 +169,22 @@ Also caught: the Booking Agent was pricing **three nights for a three-day trip**
 **Owed by you before this is live:** Google Cloud OAuth credentials and (optionally) a Supabase project — full steps in [`docs/AUTH_SETUP.md`](AUTH_SETUP.md). Note the step people forget: while the consent screen is in Testing, only accounts listed under **Test users** can sign in, so add every demo account.
 
 **Still true and worth stating plainly in the PRD:** signing in does **not** sync trips across devices. Trips remain in the browser. Moving them server-side is a real design decision about where a traveller's data lives, and not one to make quietly as a side effect of adding a login button.
+
+**D-026 · The submission documents contradicted the product they described.**
+
+Four teammate documents were reviewed against the running application. The finding that mattered was not that they were incomplete — it was that **the two most confident claims in them were wrong in the direction that a live demo would expose.**
+
+**The dangerous pair.** The Phase 2 draft stated the MVP covers *solo and couple paths only*, and that the **Referee and Notification agents are not in the MVP**. All six paths are built, and both agents are built — the Referee being the single thing that makes this a multi-agent product rather than a long prompt. A document that under-claims is not a safe error: an evaluator reading "not in MVP" and then watching arbitration run on screen learns that the team does not know its own product. Understating cost us more than overstating would have.
+
+**The opposite error, in the same document.** The PRD described a different product entirely — *"Smart Travel Companion"*, five agents named Scout, Closer, Money Optimizer, Recommender and Referee. Only the Referee survived into the real build. Alongside it: a stack claiming LangGraph, Python, a vector DB, AWS/GCP and microservices, where the truth is Next.js on Vercel with browser-local storage. That is the funded version presented as the built one, and it fails on the first question about deployment.
+
+**Fourteen corrections in total**, each recorded in the submission's own appendix rather than applied silently — including a PEAS entry claiming the Booking Agent *"executes reservations"* (it simulates), "India + global" where the pipeline enforces India-only, an accessibility claim of "English only" against seven shipped languages, expense splitting and the Notification Agent both listed as absent when both are built, six agents in one section and seven in another, a corporate persona whose goals were a copy-paste of the pilgrimage persona's, and a launch strategy written for a different product called Moodmap with three personas that appear nowhere else.
+
+**Approach taken:** the documents are now **generated from source** (`docs/_build/`) rather than hand-edited, so a fact stated in three sections is written once. The single biggest defect in the drafts was the same fact stated three different ways — that class of error is now structurally impossible rather than merely fixed. Every claim was checked against the running code: seven languages against `LANGUAGES`, four sample trips against `sample-trips.ts`, the confirm gate against `TripConfirm` (it genuinely requires a session **and** zero unapproved bookings), and the email destination against `email-trip/route.ts` (it reads the session address and cannot be pointed at an arbitrary one).
+
+**What was deliberately not changed:** the JTBD and renewal interview questions, verbatim. Those are a record of what was actually asked, and improving the phrasing after the fact would make the responses evidence of nothing.
+
+**Two deliverables:** `docs/TripME_Phase2_Submission.docx` (32 sections, absorbing the standalone channel/flow/journey companion so there is one document rather than two overlapping ones) and `docs/TripME_PRD.docx`. Nine placeholders are marked in red where the team must supply artefacts — wireframes, the demo recording, Jira screenshots, team names — so nothing ships silently blank.
 
 **D-025 · A hard-coded city was leaking into every plan (commit `0196061`).**
 
