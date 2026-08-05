@@ -16,6 +16,29 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-029 · Six copies of one trip, and a scope the product never admitted to (commit `31e2058`).**
+
+**Reported from production, with a screenshot:** one save of one confirmed family trip produced **six identical Bhubaneswar cards**, none of them showing a photo — plus two good questions: whether save/confirm/approve follow a proper sequence, and whether the product is India-only.
+
+**1 · The duplicates were an identity bug.** `saveTrip` always minted a fresh id and prepended, while the trip page re-saves on every change once a trip has been saved. Confirming, approving and changing a stay each wrote another copy. Six cards is exactly six writes of one plan. **A plan is a thing, not an event**, so it now carries a `tripId` minted once at creation, and saving updates that record. Legacy records have no identity to match on and are left alone rather than guessed at.
+
+**2 · The missing photo was a thundering herd.** Six cards for the same city fired six identical image requests simultaneously — enough for the free Wikimedia lookup to return nothing and leave every card blank. Requests are now deduped by place, **sharing the in-flight promise rather than only the result**. Where no photograph genuinely exists, the card shows the destination's initial: a blank gradient reads as a broken image, a monogram reads as a decision.
+
+**3 · The sequence had a real logical hole, and it was about money.** Approve a ₹9,000 stay, switch to the ₹24,000 premium one, and **the approval stayed ticked** — the page displayed a total signed off against a line that no longer existed at that price. An approval is consent to a *specific amount*, so when amounts move it is asked for again. Itinerary edits deliberately do not clear approvals, because they do not touch bookings.
+
+Confirmation also sat *beside* approval rather than after it, so a trip could be confirmed with every booking unapproved — and confirming is what switches on a reminder schedule built from those bookings. **The enforced order is now: adjust → approve → confirm → save**, and My Trips distinguishes a draft from a confirmed trip, because one of them has live reminders.
+
+*Verified end to end:* save → approve 3 → confirm → change the stay. One record throughout; approvals reset to ₹0 on the change; the confirm button disappeared and the approval gate returned.
+
+**4 · India-only was true but unstated — and that is a product failure, not a copy failure.** Every part of the system already assumed India: rupees, the Indian-language phrase card, the Discovery Agent's pilgrimage knowledge, geocoding scoped to India. But nothing *said* so, so a traveller typing "Bali" spent a minute of agent time and received an Indian city with no explanation. **That reads as broken rather than scoped**, which is the worst of both.
+
+Three layers, cheapest first — a pattern worth reusing for any bounded product:
+1. **State the limit where the input happens.** The planner now says it. This alone prevents most of the problem.
+2. **Catch the obvious cases before spending anything.** An out-of-scope term in the origin or the mood note raises an inline, *non-blocking* notice naming the nearest thing we can genuinely plan (*Bali → Goa or the Andamans, for beaches, temples and a slow island pace*). It informs; it never refuses.
+3. **Bind the agent.** Discovery must return an Indian destination and must open `decisionNote` by explaining the swap. **Never silently substitute.**
+
+The detector is a deliberately small heuristic over what Indian travellers actually type when they mean "abroad" — *not* validation. It will miss things, which is exactly why layer 3 exists and why nothing depends on the list being complete. **Worth saying in the viva:** scope is a product decision, and the professional move is to name it, offer the nearest thing you can do, and never let the user discover the boundary by being quietly given something else.
+
 **D-028 · The account now guards the two actions that create ownership, and everyone has a way in (commit `999d835`).**
 
 **Asked for:** planning without login is right, but **confirming and saving should require an account**; a **test-user button** so people other than the owner can get in; and a sign-in page that looks professional rather than a lone Google button.
