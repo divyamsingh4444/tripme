@@ -1,3 +1,4 @@
+import { newTripId } from '@/lib/storage';
 /**
  * The sample gallery.
  *
@@ -564,5 +565,8 @@ export const SAMPLES: SampleEntry[] = [
 ];
 
 export function buildSampleById(id: string): TripState {
-  return (SAMPLES.find((s) => s.id === id) ?? SAMPLES[0]).build();
+  const built = (SAMPLES.find((s) => s.id === id) ?? SAMPLES[0]).build();
+  // Each opening of a sample is its own plan to edit and save. Without an id,
+  // saving one appended a fresh copy on every later change.
+  return { ...built, tripId: newTripId() };
 }

@@ -153,7 +153,14 @@ export default function TripsPage() {
                     overlay="bg-gradient-to-t from-[#0e1f1a]/90 via-[#0e1f1a]/35 to-transparent"
                   >
                     <div className="h-36 flex flex-col justify-between p-4">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1.5">
+                        {/* A confirmed trip is a different thing from a draft —
+                            it has live reminders — so the list says which. */}
+                        {s.status === 'confirmed' && (
+                          <span className="px-2.5 py-1 rounded-full bg-primary/90 backdrop-blur border border-white/20 text-white text-xs font-semibold whitespace-nowrap">
+                            ✓ Confirmed
+                          </span>
+                        )}
                         <span className="px-2.5 py-1 rounded-full bg-black/35 backdrop-blur border border-white/20 text-white text-xs font-semibold whitespace-nowrap">
                           {MOOD_EMOJI[s.mood.moodProfile.primaryMood] ?? ''} {s.mood.moodProfile.primaryMood}
                         </span>

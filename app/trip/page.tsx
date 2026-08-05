@@ -160,12 +160,32 @@ export default function TripPage() {
    * is worse than no choice at all.
    */
   const updateState = (next: TripState) => {
+    /*
+     * Changing what you are buying invalidates having approved it.
+     *
+     * The bug this fixes: approve a 9,000 rupee stay, then switch to the
+     * 24,000 premium one, and the approval stayed ticked — the page showed a
+     * sum signed off against a line that no longer existed at that price. An
+     * approval is consent to a specific amount, so when the amounts move it has
+     * to be asked for again. Itinerary edits do not touch bookings, so they
+     * leave approvals alone.
+     */
+    const before = JSON.stringify(applyChoices(state).bookings.map((b) => [b.title, b.amountINR]));
+    const after = JSON.stringify(applyChoices(next).bookings.map((b) => [b.title, b.amountINR]));
+    if (before !== after) setApproved({});
+
     setState(next);
     setCurrentTrip(next);
     if (saved === 'saved') saveTrip(next); // keep an already-saved trip in step
   };
 
   const confirmed = state.status === 'confirmed';
+  /*
+   * The sequence the product now enforces: adjust -> approve -> confirm -> save.
+   * Confirming turns on a reminder schedule built from these bookings, so it
+   * must not run ahead of the traveller agreeing to them.
+   */
+  const unapprovedCount = bookings.filter((_, i) => !approved[i]).length;
 
   const switchDestination = async (alt: { name: string; oneLineReason: string }) => {
     if (switchBusy.current) return;
@@ -923,7 +943,7 @@ export default function TripPage() {
       <TripChoices state={state} onChange={updateState} locked={confirmed} />
 
       {notification && notification.reminders?.length > 0 && (
-        <TripConfirm state={state} onChange={updateState} />
+        <TripConfirm state={state} onChange={updateState} unapprovedCount={unapprovedCount} />
       )}
 
       {notification?.channelStrategy && confirmed && (

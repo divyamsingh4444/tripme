@@ -128,23 +128,52 @@ export function listTrips(): SavedTrip[] {
   return readTrips().trips;
 }
 
-/** @returns true when the save actually persisted */
+/** A new identity for a plan. Called once, when the plan is created. */
+export function newTripId(): string {
+  return `trip-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+}
+
+/**
+ * Save, or update if this plan is already saved.
+ *
+ * Previously this always appended with a fresh id, and the trip page re-saves
+ * on every change once a trip has been saved — so confirming, approving and
+ * changing a stay each wrote another copy. A traveller reported six identical
+ * Bhubaneswar trips from one save, which is exactly six writes of one plan.
+ *
+ * Matching is by `state.tripId`. Records written before that field existed have
+ * no identity to match on and are left alone rather than guessed at.
+ *
+ * @returns true when the save actually persisted
+ */
 export function saveTrip(state: TripState): boolean {
   if (!isBrowser()) return false;
   try {
     const trips = listTrips();
-    const trip: SavedTrip = {
-      id: `trip-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
-      savedAt: Date.now(),
-      schemaVersion: TRIP_SCHEMA_VERSION,
-      state,
-    };
-    trips.unshift(trip);
+    const tripId = state.tripId;
+    const existing = tripId ? trips.findIndex((t) => t.state?.tripId === tripId) : -1;
+
+    if (existing >= 0) {
+      trips[existing] = { ...trips[existing], savedAt: Date.now(), schemaVersion: TRIP_SCHEMA_VERSION, state };
+    } else {
+      trips.unshift({
+        id: tripId ?? newTripId(),
+        savedAt: Date.now(),
+        schemaVersion: TRIP_SCHEMA_VERSION,
+        state,
+      });
+    }
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     return true;
   } catch {
     return false;
   }
+}
+
+/** Is this plan already in My Trips? Drives "Save trip" vs "Saved". */
+export function isTripSaved(state: TripState): boolean {
+  if (!isBrowser() || !state.tripId) return false;
+  return listTrips().some((t) => t.state?.tripId === state.tripId);
 }
 
 export function deleteTrip(id: string): void {

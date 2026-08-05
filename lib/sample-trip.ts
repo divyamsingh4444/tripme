@@ -1,3 +1,4 @@
+import { newTripId } from '@/lib/storage';
 /**
  * Bundled sample plan — a 3-day ₹18,000 "Relax" trip Bengaluru → Gokarna.
  * Used by "See a sample trip" and as the fallback when the live pipeline
@@ -13,6 +14,7 @@ export function buildSampleTrip(): TripState {
 
   return {
     isSample: true,
+    tripId: newTripId(),
     createdAt: Date.now(),
     plannedInSeconds: 34,
     agentsRun: 7,

@@ -375,6 +375,15 @@ export type TripStatus = 'planned' | 'confirmed';
 
 /* ---- Assembled trip ---- */
 export interface TripState {
+  /**
+   * Stable identity for this plan, minted once when it is created.
+   *
+   * Without it, saving was append-only: every later edit wrote a fresh record,
+   * so one traveller's single trip appeared six times in My Trips. A plan is a
+   * thing, not an event, and it needs an identity that survives being edited.
+   * Absent on records written before this existed — treated as legacy.
+   */
+  tripId?: string;
   input: TripInput;
   mood: MoodOutput;
   advocates?: AdvocateOutput[];

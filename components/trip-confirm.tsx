@@ -32,9 +32,11 @@ import type { NotificationOutput, TripState } from '@/lib/types';
 interface Props {
   state: TripState;
   onChange: (next: TripState) => void;
+  /** Bookings the traveller has not signed off yet. */
+  unapprovedCount: number;
 }
 
-export function TripConfirm({ state, onChange }: Props) {
+export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
   const { data: session, status } = useSession();
   const [permission, setPermission] = useState<PermissionState>('default');
   const [justConfirmed, setJustConfirmed] = useState(false);
@@ -147,7 +149,31 @@ export function TripConfirm({ state, onChange }: Props) {
           />
         )}
 
-        {status !== 'loading' && session?.user && (
+        {/*
+          Approvals come before confirmation, and the order is not arbitrary:
+          confirming switches on a reminder schedule built from these bookings,
+          so it must not run ahead of the traveller agreeing to them. Previously
+          you could confirm a trip whose every booking was still unapproved.
+        */}
+        {status !== 'loading' && session?.user && unapprovedCount > 0 && (
+          <div className="rounded-2xl border-2 border-dashed border-input bg-muted/40 p-5">
+            <h3 className="font-display font-bold">
+              {unapprovedCount} booking{unapprovedCount === 1 ? '' : 's'} still need your approval
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xl">
+              Your reminders are built from what you have actually agreed to, so approve the bookings first.
+              Nothing is really reserved either way — this stays a demo.
+            </p>
+            <a
+              href="#trip-bookings"
+              className="inline-block mt-3.5 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
+            >
+              Review the bookings →
+            </a>
+          </div>
+        )}
+
+        {status !== 'loading' && session?.user && unapprovedCount === 0 && (
         <button
           onClick={confirm}
           disabled={rebuilding}
@@ -156,7 +182,7 @@ export function TripConfirm({ state, onChange }: Props) {
           {rebuilding ? 'Rebuilding your reminders…' : "Yes — I'm going"}
         </button>
         )}
-        {session?.user && (
+        {session?.user && unapprovedCount === 0 && (
           <p className="text-xs text-muted-foreground mt-3">
             You can undo this at any time, and your browser will ask permission before any notification
             appears.

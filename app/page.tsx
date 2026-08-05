@@ -15,6 +15,7 @@ import type {
   TripMode,
 } from '@/lib/types';
 import { computeTravelDNA, fmtINR, setCurrentTrip, setPendingInput } from '@/lib/storage';
+import { detectOutOfScope, outOfScopeMessage, SCOPE_NOTE } from '@/lib/scope';
 import { buildSampleTrip } from '@/lib/sample-trip';
 import { SAMPLES } from '@/lib/sample-trips';
 import { PlacePhoto } from '@/components/place-photo';
@@ -203,6 +204,14 @@ export default function PlanPage() {
       : mode === 'family' ? t('form.submitFamily')
       : mode === 'pilgrimage' ? t('form.submitPilgrimage')
       : t('form.submit');
+
+  /*
+   * Caught at the input, before a single agent call is spent. Someone asking
+   * for Bali used to wait a minute and get an Indian city with no explanation,
+   * which reads as a broken product rather than a scoped one. Non-blocking on
+   * purpose: it informs, it does not refuse.
+   */
+  const scopeHit = detectOutOfScope(`${origin} ${moodNote}`);
 
   const fieldCls =
     'w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';
@@ -480,6 +489,13 @@ export default function PlanPage() {
 
           {error && <p className="text-sm text-destructive font-medium" role="alert">{error}</p>}
 
+          {/* Informing, not refusing: the plan still runs, and it runs in India. */}
+          {scopeHit && (
+            <div className="rounded-2xl border border-accent bg-accent/10 px-4 py-3 text-sm leading-relaxed" role="status">
+              {outOfScopeMessage(scopeHit)}
+            </div>
+          )}
+
           <div className="pt-1 space-y-3">
             <button type="submit" className="w-full py-4 rounded-2xl bg-accent text-accent-foreground font-display font-bold text-lg glow-accent hover:brightness-95 active:scale-[0.99] transition">
               {ctaLabel}
@@ -491,7 +507,7 @@ export default function PlanPage() {
               already carry that disclosure honestly, without undercutting.
             */}
             <p className="text-center text-xs text-muted-foreground">
-              {t('form.reassure')}
+              {t('form.reassure')} · {SCOPE_NOTE}
             </p>
           </div>
         </form>

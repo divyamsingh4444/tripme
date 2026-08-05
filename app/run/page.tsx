@@ -32,7 +32,7 @@ import type {
   TripInput,
   TripState,
 } from '@/lib/types';
-import { getPastTripsCompact, getPendingInput, setCurrentTrip, fmtINR } from '@/lib/storage';
+import { getPastTripsCompact, getPendingInput, newTripId, setCurrentTrip, fmtINR } from '@/lib/storage';
 import { buildSampleTrip } from '@/lib/sample-trip';
 
 type StepState =
@@ -478,6 +478,9 @@ export default function RunPage() {
         (policyAudit ? 1 : 0),
       plannedInSeconds: seconds,
       hadHistory: getPastTripsCompact().length > 0,
+      // Minted once, here. Saving later updates this record rather than adding
+      // another copy of the same trip.
+      tripId: newTripId(),
       createdAt: Date.now(),
     };
     setCurrentTrip(state);
