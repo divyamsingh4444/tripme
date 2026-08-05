@@ -16,6 +16,26 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-032 · Reminders became opt-in, and an audit pass found two things covering the UI (commits `4a0dd1d`, `658220e`).**
+
+**Asked for:** an explicit "enable notifications" per trip — because many trips get saved, and some are later cancelled; email to the login address if possible; and a sweep for bugs, hidden things, failures and logical errors.
+
+**1 · Confirming ≠ consenting to be nagged.** Reminders now have their own switch on a confirmed trip, **off by default**. Absent means off, so every trip confirmed before this change stays quiet rather than suddenly acquiring a schedule. The browser-permission prompt moved with it: asking to send notifications at the moment someone says *"yes I'm going"* was asking for something they had not requested — it is now asked at the only moment the answer means anything.
+
+*Found while testing:* turning reminders on left the bell absent for up to 30 seconds, because the notification centre only re-read trips on its poll — which reads as **the switch not working**. Storage now announces every trip change and both the bell and toast listen.
+
+**2 · Two real layout defects, measured rather than guessed.** On a 390px screen the reminder toast sat at bottom-left, where it **covered the assistant bubble and sat on top of the trip page's Save trip / Plan another bar** — a notification hiding the two controls someone most needs.
+
+The fix needed two parts, and the reason is worth keeping: parking on the opposite side to the assistant is sufficient on a desktop, and **meaningless on a phone**, where the toast is 352px wide on a 375px viewport and spans almost the whole screen. So on narrow screens the toast announces itself and the collapsed bubble stands down — one floating thing at a time. Only the *collapsed* bubble defers; if the panel is open the traveller is mid-conversation.
+
+**3 · One unlabelled control.** The vibe box on the planner had a placeholder and no accessible name. **A placeholder is not a label** — it disappears the moment you type — and it was the only control on the form a screen reader could not identify.
+
+**What held up under audit, which is worth recording too:** no runtime errors on any of eight pages including the 404; malformed saved trips are skipped with an honest notice instead of crashing My Trips; a malformed current trip falls back to "No trip loaded"; corrupt reminder state is ignored rather than thrown on; no page overflows horizontally at 390px; every other control across five pages carries a name and no image is missing an `alt`.
+
+**4 · Email — the honest answer, and it is architectural rather than a missing key.** Sending mail needs a provider (Resend and similar have free tiers), and that part is straightforward. Sending a reminder *at the right time* does not: **the server has no idea your trips exist.** They live in this browser and are never uploaded — that is the privacy position the product has taken and documented since the start. Timed email would require storing every traveller's itinerary server-side plus a scheduler, which is a real architectural change and a reversal of a stated commitment, not a feature toggle.
+
+What *is* achievable without that reversal: a "email me this trip and its schedule" button that sends on demand while the app is open, to the address you signed in with. **Not built yet** — it needs a provider key, and it is a different thing from what was asked for, so it is flagged as a decision rather than assumed.
+
 **D-031 · In-app reminders, and why that is the honest version of this feature (commit `b40c18d`).**
 
 **Asked for:** once a trip is confirmed and everything approved, reminders about the trip start, the bookings, the flights and buses, the activities and each day's itinerary — delivered *inside the web app*.
