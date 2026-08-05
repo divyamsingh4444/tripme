@@ -224,6 +224,16 @@ function clampBubbleTop(top: number): number {
   return Math.min(Math.max(top, TOP_LIMIT), max);
 }
 
+function panelHeight(): number {
+  return Math.min(512, window.innerHeight * 0.7);
+}
+
+/** Keeps the open panel entirely on screen, whatever it is asked for. */
+function clampPanelTop(top: number): number {
+  const lowest = Math.max(TOP_LIMIT, window.innerHeight - panelHeight() - EDGE_MARGIN);
+  return Math.min(Math.max(top, TOP_LIMIT), lowest);
+}
+
 /**
  * Where the open panel sits.
  *
@@ -233,10 +243,7 @@ function clampBubbleTop(top: number): number {
  * back up until it fits entirely on screen.
  */
 function panelTopFor(bubbleTop: number): number {
-  const panelH = Math.min(512, window.innerHeight * 0.7);
-  const highest = TOP_LIMIT;
-  const lowest = Math.max(highest, window.innerHeight - panelH - EDGE_MARGIN);
-  return Math.min(Math.max(bubbleTop, highest), lowest);
+  return clampPanelTop(bubbleTop);
 }
 
 export function Assistant() {
@@ -252,7 +259,14 @@ export function Assistant() {
 
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const drag = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    startX: number;
+    startY: number;
+    /** Pointer position relative to the element's top, so it does not jump. */
+    offsetY: number;
+    moved: boolean;
+    mode: 'bubble' | 'panel';
+  } | null>(null);
   /*
    * The live position, mirrored outside React state: pointermove and pointerup
    * can both fire before a re-render, so the `pos` in the handler's closure is
@@ -320,9 +334,20 @@ export function Assistant() {
     }
   }, []);
 
-  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+  /**
+   * One drag implementation for both the closed bubble and the open panel.
+   *
+   * Being able to move it only while closed was the wrong half of the feature:
+   * the panel is the larger thing, and it is the one actually covering what you
+   * are reading. `mode` differs only in what is clamped — a bubble may sit
+   * lower than a panel, because a panel has height below its top edge.
+   */
+  const startDrag = (e: React.PointerEvent<HTMLElement>, mode: 'bubble' | 'panel') => {
     if (e.button !== 0) return;
-    drag.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    // Let the header's own controls behave like buttons, not drag handles.
+    if ((e.target as HTMLElement).closest('button')) return;
+    const currentTop = mode === 'bubble' ? (posRef.current?.top ?? 0) : panelTopFor(posRef.current?.top ?? 0);
+    drag.current = { startX: e.clientX, startY: e.clientY, offsetY: e.clientY - currentTop, moved: false, mode };
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {
@@ -330,7 +355,7 @@ export function Assistant() {
     }
   };
 
-  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = (e: React.PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.startX;
@@ -338,17 +363,20 @@ export function Assistant() {
     if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
     d.moved = true;
     setDragging(true);
+    // Keeping the grab offset means it tracks the cursor instead of snapping
+    // its top edge to it, which on a panel this size is jarring.
+    const rawTop = e.clientY - d.offsetY;
     // Side follows which half of the window the pointer is in, so it can never
     // be dropped in the middle of the page on top of what someone is reading.
     const next: Pos = {
       side: e.clientX < window.innerWidth / 2 ? 'left' : 'right',
-      top: clampBubbleTop(e.clientY - BUBBLE_H / 2),
+      top: d.mode === 'bubble' ? clampBubbleTop(rawTop) : clampPanelTop(rawTop),
     };
     posRef.current = next;
     setPos(next);
   };
 
-  const endDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const endDrag = (e: React.PointerEvent<HTMLElement>) => {
     const d = drag.current;
     drag.current = null;
     setDragging(false);
@@ -359,7 +387,9 @@ export function Assistant() {
     }
     if (!d) return;
     if (d.moved) {
-      suppressClick.current = true;
+      // Only the bubble turns a click into "open"; the panel has nothing to
+      // suppress, and setting the flag there would swallow the next real click.
+      if (d.mode === 'bubble') suppressClick.current = true;
       if (posRef.current) persist(posRef.current);
     }
     // A tap is handled by onClick, so the bubble stays operable from the
@@ -460,7 +490,7 @@ export function Assistant() {
   if (!open) {
     return (
       <button
-        onPointerDown={onPointerDown}
+        onPointerDown={(e) => startDrag(e, 'bubble')}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
@@ -490,8 +520,20 @@ export function Assistant() {
       data-no-translate
       className="no-print fixed z-[55] w-[min(24rem,calc(100vw-2rem))] rounded-3xl border border-border bg-card shadow-2xl flex flex-col max-h-[min(32rem,70vh)]"
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <span className="font-display font-bold text-sm">TripME Assistant</span>
+      <div
+        onPointerDown={(e) => startDrag(e, 'panel')}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className={`flex items-center justify-between px-4 py-3 border-b border-border shrink-0 touch-none select-none ${
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        title="Drag to move"
+      >
+        <span className="font-display font-bold text-sm flex items-center gap-2">
+          <span className="text-muted-foreground text-base leading-none" aria-hidden="true">⠿</span>
+          TripME Assistant
+        </span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => persist({ ...pos, side: pos.side === 'left' ? 'right' : 'left' })}
