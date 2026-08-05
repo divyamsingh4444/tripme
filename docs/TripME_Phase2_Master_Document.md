@@ -16,6 +16,28 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-031 · In-app reminders, and why that is the honest version of this feature (commit `b40c18d`).**
+
+**Asked for:** once a trip is confirmed and everything approved, reminders about the trip start, the bookings, the flights and buses, the activities and each day's itinerary — delivered *inside the web app*.
+
+**The research question was really "what can this product honestly deliver?"** Until now the schedule was a list printed on the trip page plus a browser notification that only arrived if the tab happened to be open, permission had been granted, and the moment passed while someone was looking. That is not a reminder system. And TripME **cannot** push to a closed app — that needs a push server, which does not exist here and is not free.
+
+So the app itself carries the schedule: **a bell in the navigation, on every page, showing what has come due since the traveller last looked.** This is not a consolation prize — it is the more useful half, because people open a travel app repeatedly in the days before they travel, and a reminder waiting for them when they do is exactly the moment it is actionable.
+
+**Two decisions that keep it truthful, both worth defending in the viva:**
+1. **Derived, never stored.** Reminders are recomputed from the confirmed trips in the browser every time. Storing a copy would let the list drift from the plan the instant someone changes a hotel or unconfirms — and *being told to check in somewhere you no longer booked is worse than no reminder at all*. Only read/dismissed state is persisted.
+2. **Confirmed trips only.** A draft is a proposal; reminding someone to leave for a journey they have not agreed to take is noise. Same rule the trip page already enforces (D-026).
+
+**Coverage, and one judgement inside it:** a countdown the **evening before** departure — when packing and documents can still be acted on, rather than the morning of, when they cannot; the Notification Agent's booking, check-in, activity and return reminders; and one reminder per itinerary day. **The day reminders are generated in code, not asked of a model** — they are pure derivation from a plan the model already produced, and spending quota to restate it would add nothing. Same principle as the assistant in D-030.
+
+**Grouped by urgency** (needs you now / later today / coming up / done) because "what needs me" and "what is coming" are different questions and a flat list answers neither. Only reminders that have come due *and* not been acknowledged earn the badge. Opening one brings that trip to the front before navigating, so the page shows the trip the reminder is about rather than whatever was last viewed.
+
+**The toast — and the restraint that makes it usable.** A reminder coming due *during* a session appears as an in-app toast. It deliberately stays **silent about anything already overdue at load**: opening the app the week before a trip should not fling six toasts about things that passed days ago. Those belong in the bell. It sits bottom-left so it never fights the assistant for a corner — *verified they do not overlap*.
+
+*Verified end to end against a confirmed trip:* upcoming grouping with relative and absolute times; **nine due** after shifting the trip into the past; **no toast on load** (baseline suppression working); mark-all-read clearing the badge and persisting; and a toast firing on the next tick for a reminder that came due mid-session.
+
+**Still honestly out of scope, and said so in the panel:** delivery when the app is closed, and the SMS/voice channels the agent picks for low-connectivity pilgrimage routes. Both need infrastructure that is real and not free.
+
 **D-030 · A product assistant that mostly does not use AI, and the scope safeguard that was only a comment (commits `13ad66c`, `fce557b`).**
 
 **Asked for:** the chat panel was cut off when parked low so the input was unreachable; the assistant only existed after a trip was planned, when it should be on every page and able to answer about the product, where to find things, and any saved trips; suggested questions should *fill* the input rather than send. Plus two direct questions: do we need another model, and are we short of tokens?
