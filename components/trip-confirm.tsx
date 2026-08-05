@@ -143,12 +143,14 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
 
   if (!confirmed) {
     return (
-      <section className="mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 no-print">
+      <section id="trip-confirm" className="scroll-mt-28 mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 no-print">
         <h2 className="font-display text-xl font-bold">Going ahead with this?</h2>
         <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-2xl">
-          Confirming locks the plan so it stops changing under you. Reminders stay off until you ask for
-          them — you can switch them on for this trip straight afterwards. Nothing is booked for real: this
-          is still a demo product.
+          Confirming locks the plan so it stops changing under you.{' '}
+          {reminders.length > 0
+            ? 'Reminders stay off until you ask for them — you can switch them on for this trip straight afterwards.'
+            : 'The Notification Agent did not manage a schedule for this plan, so there are no reminders to switch on — everything else still works.'}{' '}
+          Nothing is booked for real: this is still a demo product.
         </p>
 
         {/*
@@ -207,7 +209,7 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
   }
 
   return (
-    <section className="mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
+    <section id="trip-confirm" className="scroll-mt-28 mt-10 bg-card rounded-3xl border-2 border-primary shadow-sm p-6 sm:p-8 print-block">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl font-bold">
@@ -239,7 +241,7 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
         me about it. Somebody with a dozen saved trips wants reminders for the
         one they are actually taking, not for the eleven that fell through.
       */}
-      <div className="mt-5 rounded-2xl border-2 border-border p-5 no-print">
+      <div className={`mt-5 rounded-2xl border-2 border-border p-5 no-print ${reminders.length === 0 ? 'hidden' : ''}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-display font-bold flex items-center gap-2">

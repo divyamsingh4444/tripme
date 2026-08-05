@@ -28,6 +28,7 @@ import { PlacePhoto } from '@/components/place-photo';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { TripRail } from '@/components/trip-rail';
 import { TripChoices } from '@/components/trip-choices';
+import { TripProgress } from '@/components/trip-progress';
 import { TripConfirm } from '@/components/trip-confirm';
 import { applyChoices, itineraryWithEdits } from '@/lib/recompute';
 import { addDays, fmtDate, fmtINR, getCurrentTrip, saveTrip, setCurrentTrip } from '@/lib/storage';
@@ -939,11 +940,23 @@ export default function TripPage() {
         agreed to take. Now the plan is something you shape, and confirming is
         what turns the schedule on.
       */}
+      {/* The sequence, stated before it is walked — see components/trip-progress.tsx. */}
+      <TripProgress
+        state={state}
+        totalBookings={bookings.length}
+        approvedCount={bookings.length - unapprovedCount}
+      />
+
       <TripChoices state={state} onChange={updateState} locked={confirmed} />
 
-      {notification && notification.reminders?.length > 0 && (
-        <TripConfirm state={state} onChange={updateState} unapprovedCount={unapprovedCount} />
-      )}
+      {/*
+        Always rendered. It used to require the Notification Agent to have
+        produced reminders, which quietly meant that a plan where that one agent
+        failed — common enough under a free-tier quota — could not be confirmed
+        at all. Confirming is about the trip; reminders are a bonus on top, and
+        a bonus must not be able to block the decision.
+      */}
+      <TripConfirm state={state} onChange={updateState} unapprovedCount={unapprovedCount} />
 
       {notification?.channelStrategy && confirmed && (
         <p className="mt-3 text-sm italic text-muted-foreground px-1">{notification.channelStrategy}</p>
