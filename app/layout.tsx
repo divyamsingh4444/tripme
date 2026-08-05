@@ -42,7 +42,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${bricolage.variable} ${inter.variable} ${plexMono.variable}`}>
-      <body className="antialiased min-h-screen flex flex-col overflow-x-hidden">
+      {/*
+        Extensions like Grammarly and password managers add their own attributes to
+        <body> before React hydrates, which React then reports as a mismatch. The
+        warning is about the extension, not this markup, and only ever fires on the
+        machine running the extension. Suppressing here is shallow — it covers this
+        element's own attributes and nothing below it, so real mismatches inside the
+        tree still surface.
+      */}
+      <body suppressHydrationWarning className="antialiased min-h-screen flex flex-col overflow-x-hidden">
         <AuthSessionProvider>
           <LanguageProvider>
             <SiteNav />

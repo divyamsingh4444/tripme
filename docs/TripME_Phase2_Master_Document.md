@@ -16,7 +16,25 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
-**D-026 · The plan became something you can argue with, then commit to (commits `e721c59`, auth pending).**
+**D-027 · Sign-in is live, and the setup guide has been corrected against what actually happened.**
+
+**Status: working on `localhost:3000` and on the live deployment**, verified by querying the database rather than by trusting the UI — `next_auth.users` holds the signed-in profile and `next_auth.accounts` shows `provider: google, type: oidc`. **No application code changed**; `auth.ts` already read the credentials and built the Supabase adapter only when both of its values were present, which is the behaviour D-026 designed for. Trips stayed in the browser throughout, as intended.
+
+**The guide was wrong in two places, and the corrections are now in [`docs/AUTH_SETUP.md`](AUTH_SETUP.md).** Both were the same class of error — a third-party dashboard moved and the instructions silently rotted:
+1. The Supabase key is no longer at *Project Settings → API*; it is *Settings → API Keys → Secret keys* (`sb_secret_…`), and it is now easy to pick up the **publishable** key by mistake, which is the wrong privilege entirely.
+2. Exposing the `next_auth` schema moved to *Settings → Data API → Settings*, and **the dropdown does not save on its own.** Ticking it and navigating away is indistinguishable from having done it.
+
+**The failure that cost the most time is worth recording as a lesson, not a footnote.** Sign-in went all the way through Google and came back `error=Configuration` — a message that names nothing. The actual cause was only ever visible in `.next/dev/logs/next-development.log`: `PGRST106 Invalid schema: next_auth`. Auth.js deliberately tells the browser almost nothing, so **the server log is the only place a sign-in failure is diagnosable.** The troubleshooting table now says so at the top and maps each real error to its cause, including `invalid_client` (placeholders never replaced) and the port-3000 requirement (Next quietly moves to 3001 when the port is held, and Google's redirect URI is exact).
+
+**Also settled, all environmental rather than product defects:** `npx auth secret` needs Node ≥ 20.12 against 20.10 here (replaced with a one-line `crypto.randomBytes` command); pnpm's PowerShell wrapper is blocked by execution policy (`pnpm.cmd`); and the hydration warning on load is Grammarly writing to `<body>` before React hydrates — `<body>` now carries a **shallow** `suppressHydrationWarning`, which covers that element's own attributes and nothing beneath it, so genuine mismatches still surface.
+
+**One judgement worth flagging: Supabase's own "Connect to your project" quickstart is the wrong recipe for this product.** It steers you to `@supabase/ssr`, browser clients, middleware and a `NEXT_PUBLIC_` key. TripME's adapter talks to Supabase server-side only, and following that quickstart is the fastest route to the wrong key in the wrong variable. The guide now says to ignore it.
+
+**Outstanding, and it is a security item rather than a task: every secret in `.env.local` has been exposed** — in a pasted JSON block and then in an editor screenshot — and Google's `client_secret_….json` is still sitting in `~/Downloads`. All four (`AUTH_GOOGLE_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, `AUTH_SECRET`) need replacing in `.env.local` and on Vercel, followed by a redeploy. A rotation runbook is now a permanent section of the setup guide, because this will happen again to someone. The Google **client ID** does not change, so sign-in survives rotation; regenerating `AUTH_SECRET` signs everyone out, which is harmless here.
+
+*Lower priority:* Node 20.10 → 22 clears both the CLI paper cut and the `@supabase/supabase-js` deprecation warning; and the Google consent screen must be **published** before anyone outside the Test users list can sign in — a real demo-day trap, since an evaluator's account will simply be refused.
+
+**D-026 · The plan became something you can argue with, then commit to (commits `e721c59`, `1fab6ab`).**
 
 **Requested:** reminders should arrive *after* confirming you are going; the traveller should be able to choose destination, transport and stay with budget and approvals updating; customise the itinerary; confirm and start the trip with notifications; and a login page.
 
