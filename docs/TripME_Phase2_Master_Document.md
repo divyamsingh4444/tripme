@@ -16,6 +16,25 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-028 · The account now guards the two actions that create ownership, and everyone has a way in (commit `999d835`).**
+
+**Asked for:** planning without login is right, but **confirming and saving should require an account**; a **test-user button** so people other than the owner can get in; and a sign-in page that looks professional rather than a lone Google button.
+
+**Where the line falls, and why there.** Planning stays open — the product should prove itself before it asks for anything, and a wall in front of the planner would destroy the "try it in 60 seconds" demo. The gate sits on the two actions that create something *owned*: **confirming** (which switches on a reminder schedule addressed to a person) and **saving** (which builds the Travel DNA that shapes later plans). Both prompts carry the current path, so signing in returns to the trip rather than dropping someone on a generic page with their plan apparently gone.
+
+**The demo account is an open door, so the reasoning is recorded rather than assumed.** Google's consent screen is in Testing, so only accounts on the Test users list get through — everyone else is refused with `access_denied` and has *no route in at all*. Untenable for a product whose purpose is to be tried by evaluators and teammates. It is safe **here**, for reasons specific to this product and not generalisable:
+- **Nothing private sits behind it.** Trips live in the visitor's own browser and are never uploaded, so a demo session only ever sees its own device — signing in as the demo account exposes nobody else's data.
+- **It cannot impersonate anyone.** The identity is fixed and its address is on the reserved `.example` domain, which by RFC 2606 can never be registered, so it can never collide with a real Google account.
+- **There are no real bookings or payments** to authorise.
+
+It is **labelled a demo account** in the account menu and on any trip it confirms. A login that looks real and admits everyone is worse than one that says what it is — and a screenshot taken during a demo should never be ambiguous about what it shows.
+
+**Two bugs found by testing rather than assuming, both worth remembering as categories:**
+1. **Signing in left every gate closed.** A server action calling `signIn` redirects through the App Router — a *client-side* navigation — so the session context never refetched and the app still believed you were signed out. Only a manual reload fixed it. The buttons now call `signIn` from `next-auth/react`, which sets `window.location` and rebuilds the session. *A server-side redirect is not a page load, and anything cached in React context will not notice it.*
+2. **The trip page crashed on a malformed stored trip.** `JSON.parse` succeeding proves nothing: an empty object, a half-written record, or an older schema all parse cleanly and then throw on first property access. `getCurrentTrip` now validates the fields every consumer dereferences, clears the bad record so it cannot bounce the page on every load, and falls back to "No trip loaded". *Found by accident while resetting test state — which is the honest way to describe it.*
+
+**For the PRD:** this is the clearest example in the product of scoping an MVP honestly. The gate is placed by what each action *means* rather than by what would maximise sign-ups, and the sign-in page states outright that trips stay in the browser and do **not** sync between devices — a login page implying sync it does not have would be a lie told by omission.
+
 **D-027 · Sign-in is live, and the setup guide has been corrected against what actually happened.**
 
 **Status: working on `localhost:3000` and on the live deployment**, verified by querying the database rather than by trusting the UI — `next_auth.users` holds the signed-in profile and `next_auth.accounts` shows `provider: google, type: oidc`. **No application code changed**; `auth.ts` already read the credentials and built the Supabase adapter only when both of its values were present, which is the behaviour D-026 designed for. Trips stayed in the browser throughout, as intended.
