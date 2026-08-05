@@ -529,7 +529,7 @@ export interface SampleEntry {
   build: () => TripState;
 }
 
-export const SAMPLES: SampleEntry[] = [
+const RAW_SAMPLES: SampleEntry[] = [
   {
     id: 'gokarna',
     label: 'Solo · Relax',
@@ -564,9 +564,20 @@ export const SAMPLES: SampleEntry[] = [
   },
 ];
 
+/**
+ * Identity is minted here, not at the call sites.
+ *
+ * It used to live in buildSampleById, and two places open samples by calling
+ * `entry.build()` directly — so three of the four samples came out with no
+ * tripId at all, and saving one would have appended a fresh copy on every
+ * later edit. Exactly the duplicate-trip bug that was already fixed once.
+ * Wrapping at the source makes it impossible to open a sample without one.
+ */
+export const SAMPLES: SampleEntry[] = RAW_SAMPLES.map((entry) => ({
+  ...entry,
+  build: () => ({ ...entry.build(), tripId: newTripId() }),
+}));
+
 export function buildSampleById(id: string): TripState {
-  const built = (SAMPLES.find((s) => s.id === id) ?? SAMPLES[0]).build();
-  // Each opening of a sample is its own plan to edit and save. Without an id,
-  // saving one appended a fresh copy on every later change.
-  return { ...built, tripId: newTripId() };
+  return (SAMPLES.find((s) => s.id === id) ?? SAMPLES[0]).build();
 }

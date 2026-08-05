@@ -4,20 +4,22 @@
 
 TripME turns one input — *how you want to feel*, what you can spend, and how long you have — into a complete trip plan. Seven AI agents do the work, and when two of them disagree, a Referee settles it in front of you.
 
-You do **not** need an account. Nothing is ever really booked.
+You do **not** need an account to plan — only to confirm or save a trip, and there is a one-tap test login for that. Nothing is ever really booked.
 
 ---
 
 ## Before you start — 4 things (please read, it saves confusion)
 
 1. **Nothing is real.** Every booking is simulated and labelled *Demo Mode*. The AI planning is completely real — the destination, budget and itinerary are generated live for whatever you type.
-2. **It runs on a free AI plan, so roughly one person can plan at a time.** If you see *"Free-tier rate limit reached"*, that's the quota, not a crash — press **Retry step** and it picks up exactly where it stopped. **Please coordinate with Divyam so you're not all testing in the same minute.**
+2. **It runs on a free AI plan.** Each agent now falls back across three different models, so a busy one no longer ends a plan — but the daily allowance is finite. If a step stops, press **Retry step** and it picks up exactly where it stopped. Still worth not all testing in the same minute.
 3. **In a hurry, or it's being slow?** Hit **"See a sample trip"** on the home page — it opens a complete finished plan instantly, no waiting, no quota.
 4. **Try it on a laptop if you can**, then on your phone. They're deliberately different: the laptop gets an animated 3D globe, the phone gets a lighter version so it doesn't eat your data or battery.
+5. **Signing in:** use **Continue as a test user** — one tap, no password. Google sign-in only works for accounts on the project's test list, so it will probably refuse you, and that is expected rather than broken.
+6. **TripME plans trips inside India only.** Ask for Bali or Switzerland and it should tell you so and offer the nearest Indian equivalent — that behaviour is worth testing too.
 
 ---
 
-## The 8 things worth testing
+## The 12 things worth testing
 
 Do as many as you like. **#1, #2 and #3 matter most.**
 
@@ -72,6 +74,33 @@ Bottom bar → **Save trip** → **My Trips**.
 
 - Your **Travel DNA** appears (top mood, usual pace, average spend). Now plan another trip — the form should pre-fill from your history and the plan should say **✨ Personalised**.
 - **Judge:** does it feel like it's learning you, or just repeating you?
+
+
+### 9. Argue with the plan — the part that makes it yours
+On any plan, scroll to **"Not quite right? Change it"** → **Show me the alternatives**.
+
+- Change how you get there, how you get around once you are there, and where you stay.
+- The hotels and places listed are **real** — from OpenStreetMap, with photos where they exist. Open one on the map and check it is a genuine place.
+- **Judge:** does the budget update instantly and correctly as you change things? Every price should be marked *est.* — flag anything that reads like a real quote.
+
+### 10. The order of things — approve, confirm, save
+Approve each booking, then confirm the trip, then save it.
+
+- Now go back and change your hotel. **The approvals should reset** and the confirm button should disappear until you approve again.
+- **Judge:** does that feel right, or annoying? We think an approval is consent to a specific amount — tell us if you disagree.
+
+### 11. Reminders
+On a confirmed trip, press **Turn on reminders**, then look at the **bell in the navigation**.
+
+- Departure, check-in, each activity and every day's plan should be there, grouped by urgency.
+- They are **off by default and per trip** — deliberately, so a cancelled trip does not keep nagging you.
+- **Judge:** is the bell where you would look? Is anything missing that you would want reminding about?
+
+### 12. Ask the assistant
+Press **Ask TripME**, on any page, and ask it anything: *what is this*, *are the bookings real*, *what are my saved trips*, *what is on day 2*.
+
+- Drag it around — it should park on either side and never sit in the middle of the page.
+- **Judge:** does it answer the question you asked? Tell us anything it got wrong or refused — most answers come from a written knowledge base rather than the AI, so a wrong one is a bug we can fix directly.
 
 ---
 

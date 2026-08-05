@@ -187,6 +187,71 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
+
+      {/*
+        The page used to end at the seven agents, which was where the product
+        ended when it was written. It no longer does — a traveller can now argue
+        with the plan, commit to it, and be reminded about it. Leaving that out
+        made "How it works" describe an older product than the one being used.
+      */}
+      <section className="mt-12">
+        <h2 className="font-display text-xl font-bold mb-3">Then it becomes yours</h2>
+        <p className="text-muted-foreground leading-relaxed max-w-3xl">
+          The agents make the first call, not the last one. Everything below happens after the pipeline
+          finishes, and none of it asks a model to re-price your trip — the money is recomputed in code, so
+          the totals stay honest however much you change.
+        </p>
+        <div className="mt-4 grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {[
+            {
+              n: '1',
+              title: 'Argue with it',
+              body: 'Change how you travel there and back, how you get around once there, where you stay, and what you do each day. Or switch destination entirely and watch four agents re-run.',
+            },
+            {
+              n: '2',
+              title: 'Real places, honest prices',
+              body: 'Hotels and things to do come from OpenStreetMap with photographs from Wikipedia — real, named, mappable. The prices beside them are our estimates, marked “est.”, because live rates need paid inventory APIs.',
+            },
+            {
+              n: '3',
+              title: 'Approve, then confirm',
+              body: 'Approve each booking, then confirm the trip, in that order — confirming switches on a schedule built from what you actually agreed to. Change something afterwards and the approvals are asked for again.',
+            },
+            {
+              n: '4',
+              title: 'Be reminded',
+              body: 'Reminders are opt-in per trip. Turn them on and departure, check-in, every activity and each day’s plan appear in the bell, wherever you are in TripME.',
+            },
+          ].map((step) => (
+            <div key={step.n} className="bg-card rounded-2xl border border-border p-5">
+              <div className="text-xs font-bold text-muted-foreground">{step.n}</div>
+              <div className="font-display font-bold mt-1">{step.title}</div>
+              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{step.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="font-display font-bold">Where TripME can take you</h3>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              India, and only India. Prices are in rupees, the phrase card teaches Indian languages, and the
+              agents’ local knowledge is Indian. Ask for somewhere outside it and we say so at the form,
+              suggest the closest Indian equivalent, and the Discovery Agent explains the swap on your trip
+              page rather than quietly planning something else.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="font-display font-bold">Seven languages, including the trip itself</h3>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              English, Hindi, Marathi, Bengali, Tamil, Telugu and Kannada. Not just the buttons: the plan the
+              agents wrote is translated too, once they have finished writing it.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Under the hood and the honesty block, side by side — they answer the
           same evaluator question from two directions. */}
       <section className="mt-12 grid lg:grid-cols-2 gap-6 items-start">
@@ -205,7 +270,9 @@ export default function HowItWorksPage() {
           </p>
           <p className="mt-2">
             <span className="font-semibold">Memory:</span>{' '}saved trips stay in your browser and feed the
-            Mood Agent&apos;s personalisation on your next plan — no accounts, no server database.
+            Mood Agent&apos;s personalisation on your next plan. Signing in is optional and only needed to
+            confirm or save — an account holds your name, email and picture, never your trips, which is also
+            why they do not follow you to another device.
           </p>
         </div>
         </div>
@@ -214,15 +281,25 @@ export default function HowItWorksPage() {
         <h2 className="font-display text-xl font-bold mb-3">What&apos;s real, what&apos;s simulated</h2>
         <div className="rounded-2xl border-2 border-accent bg-accent/10 p-5 text-sm leading-relaxed">
           <p>
-            <span className="font-bold">Real:</span> live AI planning on Groq — mood
-            analysis, destination choice, budget allocation, itinerary and language card are generated
-            fresh for every request.
+            <span className="font-bold">Real:</span> the planning — mood analysis, destination choice,
+            budget allocation, itinerary and language card are generated live for every request. Also real:
+            the hotels and attractions in the options panel, which are named places from OpenStreetMap you
+            can open on a map.
           </p>
           <p className="mt-2">
-            <span className="font-bold">Simulated:</span> bookings. This is a capstone MVP — booking
-            cards are demo artefacts with reference codes, and every card links out to real
-            Google Flights / Booking.com searches for that exact trip. No payment, no reservation,
-            ever.
+            <span className="font-bold">Estimated:</span> every price. Live fares and nightly rates come
+            from paid inventory APIs this project does not use, so figures are marked “est.” and each
+            booking links out to Google Flights or Booking.com for the real thing.
+          </p>
+          <p className="mt-2">
+            <span className="font-bold">Simulated:</span> the bookings themselves — demo artefacts with
+            reference codes. No payment, no reservation, ever.
+          </p>
+          <p className="mt-2">
+            <span className="font-bold">Partly delivered:</span> reminders. They appear in the app and as
+            browser notifications while TripME is open. Reaching a closed app needs a push server, and the
+            SMS and voice channels the agent picks for low-connectivity routes need telephony — both real
+            infrastructure, and both honestly out of scope here.
           </p>
         </div>
         </div>

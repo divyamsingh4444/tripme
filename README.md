@@ -37,12 +37,18 @@ Three of the six skip the mood quiz entirely, because for those travellers the i
 ## Honesty block
 
 - **Real:** live AI planning — every plan is generated fresh on **Groq**, routed across three models by agent (JSON mode, per-agent prompts and temperatures). Budget arithmetic and policy caps are enforced deterministically server-side: the model proposes, code guarantees.
+- **Real:** the hotels and attractions offered as alternatives are named places from OpenStreetMap, with photographs from Wikipedia — you can open any of them on a map.
+- **Estimated:** every price. Live fares and nightly rates come from paid inventory APIs this project does not use, so figures are marked "est." A real hotel's name beside an invented rate would read as a quote, which is the one thing we do not do.
 - **Simulated:** bookings. Cards are demo artefacts with reference codes and a visible "Demo Mode" label; each links out to real Google Flights / Booking.com searches for that exact trip.
-- **Private by design:** no accounts, no server database. Saved trips live in the browser (localStorage) and feed the Mood Agent's personalisation on the next plan.
+- **Partly delivered:** reminders. They appear in the in-app bell and as browser notifications while TripME is open; reaching a closed app needs a push server, and SMS/voice need telephony. Both are stated as post-MVP in the product itself.
+- **Private by design:** saved trips live in the browser (localStorage) and feed the Mood Agent's personalisation on the next plan. Signing in is optional — needed only to confirm or save a trip — and an account holds your name, email and picture, never your trips. Which is also why trips do not follow you to another device.
+- **India only:** prices, languages and local knowledge are all Indian. An out-of-scope request is caught at the form and the Discovery Agent explains the substitution rather than making it silently.
 
 ## Stack
 
-Next.js (App Router) · React · Tailwind CSS v4 · three.js · Groq API (`llama-3.3-70b-versatile`) · Vercel
+Next.js (App Router) · React · Tailwind CSS v4 · three.js · Vercel
+
+**Groq**, three models with per-agent failover — `llama-3.3-70b-versatile`, `openai/gpt-oss-120b`, `llama-3.1-8b-instant`. **Auth.js** with Google sign-in and a password-less demo account (optional; the product works without it). **Supabase** for accounts only (optional). **OpenStreetMap / Nominatim / Wikipedia** for real places and photographs, no key required. **Resend** for emailing a trip to yourself (optional).
 
 ## Run locally
 
