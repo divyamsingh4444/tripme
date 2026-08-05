@@ -183,6 +183,7 @@ export default function PlanPage() {
       budgetTotalINR: effectiveBudget,
       durationDays: duration,
       originCity: origin.trim(),
+      ...(scopeHit ? { outOfScopeRequest: scopeHit.term } : {}),
       startDate,
       travelers: effectiveTravellers,
       foodPref: mode === 'pilgrimage' ? 'Veg' : foodPref,

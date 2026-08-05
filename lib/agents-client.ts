@@ -223,6 +223,9 @@ export function buildPayload(agent: AgentKey, ctx: PipelineContext): object {
         // fixedDestinationCity, whose corporate contract turns the alternates
         // into districts of one city — wrong for a leisure switch.
         ...(ctx.pinnedDestinationName ? { pinnedDestination: ctx.pinnedDestinationName } : {}),
+        // Out of scope: Discovery must name the substitution rather than make
+        // it silently. See TripInput.outOfScopeRequest for why it travels here.
+        ...(input.outOfScopeRequest ? { outOfScopeRequest: input.outOfScopeRequest } : {}),
       };
     case 'budget':
       return {

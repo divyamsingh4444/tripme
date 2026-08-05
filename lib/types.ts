@@ -66,6 +66,15 @@ export interface TripInput {
    * making one, so the rest of the pipeline is unchanged.
    */
   pinnedDestination?: string;
+  /**
+   * Set when the traveller asked for somewhere outside India.
+   *
+   * It has to be carried explicitly, because by the time Discovery runs the
+   * Mood Agent has already abstracted "Switzerland" into setting types and
+   * themes — the place name is gone, so Discovery cannot know it is making a
+   * substitution and would explain nothing. This is what lets it say so.
+   */
+  outOfScopeRequest?: string;
 }
 
 /* ---- Agent 1: Mood & Intent ---- */
