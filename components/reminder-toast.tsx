@@ -1,0 +1,106 @@
+'use client';
+
+/**
+ * The in-app notification itself: a reminder arriving while you are using
+ * TripME, rather than sitting in the bell waiting to be found.
+ *
+ * It only ever fires for reminders that come due DURING this session. On first
+ * load it takes a snapshot of everything already overdue and stays silent about
+ * it — opening the app the week before a trip should not fling six toasts at
+ * you for things that passed days ago. Those live in the bell, which is exactly
+ * what the bell is for.
+ *
+ * One at a time, newest first, dismissible, and it never covers the assistant:
+ * two floating things fighting for the same corner is how a product starts
+ * feeling cluttered.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { collectReminders, groupReminders, KIND_ICON, markRead, type AppReminder } from '@/lib/reminders';
+import { listTrips, setCurrentTrip } from '@/lib/storage';
+
+const TICK_MS = 30_000;
+
+export function ReminderToast() {
+  const router = useRouter();
+  const [toast, setToast] = useState<AppReminder | null>(null);
+  /** Everything already due when this session began — deliberately not shown. */
+  const seen = useRef<Set<string> | null>(null);
+
+  const check = useCallback(() => {
+    const all = collectReminders();
+    const due = groupReminders(all, new Date()).due;
+
+    if (seen.current === null) {
+      seen.current = new Set(due.map((r) => r.id));
+      return; // first pass only establishes the baseline
+    }
+
+    const fresh = due.find((r) => !seen.current!.has(r.id));
+    if (fresh) {
+      seen.current.add(fresh.id);
+      setToast(fresh);
+    }
+  }, []);
+
+  useEffect(() => {
+    check();
+    const timer = setInterval(check, TICK_MS);
+    return () => clearInterval(timer);
+  }, [check]);
+
+  if (!toast) return null;
+
+  const open = () => {
+    markRead(toast.id);
+    const saved = listTrips().find((t) => (t.state?.tripId ?? t.id) === toast.tripId);
+    if (saved) setCurrentTrip(saved.state);
+    setToast(null);
+    router.push('/trip');
+  };
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-no-translate
+      className="no-print fixed bottom-4 left-4 z-[60] w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+    >
+      <div className="flex gap-3 p-4">
+        <span className="text-xl leading-none mt-0.5" aria-hidden="true">
+          {KIND_ICON[toast.kind]}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="font-display font-bold text-sm leading-tight">{toast.title}</div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{toast.body}</p>
+          <div className="text-[10px] text-muted-foreground mt-1.5">{toast.tripName}</div>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={open}
+              className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
+            >
+              Open trip
+            </button>
+            <button
+              onClick={() => {
+                markRead(toast.id);
+                setToast(null);
+              }}
+              className="px-3.5 py-1.5 rounded-lg border border-input text-xs font-semibold hover:bg-muted"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={() => setToast(null)}
+          aria-label="Close reminder"
+          className="text-muted-foreground hover:text-foreground self-start"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}

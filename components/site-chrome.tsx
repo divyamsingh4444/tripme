@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AccountMenu } from '@/components/account-menu';
+import { NotificationCenter } from '@/components/notification-center';
 import { LanguageSwitch, useT } from '@/components/language-switch';
 
 const LINKS = [
@@ -97,6 +98,7 @@ export function SiteNav() {
                 </Link>
               );
             })}
+            <NotificationCenter onDark={!solid} />
             <LanguageSwitch onDark={!solid} />
             <AccountMenu onDark={!solid} />
             <Link
@@ -184,6 +186,7 @@ export function SiteNav() {
 
           <div className="px-5 pb-7 pt-4 shrink-0">
             <div className="mb-3 flex justify-center [&_button]:text-white/85 [&_button:hover]:bg-white/10">
+              <NotificationCenter onDark />
               <LanguageSwitch onDark />
               <AccountMenu onDark />
             </div>

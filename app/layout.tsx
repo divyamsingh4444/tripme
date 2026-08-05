@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google'
 import { Assistant } from '@/components/assistant'
 import { AutoTranslate } from '@/components/auto-translate'
+import { ReminderToast } from '@/components/reminder-toast'
 import { LanguageProvider } from '@/components/language-switch'
 import { AuthSessionProvider } from '@/components/session-provider'
 import { SiteFooter, SiteNav } from '@/components/site-chrome'
@@ -62,6 +63,8 @@ export default function RootLayout({
             {/* Answers about the product and your trips, on every page — most
                 questions people have happen before a trip exists. */}
             <Assistant />
+            {/* A reminder coming due while you are using the app. */}
+            <ReminderToast />
           </LanguageProvider>
         </AuthSessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
