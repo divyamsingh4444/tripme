@@ -408,6 +408,10 @@ export default function PlanPage() {
                   value={moodNote}
                   onChange={(e) => setMoodNote(e.target.value)}
                   placeholder={t('form.moodPlaceholder')}
+                  /* A placeholder is not a label: it disappears the moment you
+                     type, and a screen reader announcing an unnamed text box is
+                     the one control on this form nobody could identify. */
+                  aria-label={t('form.moodPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl bg-card text-sm focus:outline-none"
                   maxLength={120}
                 />

@@ -27,6 +27,7 @@ import { matchKnowledge } from '@/lib/assistant-knowledge';
 import { applyChoices, itineraryWithEdits } from '@/lib/recompute';
 import { fmtWhen, scheduleView } from '@/lib/notifications';
 import { addDays, computeTravelDNA, fmtDate, fmtINR, getCurrentTrip, listTrips } from '@/lib/storage';
+import { TOAST_VISIBILITY_EVENT } from '@/components/reminder-toast';
 import type { SavedTrip, TripState } from '@/lib/types';
 
 interface Reply {
@@ -255,6 +256,12 @@ export function Assistant() {
   const [dragging, setDragging] = useState(false);
   const [trip, setTrip] = useState<TripState | null>(null);
   const [trips, setTrips] = useState<SavedTrip[]>([]);
+  /*
+   * A reminder toast is nearly the full width of a phone screen, so parking on
+   * the opposite edge does not separate them. While one is up, the collapsed
+   * bubble stands down on narrow screens — one floating thing at a time.
+   */
+  const [toastUp, setToastUp] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
 
   const scroller = useRef<HTMLDivElement>(null);
@@ -314,6 +321,12 @@ export function Assistant() {
       });
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    const onToast = (e: Event) => setToastUp(Boolean((e as CustomEvent).detail?.visible));
+    window.addEventListener(TOAST_VISIBILITY_EVENT, onToast);
+    return () => window.removeEventListener(TOAST_VISIBILITY_EVENT, onToast);
   }, []);
 
   useEffect(() => {
@@ -503,6 +516,10 @@ export function Assistant() {
     pos.side === 'left'
       ? { left: EDGE_MARGIN, top: panelTopFor(pos.top) }
       : { right: EDGE_MARGIN, top: panelTopFor(pos.top) };
+
+  // Only the collapsed bubble stands down: if the panel is open the traveller
+  // is mid-conversation, and yanking it away would be worse than an overlap.
+  if (!open && toastUp && typeof window !== 'undefined' && window.innerWidth < 640) return null;
 
   if (!open) {
     return (

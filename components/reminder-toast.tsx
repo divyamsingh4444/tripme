@@ -10,10 +10,30 @@
  * you for things that passed days ago. Those live in the bell, which is exactly
  * what the bell is for.
  *
- * One at a time, newest first, dismissible, and it never covers the assistant:
- * two floating things fighting for the same corner is how a product starts
- * feeling cluttered.
+ * One at a time, newest first, dismissible, and it stays out of the way of the
+ * other two things that float. Measured on a 390px screen before this: the
+ * toast covered the assistant bubble AND sat on top of Save trip and Plan
+ * another.
+ *
+ * Two rules keep it clear, because one is not enough:
+ *   - it sits high enough to clear the trip page's fixed action bar, and parks
+ *     on the side opposite the assistant;
+ *   - on a narrow screen it announces itself, and the assistant's bubble stands
+ *     down while it is up. Side-swapping is meaningless at 375px, where the
+ *     toast is 352px wide and spans almost the whole viewport — so the honest
+ *     fix is one floating thing at a time.
  */
+
+/** Fired while a toast is on screen, so the assistant can stay out of its way. */
+export const TOAST_VISIBILITY_EVENT = 'tripme:toast-visibility';
+
+function announceToast(visible: boolean): void {
+  try {
+    window.dispatchEvent(new CustomEvent(TOAST_VISIBILITY_EVENT, { detail: { visible } }));
+  } catch {
+    /* ignore */
+  }
+}
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,9 +42,24 @@ import { listTrips, setCurrentTrip, TRIPS_CHANGED_EVENT } from '@/lib/storage';
 
 const TICK_MS = 30_000;
 
+/** The edge the assistant is parked on, so the toast can take the other one. */
+function assistantSide(): 'left' | 'right' {
+  try {
+    const raw = localStorage.getItem('tripme.assistant.pos');
+    if (raw) {
+      const parsed = JSON.parse(raw) as { side?: string };
+      if (parsed?.side === 'left' || parsed?.side === 'right') return parsed.side;
+    }
+  } catch {
+    /* default below */
+  }
+  return 'right';
+}
+
 export function ReminderToast() {
   const router = useRouter();
   const [toast, setToast] = useState<AppReminder | null>(null);
+  const [side, setSide] = useState<'left' | 'right'>('left');
   /** Everything already due when this session began — deliberately not shown. */
   const seen = useRef<Set<string> | null>(null);
 
@@ -40,7 +75,11 @@ export function ReminderToast() {
     const fresh = due.find((r) => !seen.current!.has(r.id));
     if (fresh) {
       seen.current.add(fresh.id);
+      // Read the assistant's corner at the moment of showing, not at mount —
+      // it can be dragged to the other side in between.
+      setSide(assistantSide() === 'left' ? 'right' : 'left');
       setToast(fresh);
+      announceToast(true);
     }
   }, []);
 
@@ -56,8 +95,14 @@ export function ReminderToast() {
 
   if (!toast) return null;
 
+  const dismiss = () => {
+    announceToast(false);
+    setToast(null);
+  };
+
   const open = () => {
     markRead(toast.id);
+    announceToast(false);
     const saved = listTrips().find((t) => (t.state?.tripId ?? t.id) === toast.tripId);
     if (saved) setCurrentTrip(saved.state);
     setToast(null);
@@ -69,7 +114,9 @@ export function ReminderToast() {
       role="status"
       aria-live="polite"
       data-no-translate
-      className="no-print fixed bottom-4 left-4 z-[60] w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+      className={`no-print fixed bottom-28 z-[60] w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden ${
+        side === 'left' ? 'left-4' : 'right-4'
+      }`}
     >
       <div className="flex gap-3 p-4">
         <span className="text-xl leading-none mt-0.5" aria-hidden="true">
@@ -89,7 +136,7 @@ export function ReminderToast() {
             <button
               onClick={() => {
                 markRead(toast.id);
-                setToast(null);
+                dismiss();
               }}
               className="px-3.5 py-1.5 rounded-lg border border-input text-xs font-semibold hover:bg-muted"
             >
@@ -98,7 +145,7 @@ export function ReminderToast() {
           </div>
         </div>
         <button
-          onClick={() => setToast(null)}
+          onClick={dismiss}
           aria-label="Close reminder"
           className="text-muted-foreground hover:text-foreground self-start"
         >
