@@ -23,7 +23,9 @@ import type {
   ItineraryOutput,
   TripState,
 } from '@/lib/types';
+import { useSession } from 'next-auth/react';
 import { PlacePhoto } from '@/components/place-photo';
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import { TripAssistant } from '@/components/trip-assistant';
 import { TripChoices } from '@/components/trip-choices';
 import { TripConfirm } from '@/components/trip-confirm';
@@ -65,6 +67,7 @@ function linkFor(item: BookingItem, state: TripState): string {
 
 export default function TripPage() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [state, setState] = useState<TripState | null>(null);
   const [missing, setMissing] = useState(false);
   const [approved, setApproved] = useState<Record<number, boolean>>({});
@@ -957,9 +960,18 @@ export default function TripPage() {
             <span className="text-muted-foreground"> remaining</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={doSave} disabled={saved === 'saved'} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 disabled:opacity-60">
-              {saved === 'saved' ? 'Saved ✓' : 'Save trip'}
-            </button>
+            {/*
+              Saving needs an account for the same reason confirming does: a
+              saved trip feeds Travel DNA, which shapes every later plan, so it
+              belongs to a person rather than to a browser.
+            */}
+            {sessionStatus !== 'loading' && !session?.user ? (
+              <SignInPrompt title="Sign in to save" body="Saved trips build your Travel DNA, so later plans learn from them." compact />
+            ) : (
+              <button onClick={doSave} disabled={saved === 'saved'} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+                {saved === 'saved' ? 'Saved ✓' : 'Save trip'}
+              </button>
+            )}
             <button onClick={() => router.push('/')} className="px-4 py-2 rounded-xl border border-input text-sm font-semibold hover:bg-muted">Plan another</button>
             <button onClick={() => window.print()} className="px-4 py-2 rounded-xl border border-input text-sm font-semibold hover:bg-muted hidden sm:block">Print</button>
           </div>

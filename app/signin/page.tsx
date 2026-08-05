@@ -1,18 +1,41 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { auth, authConfigured, authPersisted, signIn } from '@/auth';
+import { auth, authPersisted, googleConfigured } from '@/auth';
+import { DemoSignInButton, GoogleSignInButton } from '@/components/signin-buttons';
 
 /**
  * Sign in.
  *
- * Deliberately honest about two things a login page usually hides. First, what
- * signing in is actually for here — your trips live in this browser either way,
- * so an account is about carrying them between devices, not about unlocking the
- * product. Second, whether sign-in is configured at all on this deployment: a
- * button that cannot work is worse than a sentence explaining why.
+ * Two doors, and the page is honest about both. Google is the real one. The
+ * demo account exists because the Google consent screen is still in Testing —
+ * only accounts on the Test users list can get through it, so without a second
+ * door everyone else is simply refused. It is labelled as a demo account rather
+ * than dressed up as a second tier of membership.
+ *
+ * The page also states what signing in is actually for, which most login pages
+ * leave you to guess: your trips live in this browser either way. An account
+ * exists so a confirmed trip has an owner, not to unlock the product.
  */
 
 export const metadata = { title: 'Sign in — TripME' };
+
+const REASONS = [
+  {
+    icon: '🔒',
+    title: 'Confirm a trip as you',
+    body: 'A confirmed trip and its reminder schedule belong to someone. Planning stays open to everyone.',
+  },
+  {
+    icon: '🗂️',
+    title: 'Keep your saved plans',
+    body: 'Saved trips build your Travel DNA, so later plans learn from the ones before them.',
+  },
+  {
+    icon: '🙈',
+    title: 'We never see a password',
+    body: 'Google verifies you and passes back a name, an email and a picture. That is all we hold.',
+  },
+];
 
 export default async function SignInPage({
   searchParams,
@@ -21,72 +44,107 @@ export default async function SignInPage({
 }) {
   const session = await auth();
   const params = await searchParams;
-  if (session?.user) redirect(params.next ?? '/trips');
+  const next = params.next ?? '/trips';
+  if (session?.user) redirect(next);
 
   return (
-    <main className="max-w-md mx-auto px-4 py-24 sm:py-28">
-      <div className="bg-card rounded-3xl border border-border shadow-sm p-7 sm:p-9">
-        <h1 className="font-display text-2xl font-extrabold">Welcome back</h1>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          Sign in to keep your trips with you rather than with this browser. You can plan without an
-          account — nothing below is a paywall.
-        </p>
+    // The nav is fixed, so both panels start below it rather than under it.
+    <main className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
+      {/* ---------- Brand panel ---------- */}
+      <section className="relative surface-deep-grad text-white hidden lg:flex flex-col justify-between p-12 xl:p-16 pt-32 xl:pt-32 overflow-hidden">
+        <div className="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
+        <div
+          className="absolute -left-32 bottom-0 w-[28rem] h-[28rem] rounded-full bg-primary/30 blur-3xl"
+          aria-hidden="true"
+        />
 
-        {params.error && (
-          <p className="mt-5 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
-            That sign-in did not complete. Please try again.
+        {/* No logo here — the fixed nav already carries it, and two on one
+            screen read as a rendering fault rather than as branding. */}
+        <div className="relative z-10 max-w-md mt-auto">
+          <h2 className="font-display text-3xl xl:text-4xl font-extrabold leading-tight">
+            One mood. One budget. One complete trip.
+          </h2>
+          <p className="mt-4 text-white/75 leading-relaxed">
+            Seven agents plan the whole journey — where to go, what it costs, what you do each day. When
+            two of them disagree, a Referee settles it in front of you.
           </p>
-        )}
+          <ul className="mt-9 space-y-5">
+            {REASONS.map((r) => (
+              <li key={r.title} className="flex gap-3.5">
+                <span className="text-xl leading-none mt-0.5" aria-hidden="true">
+                  {r.icon}
+                </span>
+                <span>
+                  <span className="block font-semibold text-[15px]">{r.title}</span>
+                  <span className="block text-sm text-white/65 leading-relaxed mt-0.5">{r.body}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        {authConfigured ? (
-          <form
-            action={async () => {
-              'use server';
-              await signIn('google', { redirectTo: params.next ?? '/trips' });
-            }}
-            className="mt-6"
-          >
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-xl border-2 border-border bg-background font-semibold hover:bg-muted transition-colors"
+        <p className="relative z-10 text-xs text-white/45 mt-12">
+          Demo product · no real bookings are ever made.
+        </p>
+      </section>
+
+      {/* ---------- Form panel ---------- */}
+      <section className="flex items-center justify-center px-4 pt-28 pb-16 sm:pt-32 sm:pb-20">
+        <div className="w-full max-w-sm">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">Sign in</h1>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+            You can plan a trip without an account. Signing in is for confirming and saving one.
+          </p>
+
+          {params.error && (
+            <p
+              role="alert"
+              className="mt-6 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84z" />
-                <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.47 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Continue with Google
-            </button>
-          </form>
-        ) : (
-          <div className="mt-6 rounded-xl bg-secondary/50 border border-secondary px-4 py-4 text-sm leading-relaxed">
-            <p className="font-semibold">Sign-in is not configured on this deployment.</p>
-            <p className="text-muted-foreground mt-1.5">
-              TripME works fully without it — plan a trip and it is saved in this browser. Accounts need
-              Google OAuth credentials, and we would rather show you this than a button that cannot work.
+              {params.error === 'AccessDenied'
+                ? 'That Google account is not on the test-user list for this project yet. Use the demo account below instead.'
+                : 'That sign-in did not complete. Please try again, or use the demo account below.'}
+            </p>
+          )}
+
+          {googleConfigured && (
+            <div className="mt-7">
+              <GoogleSignInButton next={next} />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 my-6" aria-hidden="true">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              {googleConfigured ? 'or' : 'Available sign-in'}
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* ---------- Demo door ---------- */}
+          <DemoSignInButton next={next} />
+          <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
+            No password, no email, nothing to set up — you are signed in as <strong>Demo Traveller</strong>.
+            {googleConfigured
+              ? ' Use this if Google turns you away: the project’s consent screen is still in testing, so only listed accounts get through.'
+              : ' Google sign-in is not configured on this deployment.'}
+          </p>
+
+          <div className="mt-8 pt-6 border-t border-border text-xs text-muted-foreground leading-relaxed space-y-2">
+            <p>
+              <span className="font-semibold text-foreground">Your trips stay in this browser.</span>{' '}
+              {authPersisted
+                ? 'Your account is stored in our database; your trip plans are not sent to it, and signing in does not move them between devices.'
+                : 'Nothing is written to any database on this deployment.'}
+            </p>
+            <p>
+              <Link href="/" className="text-primary font-medium hover:underline">
+                Plan a trip without signing in →
+              </Link>
             </p>
           </div>
-        )}
-
-        <div className="mt-7 pt-6 border-t border-border text-xs text-muted-foreground leading-relaxed space-y-2">
-          <p>
-            <span className="font-semibold text-foreground">What we store:</span> your name, email and
-            profile picture from Google — nothing else, and no password, because we never see one.
-          </p>
-          <p>
-            <span className="font-semibold text-foreground">Where your trips live:</span> in this browser.
-            {authPersisted
-              ? ' Your account is stored in our database; your trip plans are not sent to it.'
-              : ' Nothing is written to any database on this deployment.'}
-          </p>
-          <p>
-            <Link href="/" className="text-primary hover:underline">
-              Continue without an account →
-            </Link>
-          </p>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

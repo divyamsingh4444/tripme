@@ -117,6 +117,11 @@ export function AccountMenu({ onDark = false }: { onDark?: boolean }) {
           <div className="px-4 py-3 border-b border-border">
             <div className="text-sm font-semibold truncate">{name}</div>
             <div className="text-xs text-muted-foreground truncate">{session.user.email}</div>
+            {session.user.isDemo && (
+              <div className="mt-1.5 inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                Demo account
+              </div>
+            )}
           </div>
           <Link
             href="/trips"

@@ -22,11 +22,40 @@ export function setCurrentTrip(state: TripState): void {
   }
 }
 
+/**
+ * Is this actually a trip, or just something shaped like JSON?
+ *
+ * `JSON.parse` succeeding proves nothing — an empty object, a half-written
+ * record from an interrupted save, or a plan from an older schema all parse
+ * cleanly and then crash the trip page on first property access. Checking the
+ * few fields every consumer dereferences turns that into an honest "no trip
+ * loaded" screen with a way forward.
+ */
+function looksLikeTrip(value: unknown): value is TripState {
+  const t = value as Partial<TripState> | null;
+  return Boolean(
+    t &&
+      typeof t === 'object' &&
+      t.input?.mode &&
+      t.destination?.selected?.name &&
+      t.budget?.allocation &&
+      Array.isArray(t.itinerary?.days) &&
+      Array.isArray(t.booking?.bookings),
+  );
+}
+
 export function getCurrentTrip(): TripState | null {
   if (!isBrowser()) return null;
   try {
     const raw = sessionStorage.getItem(CURRENT_KEY);
-    return raw ? (JSON.parse(raw) as TripState) : null;
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!looksLikeTrip(parsed)) {
+      // Clear it so a broken record cannot keep bouncing the page on every load.
+      sessionStorage.removeItem(CURRENT_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

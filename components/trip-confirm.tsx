@@ -22,9 +22,11 @@ import {
   scheduleView,
   type PermissionState,
 } from '@/lib/notifications';
+import { useSession } from 'next-auth/react';
 import { CHANNEL_NOTE } from '@/lib/notification-copy';
 import { buildPayload, runAgent, type PipelineContext } from '@/lib/agents-client';
 import { bookingWithChoices, hasChoices, itineraryWithEdits } from '@/lib/recompute';
+import { SignInPrompt } from '@/components/sign-in-prompt';
 import type { NotificationOutput, TripState } from '@/lib/types';
 
 interface Props {
@@ -33,6 +35,7 @@ interface Props {
 }
 
 export function TripConfirm({ state, onChange }: Props) {
+  const { data: session, status } = useSession();
   const [permission, setPermission] = useState<PermissionState>('default');
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
@@ -130,6 +133,21 @@ export function TripConfirm({ state, onChange }: Props) {
           wrote — departure, check-in, each booked activity and the way home. Nothing is booked for real: this
           is still a demo product.
         </p>
+
+        {/*
+          The gate. Planning stayed open all the way to here on purpose — the
+          product proves itself before it asks for anything. But a confirmed
+          trip has an owner: it carries a reminder schedule addressed to a
+          person, so it should not belong to nobody.
+        */}
+        {status !== 'loading' && !session?.user && (
+          <SignInPrompt
+            title="Sign in to confirm this trip"
+            body="Your plan is safe — it stays in this browser and nothing is lost by signing in. A confirmed trip and its reminders belong to an account."
+          />
+        )}
+
+        {status !== 'loading' && session?.user && (
         <button
           onClick={confirm}
           disabled={rebuilding}
@@ -137,9 +155,13 @@ export function TripConfirm({ state, onChange }: Props) {
         >
           {rebuilding ? 'Rebuilding your reminders…' : "Yes — I'm going"}
         </button>
-        <p className="text-xs text-muted-foreground mt-3">
-          You can undo this at any time, and your browser will ask permission before any notification appears.
-        </p>
+        )}
+        {session?.user && (
+          <p className="text-xs text-muted-foreground mt-3">
+            You can undo this at any time, and your browser will ask permission before any notification
+            appears.
+          </p>
+        )}
       </section>
     );
   }
@@ -152,8 +174,15 @@ export function TripConfirm({ state, onChange }: Props) {
             Trip confirmed{justConfirmed ? ' 🎉' : ''}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {reminders.length} reminders are live for {state.destination.selected.name}.
+            {reminders.length} reminders are live for {state.destination.selected.name}
+            {session?.user?.name ? ` · ${session.user.name}` : ''}.
           </p>
+          {session?.user?.isDemo && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Confirmed on the shared demo account — fine for trying the product, and worth knowing if you
+              are screenshotting this.
+            </p>
+          )}
         </div>
         <button
           onClick={unconfirm}
