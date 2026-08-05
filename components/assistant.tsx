@@ -344,8 +344,25 @@ export function Assistant() {
    */
   const startDrag = (e: React.PointerEvent<HTMLElement>, mode: 'bubble' | 'panel') => {
     if (e.button !== 0) return;
-    // Let the header's own controls behave like buttons, not drag handles.
-    if ((e.target as HTMLElement).closest('button')) return;
+    /*
+     * Only in panel mode: the header contains close and flip-side, which must
+     * stay buttons rather than become drag handles.
+     *
+     * This guard must NOT apply to the bubble, because the bubble *is* a
+     * button — applying it there matched the element itself and stopped the
+     * collapsed assistant moving at all, which is exactly what happened.
+     */
+    if (mode === 'panel' && (e.target as HTMLElement).closest('button')) return;
+    /*
+     * Self-heal the suppression flag.
+     *
+     * It is normally consumed by the click that follows pointerup, but a drag
+     * that ends in a cancel — or with the pointer released off the element —
+     * never produces one, and the flag would then swallow the next legitimate
+     * click. Clearing it here is safe: by the time a new gesture starts, any
+     * click owed by the previous one has already fired or never will.
+     */
+    suppressClick.current = false;
     const currentTop = mode === 'bubble' ? (posRef.current?.top ?? 0) : panelTopFor(posRef.current?.top ?? 0);
     drag.current = { startX: e.clientX, startY: e.clientY, offsetY: e.clientY - currentTop, moved: false, mode };
     try {
