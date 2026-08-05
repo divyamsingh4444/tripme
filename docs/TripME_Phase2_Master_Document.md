@@ -16,6 +16,29 @@ Newest first. Every material decision, with the reasoning, so we never re-litiga
 
 ### 2 Aug 2026
 
+**D-030 · A product assistant that mostly does not use AI, and the scope safeguard that was only a comment (commits `13ad66c`, `fce557b`).**
+
+**Asked for:** the chat panel was cut off when parked low so the input was unreachable; the assistant only existed after a trip was planned, when it should be on every page and able to answer about the product, where to find things, and any saved trips; suggested questions should *fill* the input rather than send. Plus two direct questions: do we need another model, and are we short of tokens?
+
+**On the models — no, and the reasoning is the interesting part.** The binding constraint is 70B's 100,000 tokens/day (D-022); the assistant runs on `8b-instant`, a different bucket with 14,400 requests/day. But the real answer is that **a product assistant should barely call a model at all.** "What is TripME", "are the bookings real", "where are my trips" are *lookups*, not reasoning. Sending them to a model costs quota, adds latency, and — the serious one — **invites confident invention about our own product**. A help assistant that hallucinates a feature is worse than no assistant.
+
+**So it answers from three sources, cheapest first:**
+1. **A written knowledge base** of the product — the agents, the six paths, approvals and confirmation, reminders, privacy, sign-in, languages, the India scope, troubleshooting. Instant, free, and structurally incapable of inventing a feature.
+2. **The traveller's own data**, read from their browser — saved trips, the open plan, Travel DNA. Works offline, costs nothing.
+3. **The model**, for genuinely open questions only, now given the product facts as well as the trip, and told to admit gaps rather than guess.
+
+*Verified: five product questions plus "what are my saved trips" — all answered instantly, **zero model calls**, including reading a real saved Gokarna trip out of localStorage.* Answers can carry a link, so "where are my trips" offers the page rather than describing it. Suggestions are contextual per page and **fill** the input so they can be edited first.
+
+**Two bugs, one reported and one found while fixing it:**
+- The panel was placed wherever the bubble was, so parked low it ran off the bottom. It is now placed from the bubble and pulled back up until it fits. *Verified with the bubble forced to the bottom of a 550px window.*
+- The bubble responded only to pointer events, so it **could not be opened from a keyboard at all** — an accessibility defect nobody had reported yet.
+
+**The scope safeguard was a comment, not a safeguard.** D-029 added a three-layer approach and layer 3 — "Discovery must explain the swap" — **could never fire**. Discovery is handed `destinationParameters`, not the traveller's words: by the time it runs, the Mood Agent has already abstracted "a Switzerland kind of trip" into setting types and themes. The place name is gone, so Discovery had nothing to explain, and returned Manali with a note about alpine scenery and no mention of Switzerland — *precisely the silent substitution the rule was written to prevent.*
+
+The detected term now travels to Discovery from the same detector that raises the planner notice, so both layers say the same thing. *Verified: the same brief now returns* **"TripME plans trips within India, so we can't take you to Switzerland — Manali is the closest match because it offers a similar alpine experience…"**
+
+**The lesson, worth stating in the viva:** a prompt rule that depends on information the agent is never given is not a safeguard, it is a comment. Agent contracts have to be tested against the payload the agent *actually receives* — writing the rule and reading it back proves nothing.
+
 **D-029 · Six copies of one trip, and a scope the product never admitted to (commit `31e2058`).**
 
 **Reported from production, with a screenshot:** one save of one confirmed family trip produced **six identical Bhubaneswar cards**, none of them showing a photo — plus two good questions: whether save/confirm/approve follow a proper sequence, and whether the product is India-only.
