@@ -26,6 +26,7 @@ import { useSession } from 'next-auth/react';
 import { CHANNEL_NOTE } from '@/lib/notification-copy';
 import { buildPayload, runAgent, type PipelineContext } from '@/lib/agents-client';
 import { bookingWithChoices, hasChoices, itineraryWithEdits } from '@/lib/recompute';
+import { EmailTripButton } from '@/components/email-trip-button';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import type { NotificationOutput, TripState } from '@/lib/types';
 
@@ -263,6 +264,8 @@ export function TripConfirm({ state, onChange, unapprovedCount }: Props) {
             {remindersOn ? 'Turn off' : 'Turn on reminders'}
           </button>
         </div>
+
+        <EmailTripButton state={state} />
 
         {remindersOn && permission !== 'granted' && (
           <div className="mt-4 rounded-xl bg-secondary/50 border border-secondary px-4 py-3 text-sm">
