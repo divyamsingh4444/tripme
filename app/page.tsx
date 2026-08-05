@@ -295,7 +295,13 @@ export default function PlanPage() {
       </section>
 
       {/* ---------------- PLANNER ---------------- */}
-      <section ref={formRef} className="max-w-3xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 scroll-mt-20">
+      {/*
+        4xl rather than 3xl, with the six entry paths across a single row from
+        lg. The form itself stays deliberately narrow — a budget field stretched
+        across a desktop screen is harder to use, not easier — but the mode
+        picker was wrapping to three rows in the middle of an empty page.
+      */}
+      <section ref={formRef} className="max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 scroll-mt-20">
         <div className="text-center mb-8">
           <h2 className="type-section font-display font-extrabold">{t('form.who')}</h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
@@ -303,7 +309,7 @@ export default function PlanPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-10">
           {MODES.map((m) => (
             <button
               key={m.key}

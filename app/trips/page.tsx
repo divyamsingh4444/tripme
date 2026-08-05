@@ -63,7 +63,11 @@ export default function TripsPage() {
   if (!ready) return null;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+    /*
+       6xl to match the chrome, and three columns of cards from xl. At 4xl with
+       two columns the grid ran out of page well before the screen did.
+    */
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
       <h1 className="type-section font-display font-extrabold mb-6">My Trips</h1>
 
       {dropped > 0 && (
@@ -135,7 +139,7 @@ export default function TripsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {trips.map((trip) => {
             const s = trip.state;
             return (

@@ -41,19 +41,41 @@ export default function ContactPage() {
 
   return (
     <main>
-      {/* header */}
+      {/*
+        The heading sits beside what someone actually wants to know before
+        writing in — who reads it and how fast. The right half of this band was
+        empty, which on a wide screen reads as an unfinished page rather than as
+        breathing room.
+      */}
       <section className="surface-deep-grad pt-28 sm:pt-36 pb-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h1 className="type-hero font-display font-extrabold text-white">Talk to us</h1>
-          <p className="mt-4 text-lg text-white/75 max-w-xl">
-            Questions, feedback, or something that went wrong on a trip plan — we read everything
-            and reply properly.
-          </p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[1.2fr_1fr] gap-8 lg:gap-12 items-end">
+          <div>
+            <h1 className="type-hero font-display font-extrabold text-white">Talk to us</h1>
+            <p className="mt-4 text-lg text-white/75 max-w-xl">
+              Questions, feedback, or something that went wrong on a trip plan — we read everything
+              and reply properly.
+            </p>
+          </div>
+          <ul className="space-y-3 text-sm">
+            {[
+              ['⏱', 'Usually a reply within a day', 'Written by the four of us, not a helpdesk'],
+              ['🧭', 'Trip gone wrong? Tell us what you entered', 'It is the fastest way for us to reproduce it'],
+              ['🔒', 'Nothing you send is stored here', 'The form opens your own email app'],
+            ].map(([icon, title, sub]) => (
+              <li key={title} className="flex gap-3 rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
+                <span className="text-lg leading-none mt-0.5" aria-hidden="true">{icon}</span>
+                <span>
+                  <span className="block font-semibold text-white">{title}</span>
+                  <span className="block text-white/60 text-xs mt-0.5">{sub}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
       <div className="perforation" />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
         {/* ways to reach us */}
         <div className="grid sm:grid-cols-3 gap-3">
           <a
@@ -84,8 +106,10 @@ export default function ContactPage() {
           </div>
         </div>
 
-        {/* form */}
-        <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8">
+        {/* Form and support as a pair — both are "I need help", and stacking
+            them left a wide page with a stretched form and a lot of nothing. */}
+        <div className="mt-10 grid lg:grid-cols-[1.15fr_1fr] gap-6 items-start">
+        <section className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8">
           <h2 className="type-section font-display font-extrabold">Send us a message</h2>
           <p className="text-sm text-muted-foreground mt-1 mb-6">
             This opens your own email app with the message ready to send — nothing is stored on our
@@ -147,7 +171,7 @@ export default function ContactPage() {
         </section>
 
         {/* support */}
-        <section id="support" className="mt-10 scroll-mt-24 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8">
+        <section id="support" className="scroll-mt-24 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8">
           <h2 className="type-section font-display font-extrabold">Support</h2>
           <div className="mt-5 space-y-4">
             {[
@@ -179,16 +203,21 @@ export default function ContactPage() {
           </div>
         </section>
 
+        </div>
+
         {/* privacy */}
         <section id="privacy" className="mt-10 scroll-mt-24 surface-deep-grad rounded-3xl shadow-lg p-6 sm:p-8">
           <h2 className="type-section font-display font-extrabold">Your data</h2>
           <p className="text-white/75 mt-3 leading-relaxed">
-            TripME has no accounts and no user database. Everything you plan — moods, budgets, saved
-            trips — is written to your own browser&apos;s local storage and never sent anywhere else.
+            You can plan, and read a whole trip, without an account. Everything you plan — moods,
+            budgets, saved trips — is written to your own browser&apos;s local storage and never sent
+            anywhere else. Signing in is optional, and only needed to confirm or save a trip.
           </p>
-          <ul className="mt-5 space-y-2.5 text-sm text-white/80">
+          <ul className="mt-5 grid sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm text-white/80">
             {[
               'We do not ask for your name, email or phone to plan a trip.',
+              'If you do sign in, we store only what Google returns — a name, an email and a picture. Never a password; we never see one.',
+              'Signing in does not upload your trips. They stay in this browser, which is also why they do not follow you to another device.',
               'Your trip details are sent to our AI provider only to generate that plan, and are not used to train anything.',
               'Clearing your browser data deletes every trip permanently — we hold no copy to restore.',
               'No advertising trackers, no selling data. There is nothing to sell.',

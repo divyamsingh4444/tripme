@@ -47,56 +47,71 @@ const AGENTS = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+    /*
+       Laid out to the same 6xl the nav and footer use. The page was capped at
+       3xl, which left the content stranded in the middle of a wide screen while
+       the chrome ran full width — the page read as broken rather than narrow.
+       Widening alone would have given unreadable 1400px line lengths, so the
+       recovered space carries real structure: the problem sits beside its
+       numbers, the agents form a grid, and the two closing panels sit side by
+       side. Prose blocks keep their own max-width inside the wider shell.
+    */
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
       <h1 className="type-hero font-display font-extrabold">How TripME works</h1>
 
-      {/* Problem */}
-      <section className="mt-8">
-        <h2 className="font-display text-xl font-bold mb-3">The problem</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          Planning one trip today means 4–6 hours across 6–8 disconnected apps — flights on one,
-          hotels on another, restaurants on a third — re-entering the same context every time and
-          never seeing your total spend until it is too late.
-        </p>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+      {/* Problem — prose beside the numbers it is claiming */}
+      <section className="mt-8 grid lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-10 items-start">
+        <div>
+          <h2 className="font-display text-xl font-bold mb-3">The problem</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Planning one trip today means 4–6 hours across 6–8 disconnected apps — flights on one,
+            hotels on another, restaurants on a third — re-entering the same context every time and
+            never seeing your total spend until it is too late.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
           {[
             ['4–6 hrs → <60 s', 'planning time'],
             ['6–8 apps → 1 input', 'one interface'],
             ['0 → full budget view', 'before any booking'],
           ].map(([big, small]) => (
-            <div key={big} className="bg-card rounded-2xl border border-border px-4 py-4">
+            <div key={big} className="bg-card rounded-2xl border border-border px-4 py-4 lg:flex lg:items-baseline lg:justify-between lg:gap-4">
               <div className="font-display font-bold">{big}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{small}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 lg:mt-0">{small}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* The answer */}
-      <section className="mt-10">
-        <h2 className="font-display text-xl font-bold mb-3">The TripME answer</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          One input — mood + budget + duration — triggers seven specialised agents. Each does one
-          job well, then hands a structured JSON brief to the next. But this is deliberately{' '}
-          <strong className="text-foreground">not a straight line</strong>: the Referee Agent audits
-          the Itinerary Agent&apos;s real costs against the Budget Agent&apos;s allocation, and when
-          they conflict it says so on screen and sends the brief <em>backwards</em> for a re-plan.
-          Agents that can reject each other&apos;s work are what separate a multi-agent system from
-          one long prompt.
-        </p>
-        <div className="mt-4 rounded-2xl border-2 border-accent bg-accent/10 p-5">
-          <h3 className="font-display font-bold">Group mode: one agent per human</h3>
-          <p className="text-sm mt-1.5 leading-relaxed">
-            Plan with friends and the architecture changes shape. Every traveller gets their own{' '}
-            <strong>Traveller Advocate agent</strong> whose only instruction is to argue for that
-            person and <em>never</em> compromise — a group of five runs five advocates plus the core
-            seven. The Referee then negotiates, and publishes exactly who conceded what, with a
-            satisfaction score per person and a hard floor: nobody is allowed to lose twice.
-          </p>
+      {/* The answer — the argument, with the group-mode case beside it */}
+      <section className="mt-12">
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-6 lg:gap-10 items-start">
+          <div>
+            <h2 className="font-display text-xl font-bold mb-3">The TripME answer</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              One input — mood + budget + duration — triggers seven specialised agents. Each does one
+              job well, then hands a structured JSON brief to the next. But this is deliberately{' '}
+              <strong className="text-foreground">not a straight line</strong>: the Referee Agent audits
+              the Itinerary Agent&apos;s real costs against the Budget Agent&apos;s allocation, and when
+              they conflict it says so on screen and sends the brief <em>backwards</em> for a re-plan.
+              Agents that can reject each other&apos;s work are what separate a multi-agent system from
+              one long prompt.
+            </p>
+          </div>
+          <div className="rounded-2xl border-2 border-accent bg-accent/10 p-5">
+            <h3 className="font-display font-bold">Group mode: one agent per human</h3>
+            <p className="text-sm mt-1.5 leading-relaxed">
+              Plan with friends and the architecture changes shape. Every traveller gets their own{' '}
+              <strong>Traveller Advocate agent</strong> whose only instruction is to argue for that
+              person and <em>never</em> compromise — a group of five runs five advocates plus the core
+              seven. The Referee then negotiates, and publishes exactly who conceded what, with a
+              satisfaction score per person and a hard floor: nobody is allowed to lose twice.
+            </p>
+          </div>
         </div>
 
-        <h3 className="font-display text-lg font-bold mt-8 mb-3">Six entry paths, one agent core</h3>
-        <p className="text-muted-foreground leading-relaxed text-sm">
+        <h3 className="font-display text-lg font-bold mt-10 mb-3">Six entry paths, one agent core</h3>
+        <p className="text-muted-foreground leading-relaxed text-sm max-w-3xl">
           Different travellers need different questions asked. Three of the six paths skip the mood
           quiz entirely, because for them the intent is already known — and each path changes what
           the agents actually do, not just what the form looks like.
@@ -128,52 +143,74 @@ export default function HowItWorksPage() {
             </tbody>
           </table>
         </div>
-        <ol className="mt-5 space-y-0">
+        {/*
+          A pipeline strip, then a grid. Stacking seven cards vertically inside a
+          wide page wastes the width and, worse, tells the wrong story: it reads
+          as a queue. The strip shows the order and the one edge that runs
+          backwards; the grid then gives each agent room to be read.
+        */}
+        <h3 className="font-display text-lg font-bold mt-12 mb-3">The seven agents</h3>
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 overflow-x-auto">
+          <ol className="flex items-stretch gap-2 min-w-max">
+            {AGENTS.map((agent, i) => (
+              <li key={agent.name} className="flex items-center gap-2">
+                <div className="flex flex-col items-center justify-center text-center px-3 py-2 rounded-xl bg-secondary/50 min-w-[5.5rem]">
+                  <span className="text-lg" aria-hidden="true">{agent.emoji}</span>
+                  <span className="text-[11px] font-semibold mt-0.5 leading-tight">
+                    {agent.name.replace(/ Agent$/, '')}
+                  </span>
+                </div>
+                {i < AGENTS.length - 1 && (
+                  <span className="text-muted-foreground text-xs font-mono" aria-hidden="true">→</span>
+                )}
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-muted-foreground font-mono mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>→ structured JSON handoff</span>
+            <span className="text-accent-foreground/80">↩ Referee can send the brief back to Budget</span>
+          </p>
+        </div>
+
+        <ol className="mt-4 grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {AGENTS.map((agent, i) => (
-            <li key={agent.name}>
-              <div className="bg-card rounded-2xl border border-border p-5 flex gap-4 items-start">
-                <span className="text-2xl">{agent.emoji}</span>
-                <div>
-                  <div className="font-display font-bold">
-                    {i + 1}. {agent.name}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{agent.role}</p>
+            <li key={agent.name} className="bg-card rounded-2xl border border-border p-5 flex gap-4 items-start">
+              <span className="text-2xl shrink-0" aria-hidden="true">{agent.emoji}</span>
+              <div>
+                <div className="font-display font-bold">
+                  {i + 1}. {agent.name}
                 </div>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{agent.role}</p>
               </div>
-              {i < AGENTS.length - 1 && (
-                <div className="flex items-center gap-2 pl-8 py-1.5 text-xs text-muted-foreground font-mono">
-                  <span>↓</span>
-                  <span>structured JSON handoff</span>
-                </div>
-              )}
             </li>
           ))}
         </ol>
       </section>
 
-      {/* Tech */}
-      <section className="mt-10">
+      {/* Under the hood and the honesty block, side by side — they answer the
+          same evaluator question from two directions. */}
+      <section className="mt-12 grid lg:grid-cols-2 gap-6 items-start">
+        <div>
         <h2 className="font-display text-xl font-bold mb-3">Under the hood</h2>
         <div className="bg-card rounded-2xl border border-border p-5 text-sm leading-relaxed">
           <p>
-            <span className="font-semibold">Model:</span> three Llama and GPT-OSS models routed on Groq, each agent on the one that suits its job — every plan is
+            <span className="font-semibold">Model:</span>{' '}three Llama and GPT-OSS models routed on Groq, each agent on the one that suits its job — every plan is
             generated live, in JSON mode, with per-agent prompts and temperatures.
           </p>
           <p className="mt-2">
-            <span className="font-semibold">Orchestration:</span> an in-app pipeline with typed
+            <span className="font-semibold">Orchestration:</span>{' '}an in-app pipeline with typed
             handoffs between agents — a graph with a feedback edge, not a straight line: the Referee
             can send the brief back to the Budget Agent, and the affected steps re-run (open the
             &quot;Agent log&quot; on any trip page to see the raw JSON each agent produced).
           </p>
           <p className="mt-2">
-            <span className="font-semibold">Memory:</span> saved trips stay in your browser and feed the
+            <span className="font-semibold">Memory:</span>{' '}saved trips stay in your browser and feed the
             Mood Agent&apos;s personalisation on your next plan — no accounts, no server database.
           </p>
         </div>
-      </section>
+        </div>
 
-      {/* Honesty block */}
-      <section className="mt-10">
+        <div>
         <h2 className="font-display text-xl font-bold mb-3">What&apos;s real, what&apos;s simulated</h2>
         <div className="rounded-2xl border-2 border-accent bg-accent/10 p-5 text-sm leading-relaxed">
           <p>
@@ -188,10 +225,11 @@ export default function HowItWorksPage() {
             ever.
           </p>
         </div>
+        </div>
       </section>
 
       {/* Credit */}
-      <section className="mt-10 bg-card rounded-2xl border border-border p-6 flex items-center gap-5">
+      <section className="mt-12 bg-card rounded-2xl border border-border p-6 flex items-center gap-5">
         <Image
           src="/icon.svg"
           alt="TripME logo"

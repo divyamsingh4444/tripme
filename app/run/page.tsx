@@ -69,6 +69,8 @@ export default function RunPage() {
   const [tip, setTip] = useState(0);
   const [offerSample, setOfferSample] = useState(false);
   const [noInput, setNoInput] = useState(false);
+  /** What was asked for — shown alongside the pipeline while it runs. */
+  const [brief, setBrief] = useState<TripInput | null>(null);
   const [agentCount, setAgentCount] = useState(0);
   /** id of the step currently paused on an error, awaiting the user's decision */
   const [failedStep, setFailedStep] = useState<string | null>(null);
@@ -146,6 +148,9 @@ export default function RunPage() {
       setNoInput(true);
       return;
     }
+    // Kept in state as well as in the ref so the brief panel can render it —
+    // the ref exists for the pipeline and does not trigger re-renders.
+    setBrief(input);
     ctxRef.current = {
       input,
       // "I already know where" — Discovery justifies rather than re-chooses.
@@ -501,7 +506,14 @@ export default function RunPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
+    /*
+       Two columns from lg up. The page was capped at 2xl — barely a third of a
+       desktop screen — so the pipeline ran down a narrow ribbon with empty
+       space either side. The width now carries the brief the agents are working
+       from, which also answers the question people actually have while waiting:
+       what did I ask for, and how much is left to do.
+    */
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-16">
       <div className="flex items-center justify-between gap-4 mb-2">
         <h1 className="font-display text-2xl sm:text-4xl font-extrabold">Planning your trip…</h1>
         <span
@@ -516,12 +528,14 @@ export default function RunPage() {
           </span>
         </span>
       </div>
-      <p className="text-sm text-muted-foreground mb-7">
+      <p className="text-sm text-muted-foreground mb-7 max-w-3xl">
         {agentCount} agent {agentCount === 1 ? 'call' : 'calls'} completed · each one hands a
         structured brief to the next. The clock counts only the agents — not queueing for free-tier
         quota, and not the pauses that make each handoff readable.
       </p>
 
+      <div className="grid lg:grid-cols-[1fr_20rem] gap-6 lg:gap-8 items-start">
+        <div>
       <ol className="relative space-y-3">
         {/* the spine: makes the handoff chain legible at a glance */}
         <span className="absolute left-[34px] top-6 bottom-6 w-px bg-border hidden sm:block" aria-hidden="true" />
@@ -611,6 +625,57 @@ export default function RunPage() {
       <p className="mt-8 text-center text-sm text-muted-foreground italic" aria-live="polite">
         {TIPS[tip]}
       </p>
+        </div>
+
+        {/* The brief — what the agents were handed, readable while they work. */}
+        {brief && (
+          <aside className="lg:sticky lg:top-28 bg-card rounded-2xl border border-border p-5 order-first lg:order-none">
+            <h2 className="font-display font-bold text-sm uppercase tracking-wider text-muted-foreground">
+              Your brief
+            </h2>
+            <dl className="mt-3 space-y-2.5 text-sm">
+              {[
+                ['Mood', brief.mode === 'corporate' ? brief.corporate?.purpose ?? 'Business travel' : brief.mood],
+                ['From', brief.originCity],
+                ['Leaving', brief.startDate],
+                ['Days', String(brief.durationDays)],
+                ['Travelling', `${brief.travelers} ${brief.travelers === 1 ? 'person' : 'people'}`],
+                ['Budget', fmtINR(brief.budgetTotalINR)],
+                ['Pace', brief.pace],
+                ['Food', brief.foodPref],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-baseline justify-between gap-3 border-b border-border/60 pb-2 last:border-0 last:pb-0">
+                  <dt className="text-muted-foreground text-xs uppercase tracking-wide shrink-0">{label}</dt>
+                  <dd className="font-semibold text-right">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {brief.moodNote && (
+              <p className="mt-3 pt-3 border-t border-border text-sm italic text-muted-foreground leading-relaxed">
+                “{brief.moodNote}”
+              </p>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-baseline justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Progress</span>
+                <span className="font-mono">
+                  {steps.filter((s) => s.state.kind === 'done').length}/{steps.length}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden" role="presentation">
+                <div
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{
+                    width: `${steps.length ? (steps.filter((s) => s.state.kind === 'done').length / steps.length) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </aside>
+        )}
+      </div>
     </main>
   );
 }

@@ -27,6 +27,7 @@ import { useSession } from 'next-auth/react';
 import { PlacePhoto } from '@/components/place-photo';
 import { SignInPrompt } from '@/components/sign-in-prompt';
 import { TripAssistant } from '@/components/trip-assistant';
+import { TripRail } from '@/components/trip-rail';
 import { TripChoices } from '@/components/trip-choices';
 import { TripConfirm } from '@/components/trip-confirm';
 import { applyChoices, itineraryWithEdits } from '@/lib/recompute';
@@ -244,7 +245,15 @@ export default function TripPage() {
   ][];
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-36">
+    /*
+       Widened to the 6xl the nav and footer already use, with a sticky rail on
+       xl. At 4xl the page sat as a narrow ribbon with dead space either side on
+       any desktop screen. Simply stretching the sections would have produced
+       unreadable line lengths, so the recovered width carries a summary that is
+       genuinely useful on a long document: where you are going, what it costs,
+       and jump links to the sections people scroll back to.
+    */
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-36">
       {offline && (
         <div className="no-print mb-4 rounded-xl bg-secondary/60 border border-secondary px-4 py-2.5 text-sm text-center">
           You&apos;re offline — saved trips still work.
@@ -353,6 +362,9 @@ export default function TripPage() {
           </>
         )}
       </section>
+
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 xl:gap-8 items-start">
+        <div className="min-w-0">
 
       <section className="mt-6 bg-card rounded-2xl border border-border shadow-sm p-5 sm:p-6 print-block">
         {/* The Discovery Agent's own reasoning, surfaced instead of buried in the log. */}
@@ -648,7 +660,7 @@ export default function TripPage() {
       {/* Budget */}
       <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 print-block">
         <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-          <h2 className="type-section font-display font-extrabold">Budget</h2>
+          <h2 id="trip-budget" className="scroll-mt-28 type-section font-display font-extrabold">Budget</h2>
           <span className="font-mono text-lg font-semibold">{fmtINR(budget.totalINR)}</span>
         </div>
         <p className="text-sm text-muted-foreground mb-5">
@@ -696,7 +708,7 @@ export default function TripPage() {
       {/* Itinerary — a timeline, not a table of rows */}
       <section className="mt-10">
         <div className="flex items-baseline justify-between gap-3 mb-5 px-1">
-          <h2 className="type-section font-display font-extrabold">Day by day</h2>
+          <h2 id="trip-itinerary" className="scroll-mt-28 type-section font-display font-extrabold">Day by day</h2>
           <span className="text-sm text-muted-foreground shrink-0">
             {itinerary.days.length} {itinerary.days.length === 1 ? 'day' : 'days'} planned
           </span>
@@ -795,7 +807,7 @@ export default function TripPage() {
 
       {/* Bookings */}
       <section className="mt-10">
-        <h2 className="type-section font-display font-extrabold mb-1 px-1">Bookings</h2>
+        <h2 id="trip-bookings" className="scroll-mt-28 type-section font-display font-extrabold mb-1 px-1">Bookings</h2>
         <p className="text-sm text-muted-foreground mb-4 px-1">
           Nothing is booked without your approval — and in this demo, nothing is ever really booked.
         </p>
@@ -949,6 +961,10 @@ export default function TripPage() {
           </div>
         )}
       </section>
+        </div>
+
+        <TripRail state={state} money={money} approvedTotal={approvedTotal} />
+      </div>
 
       {/* Sticky bar */}
       <div className="no-print fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">

@@ -92,7 +92,7 @@ export function TripChoices({ state, onChange, locked }: Props) {
   if (!options) {
     return (
       <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 no-print">
-        <h2 className="font-display text-xl font-bold">Not quite right? Change it</h2>
+        <h2 id="trip-choices" className="scroll-mt-28 font-display text-xl font-bold">Not quite right? Change it</h2>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
           The agents made a first call on how you travel and where you stay. You get the final one — and the
           budget, the approvals and any policy checks update as you choose.
@@ -111,7 +111,7 @@ export function TripChoices({ state, onChange, locked }: Props) {
 
   return (
     <section className="mt-10 bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 no-print">
-      <h2 className="font-display text-xl font-bold">Your call</h2>
+      <h2 id="trip-choices" className="scroll-mt-28 font-display text-xl font-bold">Your call</h2>
       <p className="text-sm text-muted-foreground mt-1">
         Every change below re-prices the trip in code, not by asking the model again — so the totals stay
         honest.

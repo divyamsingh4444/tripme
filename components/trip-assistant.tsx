@@ -176,7 +176,7 @@ export function TripAssistant({ state }: { state: TripState }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="no-print fixed bottom-24 right-4 sm:right-6 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg hover:opacity-95"
+        className="no-print fixed bottom-24 right-4 sm:right-6 xl:right-[22rem] z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-4 pr-5 py-3 shadow-lg hover:opacity-95"
         aria-label="Open the TripME assistant"
       >
         <span aria-hidden="true">💬</span>
@@ -186,7 +186,7 @@ export function TripAssistant({ state }: { state: TripState }) {
   }
 
   return (
-    <div className="no-print fixed bottom-24 right-4 sm:right-6 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-3xl border border-border bg-card shadow-2xl flex flex-col max-h-[min(32rem,70vh)]">
+    <div className="no-print fixed bottom-24 right-4 sm:right-6 xl:right-[22rem] z-40 w-[min(24rem,calc(100vw-2rem))] rounded-3xl border border-border bg-card shadow-2xl flex flex-col max-h-[min(32rem,70vh)]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <span className="font-display font-bold text-sm">TripME Assistant</span>
         <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Close assistant">
