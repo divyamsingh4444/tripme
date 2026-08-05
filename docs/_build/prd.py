@@ -304,7 +304,6 @@ def build():
     # ------------------------------------------------------------------
     page_break(doc)
     h1(doc, '12 · Open items')
-    placeholder(doc, 'Wireframe exports for the ten screens listed in the Phase 2 submission, Section 29.')
     placeholder(doc, 'Recorded MVP demonstration video, following the sequence in Section 30.')
     placeholder(doc, 'Regional-coverage bias audit results.')
     placeholder(doc, 'Contact page telephone number — currently a deliberate placeholder in the deployed product.')

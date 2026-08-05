@@ -34,7 +34,7 @@ def build(doc):
               ['Live product', LIVE_URL, 'Live'],
               ['Source code', REPO_URL, 'Public'],
               ['MVP demo recording', '[ TO BE INSERTED — unlisted YouTube link ]', 'Owed'],
-              ['Wireframes (clickable)', '[ TO BE INSERTED — Figma share link ]', 'Owed'],
+              ['Wireframes / screen reference', 'TripME_Wireframes_and_Screens.docx — submitted alongside this document', 'Complete'],
               ['Product Requirements Document', 'TripME_PRD.docx — submitted alongside this document', 'Complete'],
               ['JTBD interviews (5)',
                'https://drive.google.com/drive/folders/1yiCTZ4YJTHeOnPm_pLVV9-shvfJw44-k', 'Complete'],
