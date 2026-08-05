@@ -16,6 +16,7 @@ import type {
   BookingItem,
   BookingOutput,
   ItineraryOutput,
+  LocalTransportOption,
   StayOption,
   TransportOption,
   TripChoices,
@@ -70,6 +71,8 @@ export function applyChoices(state: TripState): MoneyView {
   const { booking, options, choices, input } = state;
   const transport = options?.transport.find((t) => t.id === choices?.transportId);
   const stay = options?.stays.find((s) => s.id === choices?.stayId);
+  const local = options?.localTransport?.find((l) => l.id === choices?.localTransportId);
+  const realStay = state.realStays?.find((r) => r.id === choices?.realStayId);
   const nights = nightsOf(state);
 
   const bookings = booking.bookings.map((item): BookingItem => {
@@ -81,16 +84,43 @@ export function applyChoices(state: TripState): MoneyView {
         amountINR: transport.amountINR,
       };
     }
-    if (item.type === 'stay' && stay) {
+    if (item.type === 'stay' && (stay || realStay)) {
+      /*
+       * A real hotel keeps the chosen tier's nightly estimate, because no free
+       * source publishes its actual rate. The UI says so beside the name — the
+       * one thing not to do is print a number next to a real property in a way
+       * that reads as its price.
+       */
+      const perNight = stay?.perNightINR ?? Math.round((booking.bookings.find((b) => b.type === 'stay')?.amountINR ?? 0) / nights);
+      const name = realStay ? realStay.name : stay!.name;
+      const where = realStay ? [realStay.category, realStay.area].filter(Boolean).join(' · ') : stay!.area;
       return {
         ...item,
-        title: `${nights} night${nights === 1 ? '' : 's'} · ${stay.name}`,
-        detail: `${stay.area} · ₹${stay.perNightINR.toLocaleString('en-IN')}/night · ${stay.amenities.slice(0, 3).join(', ')}`,
-        amountINR: stay.perNightINR * nights,
+        title: `${nights} night${nights === 1 ? '' : 's'} · ${name}`,
+        detail: `${where} · ₹${perNight.toLocaleString('en-IN')}/night (estimate)${
+          realStay ? ' · real listing' : ` · ${stay!.amenities.slice(0, 3).join(', ')}`
+        }`,
+        amountINR: perNight * nights,
       };
     }
     return item;
   });
+
+  /*
+   * Getting around is an extra line, not a replacement: it is a different
+   * purchase from the journey there, and folding it into the transport booking
+   * would hide it from the budget the traveller is watching.
+   */
+  if (local) {
+    bookings.push({
+      type: 'transport',
+      title: `${local.mode} · getting around ${state.destination.selected.name}`,
+      detail: `${local.label} · ₹${local.perDayINR.toLocaleString('en-IN')}/day × ${input.durationDays} days (estimate)`,
+      dates: `${input.durationDays} days`,
+      amountINR: local.perDayINR * input.durationDays,
+      budgetCategory: 'transport',
+    });
+  }
 
   // Approval gates are re-derived from the NEW amounts. Carrying the old reason
   // across would show "above the ₹3,000 gate" on a line now costing ₹900.
@@ -174,7 +204,13 @@ export function itineraryTotalINR(itinerary: ItineraryOutput): number {
 /** Convenience for the UI: has this traveller changed anything at all? */
 export function hasChoices(choices?: TripChoices): boolean {
   if (!choices) return false;
-  return Boolean(choices.transportId || choices.stayId || Object.keys(choices.slotEdits ?? {}).length > 0);
+  return Boolean(
+    choices.transportId ||
+      choices.stayId ||
+      choices.realStayId ||
+      choices.localTransportId ||
+      Object.keys(choices.slotEdits ?? {}).length > 0,
+  );
 }
 
-export type { TransportOption, StayOption };
+export type { TransportOption, StayOption, LocalTransportOption };

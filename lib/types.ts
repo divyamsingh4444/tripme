@@ -303,6 +303,41 @@ export interface StayOption {
 }
 
 /**
+ * Getting around once you are there.
+ *
+ * Separate from TransportOption because it is a different decision: that one is
+ * a round trip bought once, this is a daily rate for the length of the stay.
+ */
+export interface LocalTransportOption {
+  id: string;
+  mode: string; // Auto-rickshaw · Rented scooter · Cab package · Walk & metro
+  label: string;
+  perDayINR: number;
+  note: string;
+  bestFor: string;
+}
+
+/**
+ * A real, named place from OpenStreetMap — not invented by a model.
+ *
+ * Prices never come from here, because no free source has them. A real hotel
+ * name beside a fabricated nightly rate would read as a quote, so the UI shows
+ * these as places to consider and keeps the money clearly an estimate.
+ */
+export interface RealPlace {
+  id: string;
+  name: string;
+  category: string;
+  area?: string;
+  lat: number;
+  lon: number;
+  image?: string;
+  imageCredit?: string;
+  mapUrl: string;
+  website?: string;
+}
+
+/**
  * Generated on demand rather than with the plan. Most travellers never open
  * these, and a spare agent call on every run is exactly the kind of spending
  * that emptied the daily quota in the first place.
@@ -310,6 +345,7 @@ export interface StayOption {
 export interface TripOptions {
   transport: TransportOption[];
   stays: StayOption[];
+  localTransport?: LocalTransportOption[];
 }
 
 /** A single itinerary slot the traveller has changed. */
@@ -323,6 +359,9 @@ export interface SlotEdit {
 export interface TripChoices {
   transportId?: string;
   stayId?: string;
+  localTransportId?: string;
+  /** A real OSM hotel the traveller picked instead of a generated tier. */
+  realStayId?: string;
   /** Keyed `${day}-${slot}`, e.g. "2-morning". */
   slotEdits?: Record<string, SlotEdit>;
 }
@@ -353,6 +392,9 @@ export interface TripState {
   notification?: NotificationOutput;
   /** Travel and stay alternatives, fetched the first time they are asked for. */
   options?: TripOptions;
+  /** Real nearby places from OpenStreetMap, fetched alongside the options. */
+  realStays?: RealPlace[];
+  realActivities?: RealPlace[];
   choices?: TripChoices;
   /** Absent on trips planned before the confirm step existed — treat as 'planned'. */
   status?: TripStatus;
