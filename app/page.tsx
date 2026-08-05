@@ -211,7 +211,23 @@ export default function PlanPage() {
    * which reads as a broken product rather than a scoped one. Non-blocking on
    * purpose: it informs, it does not refuse.
    */
-  const scopeHit = detectOutOfScope(`${origin} ${moodNote}`);
+  const scopeHit = detectOutOfScope(
+    [
+      origin,
+      moodNote,
+      // Every free-text field where a place can be named, not just the two
+      // obvious ones. Corporate travel names its own destination city, and a
+      // pilgrimage circuit is typed by hand — both could say "Dubai" or
+      // "Kathmandu" and previously sailed straight through.
+      corporate.destinationCity,
+      corporate.purpose,
+      pilgrimage.circuit,
+      ...people.map((t) => t.note),
+      ...household.map((h) => h.note),
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
 
   const fieldCls =
     'w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring';

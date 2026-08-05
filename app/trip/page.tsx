@@ -26,7 +26,6 @@ import type {
 import { useSession } from 'next-auth/react';
 import { PlacePhoto } from '@/components/place-photo';
 import { SignInPrompt } from '@/components/sign-in-prompt';
-import { TripAssistant } from '@/components/trip-assistant';
 import { TripRail } from '@/components/trip-rail';
 import { TripChoices } from '@/components/trip-choices';
 import { TripConfirm } from '@/components/trip-confirm';
@@ -1014,8 +1013,6 @@ export default function TripPage() {
         </div>
         {saved === 'failed' && <p className="text-center text-xs text-destructive pb-2">Couldn&apos;t save on this device — the plan still works this session.</p>}
       </div>
-
-      <TripAssistant state={state} />
 
       {switching && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center px-4">

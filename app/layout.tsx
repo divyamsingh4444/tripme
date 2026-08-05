@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, Inter } from 'next/font/google'
+import { Assistant } from '@/components/assistant'
 import { AutoTranslate } from '@/components/auto-translate'
 import { LanguageProvider } from '@/components/language-switch'
 import { AuthSessionProvider } from '@/components/session-provider'
@@ -58,6 +59,9 @@ export default function RootLayout({
             <SiteFooter />
             {/* Translates whatever is on screen, including text the agents write. */}
             <AutoTranslate />
+            {/* Answers about the product and your trips, on every page — most
+                questions people have happen before a trip exists. */}
+            <Assistant />
           </LanguageProvider>
         </AuthSessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
