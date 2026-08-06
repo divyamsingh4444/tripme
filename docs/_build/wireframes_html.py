@@ -320,6 +320,8 @@ def build():
 <meta name="robots" content="noindex">
 <title>TripME — Wireframes &amp; Screen Flows</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2314453D'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23FFB52E' font-family='sans-serif' font-weight='bold'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --pine:#14453D; --pine-deep:#0E332D; --ink:#0E1F1A; --slate:#5B6B66;
@@ -510,6 +512,65 @@ def build():
   .wf-assist{display:flex;justify-content:flex-end;padding:0 16px 16px}
   .wf-assist .wf-card{margin:0}
 
+
+  /* ---------- design system sheet ---------- */
+  .ds-eyebrow{font-size:12px;color:var(--slate);margin:0 0 8px 2px;font-weight:600}
+  .ds-wrap{display:grid;grid-template-columns:2.15fr 1fr;gap:16px;align-items:start;max-width:1080px;width:100%}
+  .ds-sheet{background:#0E1F1A;border-radius:18px;padding:30px 34px;color:#EEF4EF}
+  .ds-sheet h1{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:27px;font-weight:800;margin-bottom:6px}
+  .ds-sheet .sub{font-size:11.5px;color:#9DB3AC;margin-bottom:22px}
+  .ds-kicker{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:2px;color:var(--marigold);
+             margin:24px 0 10px;font-weight:600}
+  .ds-swatches{display:grid;grid-template-columns:repeat(9,1fr);gap:9px}
+  .ds-sw i{display:block;height:52px;border-radius:9px;border:1px solid rgba(238,244,239,.18)}
+  .ds-sw b{display:block;font-size:9.5px;font-weight:600;color:#CFE0DA;margin-top:6px}
+  .ds-sw span{font-family:'IBM Plex Mono',Consolas,monospace;font-size:8.5px;color:#7E948D}
+  .ds-ramp{display:flex;flex-direction:column;gap:13px}
+  .ds-ramp .disp{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:40px;font-weight:800;line-height:1.05}
+  .ds-ramp .disp em{color:var(--marigold);font-style:normal}
+  .ds-ramp .h2x{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:26px;font-weight:700}
+  .ds-ramp .h3x{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:18px;font-weight:600}
+  .ds-ramp .body{font-family:Inter,'Segoe UI',sans-serif;font-size:14.5px;color:#CFE0DA;max-width:520px}
+  .ds-ramp .lab{font-family:Inter,'Segoe UI',sans-serif;font-size:12.5px;font-weight:500;color:#CFE0DA}
+  .ds-ramp .mono{font-family:'IBM Plex Mono',Consolas,monospace;font-size:11px;letter-spacing:1px;color:#9DB3AC}
+  .ds-ramp .tagl{font-size:9px;letter-spacing:1.4px;color:#5F756E;font-family:'IBM Plex Mono',Consolas,monospace;
+                 margin-bottom:-8px}
+  .ds-rules{border-top:1px solid rgba(238,244,239,.14);margin-top:24px;padding-top:14px;display:grid;
+            grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .ds-rules p{font-size:10.5px;color:#9DB3AC;line-height:1.5}
+  .ds-rules b{color:#EEF4EF;display:block;font-size:10.5px;margin-bottom:2px}
+  .ds-logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--marigold);display:grid;
+           place-items:center;color:var(--marigold);font-size:18px;margin-top:22px}
+  .ds-col{display:flex;flex-direction:column;gap:11px}
+  .ds-spec{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+  .ds-spec .k{font-family:'IBM Plex Mono',Consolas,monospace;font-size:9px;letter-spacing:1.6px;color:var(--pine);
+              font-weight:600;margin-bottom:9px}
+  .ds-spec .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn-p{background:var(--marigold);color:var(--ink);font-size:12px;font-weight:700;padding:9px 18px;border-radius:999px}
+  .btn-s{background:#fff;color:var(--ink);font-size:12px;font-weight:700;padding:9px 18px;border-radius:999px;
+         border:1.5px solid var(--line)}
+  .btn-d{background:var(--pine);color:#fff;font-size:12px;font-weight:700;padding:9px 18px;border-radius:999px}
+  .ch{font-size:10px;font-weight:700;padding:3px 11px;border-radius:999px}
+  .ch.mood{background:var(--marigold);color:var(--ink)}
+  .ch.out{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+  .ch.ok{background:var(--pine);color:#fff}
+  .ch.demo{background:#F9E8E2;color:#C0472B;letter-spacing:.4px}
+  .ch.dark{background:var(--ink);color:#fff}
+  .ch.gate{background:#FFF3D6;color:#7A5A00;border:1px solid #F2DCA6}
+  .ds-input label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--slate);margin-bottom:5px}
+  .ds-input .box{border:1.5px solid #D8DFDB;border-radius:10px;padding:9px 12px;font-size:12px;color:#9AA8A2;
+                 font-family:Inter,'Segoe UI',sans-serif}
+  .ds-ey b{display:block;font-size:9.5px;letter-spacing:1.4px;color:var(--slate);font-weight:700}
+  .ds-ey span{font-family:'IBM Plex Mono',Consolas,monospace;font-size:12.5px;color:var(--ink);font-weight:600}
+  .ds-bar{height:11px;border-radius:999px;overflow:hidden;display:flex;margin:4px 0 2px}
+  .ds-bar i{height:100%}
+  .ds-steps{display:flex;gap:7px;align-items:center}
+  .ds-steps span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800}
+  .ds-steps .d{background:var(--pine);color:#fff}
+  .ds-steps .c{background:var(--marigold);color:var(--ink)}
+  .ds-steps .t{background:#E2EBE4;color:#4E635C}
+  .ds-money{font-family:'IBM Plex Mono',Consolas,monospace;font-size:17px;font-weight:600;color:var(--ink)}
+
   @media (max-width:1100px){
     .main{grid-template-columns:1fr}
     .side,.inspect{display:none}
@@ -538,7 +599,7 @@ def build():
 const SCREENS = __DATA__;
 const COVERAGE = __COVERAGE__;
 const BLURBS = __BLURBS__;
-const ORDER = ['overview'].concat(SCREENS.map(s=>s.id)).concat(['coverage']);
+const ORDER = ['overview'].concat(SCREENS.map(s=>s.id)).concat(['design','coverage']);
 const byId = Object.fromEntries(SCREENS.map(s=>[s.id,s]));
 const esc = t => t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 
@@ -554,6 +615,8 @@ function sidebar(){
     }
     h += `<button class="item" data-id="${s.id}"><span class="n">${String(i+1).padStart(2,'0')}</span>${esc(s.title)}</button>`;
   });
+  h += '<div class="stage"><h3>Foundations</h3></div>';
+  h += '<button class="item special" data-id="design"><span class="n">◆</span>Design system</button>';
   h += '<div class="stage"><h3>Evidence</h3></div>';
   h += '<button class="item special" data-id="coverage"><span class="n">✓</span>Claim → screen map</button>';
   el.innerHTML = h;
@@ -604,6 +667,68 @@ function coverageView(){
 }
 
 let MODE = 'wf';   // 'wf' = low-fidelity wireframe (default) · 'real' = built screen
+
+function designView(){
+  const sw = [
+    ['ink','#0E1F1A'],['pine','#14453D'],['secondary','#CFE6E0'],['muted','#E2EBE4'],['paper','#EEF4EF'],
+    ['card','#FFFFFF'],['marigold','#FFB52E'],['destructive','#C0472B'],['slate','#4E635C']
+  ].map(([n,c])=>`<div class="ds-sw"><i style="background:${c}"></i><b>${n}</b><span>${c}</span></div>`).join('');
+  return `<div class="ds-wrap">
+    <div>
+      <p class="ds-eyebrow">Design System — implemented in the product, not proposed</p>
+      <div class="ds-sheet">
+        <h1>TripME — Travel OS Design System</h1>
+        <p class="sub">Pine ground · marigold reserved for the one primary action · warm off-white paper · Bricolage Grotesque + Inter + IBM Plex Mono</p>
+        <div class="ds-kicker" style="margin-top:0">COLOR TOKENS — app/globals.css, verbatim</div>
+        <div class="ds-swatches">${sw}</div>
+        <div class="ds-kicker">TYPE RAMP</div>
+        <div class="ds-ramp">
+          <div class="tagl">DISPLAY / BRICOLAGE GROTESQUE EXTRABOLD 56</div>
+          <div class="disp">One mood. One budget. <em>One complete trip.</em></div>
+          <div class="tagl">H2 / BRICOLAGE GROTESQUE BOLD 34</div>
+          <div class="h2x">Two agents disagreed — settled in front of you.</div>
+          <div class="tagl">H3 / BRICOLAGE GROTESQUE SEMIBOLD 22</div>
+          <div class="h3x">What happens next</div>
+          <div class="tagl">BODY / INTER REGULAR 16</div>
+          <div class="body">Seven specialised agents turn one mood and one budget into a complete, costed, committable plan — and show their reasoning while they do it.</div>
+          <div class="tagl">LABEL / INTER MEDIUM 14</div>
+          <div class="lab">From · Your city — no assumed default</div>
+          <div class="tagl">MONO CAPTION / IBM PLEX MONO 12 — ALL MONEY AND METRICS</div>
+          <div class="mono">7 AGENTS · 34S OF AGENT TIME · ₹18,000 · RE-PLANNED BY REFEREE</div>
+        </div>
+        <div class="ds-rules">
+          <p><b>Marigold is rationed.</b> One primary action per screen. If two things are marigold, one of them is lying about its importance.</p>
+          <p><b>Money is monospaced.</b> Every rupee figure renders in IBM Plex Mono — this product asks people to trust its arithmetic, so figures align.</p>
+          <p><b>Honesty is a component.</b> Simulated bookings, estimated prices and scope limits have their own recurring chip styles — design tokens, not footnotes.</p>
+        </div>
+        <div class="ds-logo">✈</div>
+        <p class="sub" style="margin:8px 0 0">Handwritten wordmark with a paper-plane ascender · simplified circular mark at favicon size</p>
+      </div>
+    </div>
+    <div class="ds-col">
+      <p class="ds-eyebrow" style="visibility:hidden">.</p>
+      <div class="ds-spec"><div class="k">BUTTON / PRIMARY · SECONDARY · DARK</div>
+        <div class="row"><span class="btn-p">Plan a trip</span><span class="btn-s">See a sample trip</span></div>
+        <div class="row" style="margin-top:8px"><span class="btn-d">Show me the alternatives</span></div></div>
+      <div class="ds-spec"><div class="k">CHIP / STATUS &amp; HONESTY</div>
+        <div class="row"><span class="ch mood">Relax</span><span class="ch out">Sample</span><span class="ch ok">✓ Confirmed</span></div>
+        <div class="row" style="margin-top:8px"><span class="ch dark">↩ Re-planned by Referee</span></div>
+        <div class="row" style="margin-top:8px"><span class="ch demo">DEMO MODE — NO REAL RESERVATION</span></div>
+        <div class="row" style="margin-top:8px"><span class="ch gate">GATE · above ₹3,000 spend gate</span></div></div>
+      <div class="ds-spec ds-input"><div class="k">INPUT / TEXT — EMPTY BY DESIGN</div>
+        <label>FROM</label><div class="box">Your city</div></div>
+      <div class="ds-spec ds-ey"><div class="k">LABEL / EYEBROW + MONO VALUE</div>
+        <b>DATES</b><span>26 Aug 2026 – 28 Aug 2026 · 3d</span></div>
+      <div class="ds-spec"><div class="k">BUDGET BAR / SEGMENTED — COMPUTED IN CODE</div>
+        <div class="ds-bar"><i style="width:33%;background:#14453D"></i><i style="width:24%;background:#3E6B5F"></i><i style="width:19%;background:#FFB52E"></i><i style="width:14%;background:#CFE6E0"></i><i style="width:10%;background:#E2EBE4"></i></div>
+        <div class="row" style="justify-content:space-between"><span class="ds-money">₹18,000</span><span style="font-size:10px;color:var(--slate)">transport · stay · food · activities · buffer</span></div></div>
+      <div class="ds-spec"><div class="k">STEPPER / ADJUST → APPROVE → CONFIRM → REMIND</div>
+        <div class="ds-steps"><span class="d">✓</span><span class="c">2</span><span class="t">3</span><span class="t">4</span></div></div>
+      <div class="ds-spec"><div class="k">RADIUS &amp; ELEVATION</div>
+        <div class="row" style="font-size:10.5px;color:var(--slate)">cards 24–32px · pills 999 · shadow 0 18px 50px −18px ink/35%</div></div>
+    </div>
+  </div>`;
+}
 
 function screenView(s){
   const toggle = `<div class="modes">
@@ -656,6 +781,18 @@ function specialInspect(id){
     <p class="purpose">Screens that show a limitation say so — the map-pin fallback for unphotographed guesthouses,
     the in-app-only reminder delivery, the "est." price labels. A deck that only shows the product at its best
     is a brochure.</p>`;
+  if(id==='design') return `<span class="badge">Foundations</span><h2>Design system</h2>
+    <div class="kicker">Status</div>
+    <p class="purpose">Every value on this sheet is read from the shipped code — the colour tokens are
+    app/globals.css verbatim, and the components are the ones the built screens in this deck are made of.
+    Documentation of a system in production, not a proposal.</p>
+    <div class="kicker">The three rules</div>
+    <div class="note"><span class="dot">1</span><span>Marigold marks exactly one primary action per screen.</span></div>
+    <div class="note"><span class="dot">2</span><span>Money and metrics always render in IBM Plex Mono, so figures align and read as arithmetic.</span></div>
+    <div class="note"><span class="dot">3</span><span>Honesty chips — DEMO, est., GATE — are recurring components with reserved styles, not one-off labels.</span></div>
+    <div class="kicker">Fonts</div>
+    <p class="purpose">Bricolage Grotesque (display) · Inter (text) · IBM Plex Mono (figures). Loaded live when
+    viewed online; a clean system-font fallback applies offline.</p>`;
   return `<span class="badge">Evidence</span><h2>Claim → screen map</h2>
     <div class="kicker">Why this exists</div>
     <p class="purpose">So a reviewer can check any assertion in the written submission against a specific screen
@@ -672,6 +809,8 @@ function go(id){
   document.querySelectorAll('.item').forEach(b=>b.classList.toggle('on', b.dataset.id===id));
   if(id==='overview'){ canvas.innerHTML=overviewView(); inspect.innerHTML=specialInspect(id);
     document.getElementById('barTitle').textContent='User-flow overview';
+  } else if(id==='design'){ canvas.innerHTML=designView(); inspect.innerHTML=specialInspect(id);
+    document.getElementById('barTitle').textContent='Design system';
   } else if(id==='coverage'){ canvas.innerHTML=coverageView(); inspect.innerHTML=specialInspect(id);
     document.getElementById('barTitle').textContent='Claim → screen evidence map';
   } else { const s=byId[id]; canvas.innerHTML=screenView(s); inspect.innerHTML=inspectView(s);
