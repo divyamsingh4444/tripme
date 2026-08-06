@@ -15,6 +15,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from wf_lofi import WF
+
 SRC = Path('docs/wireframes/screens')
 OUT = Path('public/wireframes.html')
 
@@ -299,9 +301,10 @@ def build():
         max_w = 420 if device == 'mobile' else DESKTOP_W
         u, w, h = uri(fname, max_w)
         total += len(u)
+        assert sid in WF, f'no lo-fi wireframe for {sid}'
         shots.append(dict(id=sid, stage=stage, title=title, route=route, badge=badge,
                           purpose=purpose, notes=notes, img=u, w=w, h=h,
-                          device=device, scroll=scroll))
+                          device=device, scroll=scroll, wf=WF[sid]))
         print(f'  {fname:32s} {w}x{h}  {len(u)//1024} KB')
     print(f'embedded total ~ {total // 1024} KB')
 
@@ -418,6 +421,95 @@ def build():
              padding:3px 10px;border-radius:999px;margin:2px 4px 2px 0;text-decoration:none;cursor:pointer}
   .cov .chip:hover{background:var(--marigold);color:var(--ink)}
 
+
+  /* ---------- low-fidelity wireframe vocabulary ---------- */
+  .modes{display:flex;gap:0;margin:0 auto 14px;background:#fff;border:1px solid var(--line);
+         border-radius:999px;padding:3px;width:max-content}
+  .modes button{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;color:var(--slate);
+                padding:7px 16px;border-radius:999px;cursor:pointer}
+  .modes button.on{background:var(--pine);color:#fff}
+  .modes button:not(.on):hover{color:var(--pine)}
+  .wf{background:#FBFBF9;color:#8A938F;font-size:10px;min-height:100%}
+  .wf.bg{background:#F4F5F3}
+  .wf.dim{background:#DDE1DE}
+  .wf-stack{display:flex;flex-direction:column;gap:6px;margin:4px 0}
+  .wf-ln{background:#CBD1CD;border-radius:4px;flex:none}
+  .wf-ln.d{background:#96A09B}
+  .wf-x{border:1.5px solid #B4BCB7;border-radius:6px;background:
+        linear-gradient(to top right, transparent calc(50% - .75px), #C4CBC6 calc(50% - .75px),
+          #C4CBC6 calc(50% + .75px), transparent calc(50% + .75px)),
+        linear-gradient(to bottom right, transparent calc(50% - .75px), #C4CBC6 calc(50% - .75px),
+          #C4CBC6 calc(50% + .75px), transparent calc(50% + .75px)), #F2F4F2;
+        display:grid;place-items:center;flex:none;min-width:24px}
+  .wf-x span{background:#F2F4F2;padding:1px 6px;font-size:8px;font-weight:800;letter-spacing:1px;color:#96A09B}
+  .wf-btn{background:#8F9995;color:#fff;border-radius:999px;padding:7px 14px;font-size:8.5px;font-weight:800;
+          letter-spacing:.8px;display:inline-block;text-align:center;flex:none}
+  .wf-btn.o{background:#fff;color:#828C87;border:1.5px solid #B4BCB7}
+  .wf-pill{border:1.5px solid #B4BCB7;border-radius:999px;padding:2px 9px;font-size:7.5px;font-weight:800;
+           letter-spacing:.6px;color:#828C87;display:inline-block;background:#fff;flex:none}
+  .wf-pill.on{background:#8F9995;border-color:#8F9995;color:#fff}
+  .wf-tag{font-size:7.5px;font-weight:800;letter-spacing:1.4px;color:#A6AFAA;margin:12px 0 6px;text-transform:uppercase}
+  .wf-card .wf-tag:first-child{margin-top:0}
+  .wf-card{background:#fff;border:1.5px solid #C4CBC6;border-radius:10px;padding:12px;margin:10px 0}
+  .wf-card.ghost{border-color:#D8DDDA;margin:0}
+  .wf-card.sel{background:#8F9995;border-color:#8F9995}
+  .wf-card.sel .wf-ln{background:#C9CFCC}
+  .wf-card.accent{border-color:#96A09B;border-width:2px}
+  .wf-r{display:flex;align-items:flex-start}
+  .wf-g{display:grid;margin:8px 0}
+  .wf-g .wf-card{margin:0}
+  .wf-center{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center}
+  .wf-center .wf-ln{margin:0 auto}
+  .wf-nav{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1.5px solid #C4CBC6;
+          background:#fff;margin:-18px -18px 14px}
+  .wf[style*="padding:0"] .wf-nav{margin:0 0 10px}
+  .wf-footer{display:flex;gap:26px;align-items:flex-start;border-top:1.5px solid #C4CBC6;background:#fff;
+             margin:14px -18px -18px;padding:16px 18px}
+  .wf-hr{border:0;border-top:1.5px dashed #D8DDDA;margin:10px 0}
+  .wf-kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;padding:5px 0;
+         border-bottom:1px solid #EDEFEC}
+  .wf-kv .wf-ln:last-child{justify-self:end}
+  .wf-kv.wf-th{border-bottom:1.5px solid #C4CBC6}
+  .wf-bar{height:9px;border-radius:999px;background:#E4E7E4;overflow:hidden;margin:7px 0;display:flex}
+  .wf-bar i{display:block;height:100%;background:#96A09B}
+  .wf-bar.seg i:nth-child(2){background:#AAB3AE}.wf-bar.seg i:nth-child(3){background:#BFC7C2}
+  .wf-bar.seg i:nth-child(4){background:#D2D8D4}
+  .wf-slider{height:5px;border-radius:999px;background:#D8DDDA;position:relative;margin:14px 4px}
+  .wf-slider i{position:absolute;left:26%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;
+               border-radius:50%;background:#8F9995;display:block}
+  .wf-input{border:1.5px solid #C4CBC6;border-radius:8px;min-height:30px;display:flex;align-items:center;
+            padding:0 10px;background:#fff;margin:6px 0;position:relative}
+  .wf-input.empty .wf-ln{display:none}
+  .wf-ph{font-size:8px;font-weight:800;letter-spacing:.8px;color:#B4BCB7}
+  .wf-node{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .wf-node span{width:11px;height:11px;border-radius:50%;border:2px solid #96A09B;background:#fff;display:block}
+  .wf-agent{display:flex;gap:10px;align-items:center;background:#fff;border:1.5px solid #C4CBC6;
+            border-radius:10px;padding:10px 12px;margin:8px 0}
+  .wf-agent.warn{border-color:#96A09B;border-width:2px;background:#F2F4F2}
+  .wf-mark{font-size:12px;color:#828C87;font-weight:800;flex:none}
+  .wf-arrow{color:#A6AFAA;font-size:12px;flex:none}
+  .wf-caption{font-size:7.5px;font-weight:800;letter-spacing:.8px;color:#A6AFAA;margin:7px 0;text-transform:uppercase}
+  .wf-hero{position:relative;background-blend-mode:normal;padding:0;display:block}
+  .wf-hero-in{position:absolute;inset:0;padding:16px 18px;display:flex;flex-direction:column;gap:8px;
+              justify-content:flex-end;background:linear-gradient(rgba(251,251,249,.35),rgba(251,251,249,.88))}
+  .wf-hero-in .wf-g,.wf-hero-in .wf-card{margin:0}
+  .wf-hero-in{container-type:normal}
+  .wf-hero-in > .wf-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .wf-day{border:1.5px solid #E4E7E4;border-radius:8px;padding:8px 10px;margin:8px 0}
+  .wf-vr{width:1.5px;background:#E4E7E4;align-self:stretch}
+  .wf-step{border:1.5px solid #C4CBC6;border-radius:10px;padding:9px;position:relative;border-style:dashed}
+  .wf-step.done,.wf-step.on{border-style:solid}
+  .wf-step.on{border-color:#8F9995;border-width:2px}
+  .wf-dot{width:16px;height:16px;border-radius:50%;background:#C4CBC6;color:#fff;font-size:8.5px;font-weight:800;
+          display:grid;place-items:center;margin-bottom:6px}
+  .wf-step.done .wf-dot{background:#8F9995}
+  .wf-score{font-size:8px;color:#96A09B;letter-spacing:1px;justify-self:end}
+  .wf-actionbar{position:sticky;bottom:0;display:flex;gap:8px;align-items:center;background:#fff;
+                border-top:1.5px solid #C4CBC6;margin:14px -18px -18px;padding:10px 18px}
+  .wf[style*="padding:0"] .wf-actionbar{margin:0}
+  .wf-assist{display:flex;justify-content:flex-end;padding:0 16px 16px}
+  .wf-assist .wf-card{margin:0}
+
   @media (max-width:1100px){
     .main{grid-template-columns:1fr}
     .side,.inspect{display:none}
@@ -481,9 +573,10 @@ function overviewView(){
   return `<div class="special-view">
     <div class="hero-card">
       <h1>One mood. One budget. <em>One complete trip.</em></h1>
-      <p>Thirty real screens from the live TripME deployment, arranged as the traveller meets them —
-         from a sceptical first visit to a confirmed trip with reminders on. These are captures of the
-         working product, not mockups: nothing here is drawn, staged or retouched.</p>
+      <p>Thirty screens, arranged as the traveller meets them — from a sceptical first visit to a
+         confirmed trip with reminders on. Each screen exists in <b>two fidelities</b>: the low-fidelity
+         wireframe (the rough structure — boxes, placeholders, no styling) and the real built screen,
+         captured from the live deployment. Flip between them with the toggle above any screen, or press F.</p>
       <p class="mono">Captured 6 Aug 2026 · tripme-khaki.vercel.app · desktop 1440×900 · mobile 390×844 · test-user account</p>
     </div>
     <div class="flow">${cols}</div>
@@ -510,18 +603,27 @@ function coverageView(){
   </div>`;
 }
 
+let MODE = 'wf';   // 'wf' = low-fidelity wireframe (default) · 'real' = built screen
+
 function screenView(s){
-  const img = `<img class="shot" src="${s.img}" alt="${esc(s.title)}" width="${s.w}" height="${s.h}">`;
+  const toggle = `<div class="modes">
+      <button class="${MODE==='wf'?'on':''}" data-mode="wf">Low-fi wireframe</button>
+      <button class="${MODE==='real'?'on':''}" data-mode="real">Built screen</button>
+    </div>`;
+  const content = MODE==='wf'
+    ? s.wf
+    : `<img class="shot" src="${s.img}" alt="${esc(s.title)}" width="${s.w}" height="${s.h}">`;
   if(s.device==='mobile'){
-    return `<div class="frame" style="max-width:400px">
-      <div class="phone"><div class="notch"></div><div class="screen">${img}</div></div></div>`;
+    return `<div class="frame" style="max-width:400px">${toggle}
+      <div class="phone"><div class="notch"></div><div class="screen">${content}</div></div></div>`;
   }
-  const body = s.scroll ? `<div class="scrollwrap">${img}</div>` : img;
-  const hint = s.scroll ? `<div class="hint"><span class="chip">SCROLL</span>this is the full page — scroll inside the frame</div>` : '';
-  return `<div class="frame">
+  const needScroll = s.scroll && MODE==='real';
+  const body = needScroll ? `<div class="scrollwrap">${content}</div>` : content;
+  const hint = needScroll ? `<div class="hint"><span class="chip">SCROLL</span>this is the full page — scroll inside the frame</div>` : '';
+  return `<div class="frame">${toggle}
     <div class="browser">
       <div class="chrome"><span class="dots"><span></span><span></span><span></span></span>
-        <span class="url"><b>tripme-khaki.vercel.app</b>${esc(s.route)}</span></div>
+        <span class="url"><b>tripme-khaki.vercel.app</b>${esc(s.route)}${MODE==='wf'?' · wireframe':''}</span></div>
       ${body}
     </div>${hint}</div>`;
 }
@@ -529,23 +631,27 @@ function screenView(s){
 function inspectView(s){
   const live = /Live/.test(s.badge) ? ' live' : '';
   const notes = s.notes.map((n,i)=>`<div class="note"><span class="dot">${i+1}</span><span>${esc(n)}</span></div>`).join('');
+  const fid = MODE==='wf' ? 'low-fi wireframe' : 'built screen';
   return `<span class="badge${live}">${esc(s.badge)}</span>
     <h2>${esc(s.title)}</h2>
     <div class="kicker">Purpose</div><p class="purpose">${esc(s.purpose)}</p>
     <div class="kicker">What to look at</div>${notes}
     <div class="kicker">Capture</div>
     <div class="meta">route <b>${esc(s.route)}</b><br>viewport <b>${s.device==='mobile'?'390 × 844':'1440 × 900'}</b><br>
-    source <b>live deployment</b><br>date <b>6 Aug 2026</b></div>`;
+    source <b>live deployment</b><br>date <b>6 Aug 2026</b><br>viewing <b>${fid}</b></div>`;
 }
 
 function specialInspect(id){
   if(id==='overview') return `<span class="badge">Start here</span><h2>How to read this deck</h2>
     <div class="kicker">Method</div>
-    <p class="purpose">TripME is built and deployed, so these wireframes are captures of the real product —
-    a drawing would be less accurate than the thing itself, and could quietly disagree with it.</p>
+    <p class="purpose">Every screen is shown in two fidelities. The <b>low-fi wireframe</b> is the rough
+    structure — grey boxes, crossed image placeholders, labelled regions — the skeleton a designer commits
+    to before any styling. The <b>built screen</b> is the same skeleton captured from the live product.
+    Flipping between them shows that what was structured is what was shipped.</p>
     <div class="kicker">Navigate</div>
     <div class="note"><span class="dot">1</span><span>Use the ← and → arrow keys (or the ‹ › buttons above) to step through every screen in flow order.</span></div>
-    <div class="note"><span class="dot">2</span><span>Or jump anywhere from the list on the left — the last item maps every claim to its evidence.</span></div>
+    <div class="note"><span class="dot">2</span><span>Press F on any screen to flip between the low-fi wireframe and the built screen.</span></div>
+    <div class="note"><span class="dot">3</span><span>Or jump anywhere from the list on the left — the last item maps every claim to its evidence.</span></div>
     <div class="kicker">Honesty notes</div>
     <p class="purpose">Screens that show a limitation say so — the map-pin fallback for unphotographed guesthouses,
     the in-app-only reminder delivery, the "est." price labels. A deck that only shows the product at its best
@@ -574,12 +680,15 @@ function go(id){
   document.getElementById('barCount').textContent=(idx+1)+' / '+ORDER.length;
   canvas.scrollTop=0; inspect.scrollTop=0;
   canvas.querySelectorAll('a[href^="#"]').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.getAttribute('href').slice(1));});
+  canvas.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{MODE=b.dataset.mode;go(id);});
 }
 document.getElementById('prev').onclick=()=>go(ORDER[Math.max(0,ORDER.indexOf(location.hash.slice(1)||'overview')-1)]);
 document.getElementById('next').onclick=()=>go(ORDER[Math.min(ORDER.length-1,ORDER.indexOf(location.hash.slice(1)||'overview')+1)]);
 document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft')document.getElementById('prev').click();
   if(e.key==='ArrowRight')document.getElementById('next').click();
+  if(e.key==='f'||e.key==='F'){const id=location.hash.slice(1)||'overview';
+    if(byId[id]){MODE=(MODE==='wf'?'real':'wf');go(id);}}
 });
 window.addEventListener('hashchange',()=>go(location.hash.slice(1)));
 sidebar(); go(location.hash.slice(1)||'overview');
