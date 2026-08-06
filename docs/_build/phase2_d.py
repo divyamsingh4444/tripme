@@ -473,12 +473,13 @@ def build(doc):
            ['Sign-in', 'Google, plus the test-user path, with the privacy position stated'],
            ['My trips', 'Saved trips with status, and no duplicates']],
           widths=[1.6, 5.0])
-    callout(doc, 'Delivered:',
-            '**TripME_Wireframes_and_Screens.docx**, submitted alongside this document. It covers 22 screens across '
-            '42 images, every one captured from the live deployment rather than drawn — including one plan generated '
-            'live during the capture session, in which the Referee rejected the Itinerary Agent\'s work and sent it '
-            'back to the Budget Agent. It also carries the implemented design system and an index mapping each claim '
-            'in this submission to the screen that evidences it.')
+    callout(doc, 'Delivered, in two forms:',
+            '**Interactive** — https://tripme-khaki.vercel.app/wireframes.html — a Figma-style flow viewer with 30 '
+            'real screens of the live product, arranged as the traveller meets them, each with purpose and '
+            'annotation notes, plus a claim-to-screen evidence map. It is one self-contained file, so it also works '
+            'offline when submitted directly. **Print** — TripME_Wireframes_and_Screens.docx, the same screens '
+            'annotated for print. Both include one sequence captured genuinely live, in which the Referee rejected '
+            'the Itinerary Agent\'s costs and sent the brief back to the Budget Agent for re-planning.')
 
     # ------------------------------------------------------------------ 30
     page_break(doc)
