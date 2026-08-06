@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TripME — user flow diagram</title>
+<style>
+  :root{
+    --pine:#14453D; --ink:#0E1F1A; --slate:#5B6B66; --marigold:#FFB52E;
+    --line:#DDE4E0; --flag:#B4361E; --grey:#8AA39B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;background:#fff;color:var(--ink)}
+  #diagram{position:relative;width:1680px;height:930px;background:#fff;overflow:hidden}
+  svg{position:absolute;inset:0;pointer-events:none}
+
+  .title{position:absolute;left:34px;top:24px}
+  .title h1{font-size:26px;font-weight:800;color:var(--pine)}
+  .title h1 em{color:#C58200;font-style:normal}
+  .title p{font-size:12.5px;color:var(--slate);margin-top:3px}
+
+  .legend{position:absolute;right:34px;top:28px;display:flex;gap:18px;align-items:center;
+          font-size:11px;color:var(--slate)}
+  .legend span{display:flex;gap:6px;align-items:center}
+  .lg-step{width:22px;height:14px;border:2px solid var(--pine);border-radius:4px}
+  .lg-gate{background:var(--marigold);color:var(--ink);font-size:9px;font-weight:800;
+           padding:1px 7px;border-radius:999px}
+  .lg-opt{width:22px;height:14px;border:2px dashed var(--slate);border-radius:4px}
+  .lg-dash{width:26px;border-top:2.5px dashed var(--grey)}
+  .lg-back{color:var(--flag);font-weight:800;font-size:13px}
+
+  .node{position:absolute;width:250px;height:104px;background:#fff;border:2px solid var(--pine);
+        border-radius:12px;padding:10px 12px 8px;display:flex;flex-direction:column;gap:3px;
+        box-shadow:0 3px 10px -6px rgba(14,31,26,.3)}
+  .node.opt{border-style:dashed;border-color:#4E6B62}
+  .node .head{display:flex;gap:8px;align-items:center}
+  .node .num{width:21px;height:21px;border-radius:50%;background:var(--pine);color:#fff;
+             font-size:11px;font-weight:800;display:grid;place-items:center;flex:none}
+  .node h3{font-size:13.5px;font-weight:800;line-height:1.1}
+  .node p{font-size:10.5px;color:var(--slate);line-height:1.35}
+  .gate{align-self:flex-start;background:var(--marigold);color:var(--ink);font-size:8.5px;
+        font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:999px;margin-top:auto}
+
+  .lbl{position:absolute;font-size:10.5px;font-weight:700;color:var(--slate);background:#fff;
+       padding:1px 8px;text-align:center}
+  .lbl.flag{color:var(--flag)}
+  .lbl.bound{color:#8A6A00;max-width:220px;line-height:1.3}
+
+  .card{position:absolute;width:250px;height:104px;background:#F4F7F5;border:1.5px solid var(--line);
+        border-radius:12px;padding:11px 13px}
+  .card h4{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--pine);margin-bottom:4px}
+  .card p{font-size:10.5px;color:#33413C;line-height:1.4}
+
+  .foot{position:absolute;left:34px;bottom:16px;font-size:11px;color:var(--slate)}
+</style>
+</head>
+<body>
+<div id="diagram">
+  <div class="title">
+    <h1>TripME — <em>user flow</em></h1>
+    <p>From first visit to a reminded trip &nbsp;·&nbsp; 13 steps, 3 gates &nbsp;·&nbsp; Release 0.1.1 · every step exists in the deployed product</p>
+  </div>
+  <div class="legend">
+    <span><i class="lg-step"></i>step</span>
+    <span><i class="lg-gate">GATE</i>locked until met</span>
+    <span><i class="lg-opt"></i>optional</span>
+    <span><i class="lg-dash"></i>shortcut / return</span>
+    <span><i class="lg-back">↩</i>backward edge</span>
+  </div>
+
+  <svg width="1680" height="930" viewBox="0 0 1680 930">
+    <defs>
+      <marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#14453D"/></marker>
+      <marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#8AA39B"/></marker>
+      <marker id="mf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#B4361E"/></marker>
+    </defs>
+
+    <!-- row 1: 1→2→3→4→5 -->
+    <line x1="330" y1="210" x2="373" y2="210" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="625" y1="210" x2="668" y2="210" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="920" y1="210" x2="963" y2="210" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="1215" y1="210" x2="1258" y2="210" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <!-- 5→6 down -->
+    <line x1="1385" y1="262" x2="1385" y2="426" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <!-- row 2: 6→7→8→9→10 (right to left) -->
+    <line x1="1260" y1="480" x2="1217" y2="480" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="965" y1="480" x2="922" y2="480" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="670" y1="480" x2="627" y2="480" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="375" y1="480" x2="332" y2="480" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <!-- 10→11 down -->
+    <line x1="205" y1="532" x2="205" y2="696" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <!-- row 3: 11→12→13 -->
+    <line x1="330" y1="750" x2="373" y2="750" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+    <line x1="625" y1="750" x2="668" y2="750" stroke="#14453D" stroke-width="2.5" marker-end="url(#mp)"/>
+
+    <!-- shortcut: sample skips the form (1 → 5) -->
+    <path d="M 205 158 C 205 108, 260 96, 400 96 L 1190 96 C 1330 96, 1385 108, 1385 156"
+          fill="none" stroke="#8AA39B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+
+    <!-- backward edge: referee loop under node 4 -->
+    <path d="M 1150 262 C 1150 306, 1030 306, 1030 264"
+          fill="none" stroke="#B4361E" stroke-width="2.5" marker-end="url(#mf)"/>
+
+    <!-- sign-in boundary on row 2 -->
+    <line x1="648" y1="398" x2="648" y2="562" stroke="#C58200" stroke-width="2.5" stroke-dasharray="6 6"/>
+
+    <!-- return loop: 13 → 5 (reopen a saved trip) -->
+    <path d="M 795 802 L 795 842 L 1602 842 L 1602 210 L 1518 210"
+          fill="none" stroke="#8AA39B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+  </svg>
+
+  <!-- row 1 -->
+  <div class="node" style="left:80px;top:158px">
+    <div class="head"><span class="num">1</span><h3>Land — or open a sample</h3></div>
+    <p>Landing page. A finished plan is shown before anything is asked.</p>
+  </div>
+  <div class="node" style="left:375px;top:158px">
+    <div class="head"><span class="num">2</span><h3>Choose the travel path</h3></div>
+    <p>Planner entry · solo, couple, group, family, pilgrimage, corporate — six different question sets.</p>
+  </div>
+  <div class="node" style="left:670px;top:158px">
+    <div class="head"><span class="num">3</span><h3>Give the brief</h3></div>
+    <p>Mood · budget · days · origin · date. No assumed defaults; validated client-side.</p>
+  </div>
+  <div class="node" style="left:965px;top:158px">
+    <div class="head"><span class="num">4</span><h3>The pipeline runs</h3></div>
+    <p>Agent stream · seven agents report live, one by one, with per-agent failure states.</p>
+  </div>
+  <div class="node" style="left:1260px;top:158px">
+    <div class="head"><span class="num">5</span><h3>Read the plan</h3></div>
+    <p>Trip page · destination evidence, budget split, day-by-day, arbitration.</p>
+  </div>
+
+  <!-- row 2 (right to left) -->
+  <div class="node" style="left:1260px;top:428px">
+    <div class="head"><span class="num">6</span><h3>See what happens next</h3></div>
+    <p>The four-step stepper states the whole sequence from the moment a plan exists.</p>
+  </div>
+  <div class="node opt" style="left:965px;top:428px">
+    <div class="head"><span class="num">7</span><h3>Adjust — optional</h3></div>
+    <p>Swap destination, transport, stay, any day. Every change re-prices the trip in code.</p>
+  </div>
+  <div class="node" style="left:670px;top:428px">
+    <div class="head"><span class="num">8</span><h3>Approve each booking</h3></div>
+    <p>Booking cards, all simulated and labelled.</p>
+    <span class="gate">GATE · A PRICE CHANGE REVOKES ITS APPROVAL</span>
+  </div>
+  <div class="node" style="left:375px;top:428px">
+    <div class="head"><span class="num">9</span><h3>Sign in</h3></div>
+    <p>Google, or the password-less test user.</p>
+    <span class="gate">GATE · ONLY TO CONFIRM OR SAVE</span>
+  </div>
+  <div class="node" style="left:80px;top:428px">
+    <div class="head"><span class="num">10</span><h3>Confirm the trip</h3></div>
+    <p>Locks the plan; undo any time.</p>
+    <span class="gate">GATE · NEEDS 8 COMPLETE + 9 SIGNED IN</span>
+  </div>
+
+  <!-- row 3 -->
+  <div class="node" style="left:80px;top:698px">
+    <div class="head"><span class="num">11</span><h3>Opt in to reminders</h3></div>
+    <p>Off by default, per trip, off again in one click. Schedule rebuilt from the accepted choices.</p>
+  </div>
+  <div class="node" style="left:375px;top:698px">
+    <div class="head"><span class="num">12</span><h3>Get reminded</h3></div>
+    <p>The bell — departure, check-in, each day. Optional email snapshot to the signed-in address.</p>
+  </div>
+  <div class="node" style="left:670px;top:698px">
+    <div class="head"><span class="num">13</span><h3>Return</h3></div>
+    <p>My Trips — saved with status, no duplicates. Preferences shorten the next brief.</p>
+  </div>
+
+  <!-- escape hatches -->
+  <div class="card" style="left:965px;top:698px">
+    <h4>IF AN AGENT FAILS</h4>
+    <p>It fails over across three models. If a stage still fails, the page names the agent and the reason — the rest of the plan survives.</p>
+  </div>
+  <div class="card" style="left:1260px;top:698px">
+    <h4>OUT-OF-SCOPE ASK</h4>
+    <p>A non-India destination is named at the form, and Discovery opens by explaining the substitution. Never silently swapped.</p>
+  </div>
+
+  <!-- labels -->
+  <div class="lbl" style="left:560px;top:85px;width:470px">OPEN A SAMPLE — a complete plan in one click, zero quota · skips 2–4</div>
+  <div class="lbl flag" style="left:948px;top:296px;width:290px">↩ the Referee can send the brief back — Budget &amp; Itinerary re-run</div>
+  <div class="lbl bound" style="left:540px;top:568px">SIGN-IN BOUNDARY — steps 1–8 need no account; crossing here is where commitment begins</div>
+  <div class="lbl" style="left:1240px;top:848px;width:330px;text-align:right">reopen a saved trip — back to its trip page</div>
+
+  <div class="foot">The global assistant is reachable on every screen (draggable) &nbsp;·&nbsp; leaving mid-flow loses nothing — the plan stays in this browser &nbsp;·&nbsp; diagram drawn from Section 21.1, which remains the source of truth</div>
+</div>
+</body>
+</html>

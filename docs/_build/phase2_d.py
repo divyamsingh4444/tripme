@@ -138,8 +138,14 @@ def build(doc):
     ])
 
     h2(doc, '21.3 Flow diagram')
-    placeholder(doc, 'User-flow diagram rendered from the table above (Figma or Whimsical, exported as PNG).',
-                'The table is the source of truth; the diagram is its visual form.')
+    from docx.shared import Inches as _Inches
+    doc.add_picture('docs/diagrams/user-flow.png', width=_Inches(6.6))
+    para(doc,
+         'The thirteen steps of 21.1 as a flow. Solid arrows are the main path; the dashed arc at the top is the '
+         'zero-quota sample shortcut (skipping the brief and the pipeline entirely); the red loop under step 4 is '
+         'the Referee\'s backward edge; the amber dashed line is the sign-in boundary — everything before it works '
+         'without an account; the dashed return path at the right is a saved trip being reopened. The table remains '
+         'the source of truth; this is its visual form.', italic=True, size=9)
 
     # ------------------------------------------------------------------ 22
     page_break(doc)
