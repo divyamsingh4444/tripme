@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TripME — phases &amp; milestones</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Inter:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine:#14453D; --ink:#0E1F1A; --slate:#5B6B66; --marigold:#FFB52E;
+    --line:#DDE4E0; --paper:#FFFFFF; --sec:#CFE6E0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,'Segoe UI',system-ui,sans-serif;background:#fff;color:var(--ink)}
+  #diagram{position:relative;width:1200px;height:1560px;background:#fff;padding:0}
+  svg{position:absolute;inset:0;pointer-events:none}
+
+  .title{position:absolute;left:34px;top:26px}
+  .title h1{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:25px;font-weight:800;color:var(--pine)}
+  .title h1 em{color:#C58200;font-style:normal}
+  .title p{font-size:11.5px;color:var(--slate);margin-top:3px}
+  .legend{position:absolute;right:34px;top:34px;display:flex;gap:10px;align-items:center}
+
+  .chip{font-size:9px;font-weight:800;letter-spacing:.5px;padding:3px 10px;border-radius:999px}
+  .chip.done{background:var(--pine);color:#fff}
+  .chip.ongoing{background:var(--sec);color:var(--ink)}
+  .chip.added{background:var(--marigold);color:var(--ink)}
+  .chip.progress{background:#fff;color:#7A5A00;border:1.5px solid var(--marigold)}
+
+  .node{position:absolute;left:170px;width:240px;height:54px;background:var(--pine);color:#fff;
+        border-radius:12px;display:flex;flex-direction:column;justify-content:center;padding:0 16px;
+        box-shadow:0 4px 12px -6px rgba(14,31,26,.4)}
+  .node h3{font-family:'Bricolage Grotesque','Segoe UI',sans-serif;font-size:14.5px;font-weight:700;line-height:1.1}
+  .node p{font-size:9px;color:#BFD6CE;letter-spacing:.6px;font-weight:600;margin-top:1px}
+  .node.exec{background:#0E332D}
+  .node.soft{background:#fff;border:2px solid var(--pine);color:var(--ink)}
+  .node.soft p{color:var(--slate)}
+  .node.gold{background:#fff;border:2px solid var(--marigold);color:var(--ink)}
+  .node.gold p{color:#8A6A00}
+
+  .card{position:absolute;left:520px;width:646px;min-height:92px;background:#F7FAF8;border:1.5px solid var(--line);
+        border-radius:12px;padding:12px 16px}
+  .card h4{font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .card p{font-size:11px;color:#33413C;line-height:1.5;margin-top:5px}
+  .card p b{color:var(--ink)}
+
+  .checkpoint{position:absolute;left:130px;white-space:nowrap;font-size:8.5px;background:#FFF6E3;border:1.5px solid #F2DCA6;
+              border-radius:999px;padding:4px 13px;font-weight:800;letter-spacing:.5px;color:#8A6A00}
+
+  .foot{position:absolute;left:34px;bottom:18px;right:34px;font-size:10.5px;color:var(--slate);line-height:1.5;
+        border-top:1.5px solid var(--line);padding-top:10px}
+  .foot b{color:var(--pine)}
+</style>
+</head>
+<body>
+<div id="diagram">
+  <div class="title">
+    <h1>TripME — <em>phases &amp; milestones</em></h1>
+    <p>Project plan · sequenced by the pipeline's real data dependencies, not calendar convenience · Release 0.1.1</p>
+  </div>
+  <div class="legend">
+    <span class="chip done">COMPLETE</span><span class="chip ongoing">ONGOING</span>
+    <span class="chip added">ADDED MID-BUILD</span><span class="chip progress">IN PROGRESS</span>
+  </div>
+
+  <svg width="1200" height="1560" viewBox="0 0 1200 1560">
+    <defs>
+      <marker id="m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#14453D"/></marker>
+    </defs>
+    <!-- spine arrows -->
+    <line x1="290" y1="170" x2="290" y2="230" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="290" x2="290" y2="350" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="410" x2="290" y2="470" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="530" x2="290" y2="590" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="650" x2="290" y2="710" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="770" x2="290" y2="830" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="890" x2="290" y2="950" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="1010" x2="290" y2="1070" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="1130" x2="290" y2="1190" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <line x1="290" y1="1250" x2="290" y2="1310" stroke="#14453D" stroke-width="2.5" marker-end="url(#m)"/>
+    <!-- node → card connectors -->
+    <line x1="410" y1="143" x2="520" y2="143" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="263" x2="520" y2="263" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="383" x2="520" y2="383" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="503" x2="520" y2="503" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="623" x2="520" y2="623" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="743" x2="520" y2="743" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="863" x2="520" y2="863" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="983" x2="520" y2="983" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="1103" x2="520" y2="1103" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="1223" x2="520" y2="1223" stroke="#C9D4CF" stroke-width="2"/>
+    <line x1="410" y1="1343" x2="520" y2="1343" stroke="#C9D4CF" stroke-width="2"/>
+  </svg>
+
+  <!-- rows: node y = 116 + i*120 · node centre = y+27 -->
+  <div class="node" style="top:116px"><h3>Initiation</h3><p>PHASE</p></div>
+  <div class="card" style="top:97px"><h4>Foundation of scope <span class="chip done">COMPLETE</span></h4>
+    <p><b>Problem statement finalised</b> · six personas validated against the Phase 1 submission.</p></div>
+
+  <div class="node" style="top:236px"><h3>Planning</h3><p>PHASE</p></div>
+  <div class="card" style="top:217px"><h4>Backlog &amp; cadence <span class="chip done">COMPLETE</span></h4>
+    <p><b>61-story backlog</b> groomed in Jira · six sprints scheduled · Definition of Done agreed · QA stories
+    distributed one per sprint rather than batched at the end.</p></div>
+
+  <div class="node exec" style="top:356px"><h3>Sprint 1 — Foundation</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:337px"><h4>The platform exists <span class="chip done">COMPLETE</span></h4>
+    <p>Landing and planner · entry-path architecture · design system · deployment pipeline (push-to-deploy on Vercel).</p></div>
+
+  <div class="node exec" style="top:476px"><h3>Sprint 2 — Mood &amp; Intent</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:457px"><h4>The first agent <span class="chip done">COMPLETE</span></h4>
+    <p>Quiz flows per persona · four Intent variants · preference memory feeding the next plan.</p></div>
+
+  <div class="node exec" style="top:596px"><h3>Sprint 3 — Discovery</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:577px"><h4>Destination with evidence <span class="chip done">COMPLETE</span></h4>
+    <p>Destination matching · mood-fidelity rules outrank popularity · every non-negotiable evidenced ·
+    <b>India scope enforced in the pipeline</b>.</p></div>
+
+  <div class="node exec" style="top:716px"><h3>Sprint 4 — Budget</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:697px"><h4>Deterministic money <span class="chip done">COMPLETE</span></h4>
+    <p>Allocation logic · <b>arithmetic computed in code, never by a model</b> · corporate policy caps.</p></div>
+
+  <div class="checkpoint" style="top:806px">◈ CHECKPOINT 1 — MOOD → DISCOVERY → BUDGET RUNS END TO END</div>
+
+  <div class="node exec" style="top:836px"><h3>Sprint 5 — Itinerary &amp; Booking</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:817px"><h4>A plan you could act on <span class="chip done">COMPLETE</span></h4>
+    <p>Day-by-day plan at honest local prices · simulated bookings behind approval gates · real deep links to providers.</p></div>
+
+  <div class="node exec" style="top:956px"><h3>Sprint 6 — Referee &amp; Notification</h3><p>EXECUTION</p></div>
+  <div class="card" style="top:937px"><h4>Arbitration &amp; reminders <span class="chip done">COMPLETE</span></h4>
+    <p>Three conflict classes · <b>the backward edge</b> (Referee can send the brief back) · one Advocate per
+    traveller with a fairness floor · reminder schedule.</p></div>
+
+  <div class="checkpoint" style="top:1046px">◈ CHECKPOINT 2 — FULL PIPELINE DEMONSTRABLE, NOT A SINGLE PROMPT</div>
+
+  <div class="node gold" style="top:1076px"><h3>Sprint 7 — Traveller control</h3><p>ADDED ON EVIDENCE</p></div>
+  <div class="card" style="top:1057px"><h4>The plan becomes yours <span class="chip added">ADDED MID-BUILD</span></h4>
+    <p>Options &amp; override with re-pricing · real places from open map data · approve → confirm → remind sequencing ·
+    sign-in at commitment · seven languages. <b>Added because a plan the traveller cannot change is a demo, not a product.</b></p></div>
+
+  <div class="node soft" style="top:1196px"><h3>Monitoring &amp; Controlling</h3><p>RAN THROUGHOUT — SHOWN ONCE</p></div>
+  <div class="card" style="top:1177px"><h4>The loop that steers the rest <span class="chip ongoing">ONGOING</span></h4>
+    <p>Daily stand-ups · sprint reviews double as <b>live stakeholder demos</b> · retrospectives every sprint,
+    no exceptions · decision log maintained continuously so no call is re-litigated.</p></div>
+
+  <div class="node gold" style="top:1316px"><h3>Closing — Release 0.1.1</h3><p>PHASE</p></div>
+  <div class="card" style="top:1297px"><h4>Handover to evaluation <span class="chip progress">IN PROGRESS</span></h4>
+    <p>MVP demo recorded · PRD finalised · wireframes delivered · transition to UAT with five to eight real users.</p></div>
+
+  <div class="foot"><b>Why this order:</b> the sequencing follows the pipeline's data dependencies — Discovery cannot be
+  tested without Mood &amp; Intent feeding it, and Booking cannot be tested without an Itinerary to book from.
+  &nbsp;·&nbsp; <b>≈20% of every sprint</b> is held as capacity buffer rather than committing full estimated velocity
+  &nbsp;·&nbsp; every phase has a <b>named owner group</b>, not "the team" &nbsp;·&nbsp; drawn from Section 11, which remains the source of truth.</div>
+</div>
+</body>
+</html>

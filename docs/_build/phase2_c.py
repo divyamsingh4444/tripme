@@ -100,6 +100,15 @@ def build(doc):
                'In progress'],
           ], widths=[1.75, 3.75, 1.1])
 
+    from docx.shared import Inches as _Inches
+    doc.add_picture('docs/diagrams/project-plan.png', width=_Inches(5.4))
+    doc.paragraphs[-1].alignment = 1
+    para(doc,
+         'The plan as a flow. Dark nodes are the executed sprints; Sprint 7 is marked in marigold because it was '
+         'added on evidence rather than planned; the two checkpoints mark the earliest moments the core hypothesis '
+         'and the full pipeline could be validated; Monitoring & Controlling ran throughout and is shown once. '
+         'The table above remains the source of truth.', italic=True, size=9)
+
     h2(doc, 'Why this sequencing')
     bullets(doc, [
         '**Sprint 4 checkpoint** — Mood → Discovery → Budget functional end to end. The earliest point the core '
