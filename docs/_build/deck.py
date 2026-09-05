@@ -209,13 +209,13 @@ text(s, 7.3, 5.1, 5.25, 1.2,
      size=13.5, bold=True, leading=1.12)
 footer(s, 2)
 
-# ================================================================ SLIDE 3 — solution
+# ================================================================ SLIDE 3 — proposed solution (with agents)
 s = slide()
-kicker(s, 'The solution')
-title(s, 'Seven agents. Typed handoffs. One backward edge.')
+kicker(s, 'Proposed solution')
+title(s, 'Seven agents. Typed handoffs. One backward edge.', size=30)
 
 agents = ['Mood &\nIntent', 'Discovery', 'Budget', 'Itinerary', 'Booking', 'Referee', 'Notification']
-x0, y0, w, h, gap = 0.55, 1.95, 1.62, 0.95, 0.155
+x0, y0, w, h, gap = 0.55, 1.5, 1.62, 0.62, 0.155
 for i, a in enumerate(agents):
     x = x0 + i * (w + gap)
     fill = PINE_DEEP if a != 'Referee' else MARIGOLD
@@ -223,73 +223,88 @@ for i, a in enumerate(agents):
     b = box(s, x, y0, w, h, fill=fill, radius=True)
     tf = b.text_frame
     tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.alignment = PP_ALIGN.CENTER
-    r = p.add_run()
+    pgh = tf.paragraphs[0]
+    pgh.alignment = PP_ALIGN.CENTER
+    r = pgh.add_run()
     r.text = a.replace('\n', ' ')
     r.font.name = FONT
-    r.font.size = Pt(12.5)
+    r.font.size = Pt(11.5)
     r.font.bold = True
     r.font.color.rgb = fg
     if i < 6:
-        text(s, x + w - 0.04, y0 + 0.22, 0.35, 0.4, '→', size=16, bold=True, color=SLATE)
+        text(s, x + w - 0.04, y0 + 0.1, 0.35, 0.4, '\u2192', size=14, bold=True, color=SLATE)
 
-# backward edge arc note
-text(s, 0.55, 3.0, 12.2, 0.4, [
-    [('↩  the backward edge — ', {'size': 13, 'bold': True, 'color': RGBColor(0xC5, 0x82, 0x00)}),
-     ('the Referee audits Itinerary against Budget and can send the work BACK. Agents that can '
-      'reject each other’s work are what make this a system, not a sequence.', {'size': 13, 'color': INK})],
+text(s, 0.55, 2.25, 12.2, 0.35, [
+    [('\u21a9  the backward edge \u2014 ', {'size': 12, 'bold': True, 'color': RGBColor(0xC5, 0x82, 0x00)}),
+     ('the Referee can reject another agent\u2019s work and send it BACK to be re-done. '
+      'Agents that negotiate \u2014 not a sequence of prompts.', {'size': 12, 'color': INK})],
 ])
 
-cards = [
-    ('LLM for judgment, code for money',
-     'Models propose destinations and plans. Every rupee — totals, splits, re-pricing, approval '
-     'thresholds — is computed deterministically in code. A model never touches arithmetic.'),
-    ('Six travel paths, one architecture',
-     'Solo, Couple, Group, Family, Pilgrimage, Corporate. Each changes what the agents do — corporate '
-     'swaps mood for policy; groups get one Advocate agent per traveller.'),
-    ('The traveller gets the last word',
-     'Every decision is overridable. Change the stay and the whole trip re-prices instantly — and any '
-     'approval on a changed amount is revoked. Consent is to a number.'),
+agent_cards = [
+    ('Mood & Intent', 'Turns a feeling + budget into a structured brief \u2014 never invents a preference the traveller didn\u2019t express.'),
+    ('Discovery', 'Picks the destination with line-by-line evidence per non-negotiable; India-only scope enforced in the pipeline.'),
+    ('Budget', 'Allocates every rupee across transport, stay, food, activities and buffer \u2014 before anything is booked.'),
+    ('Itinerary', 'Builds the day-by-day plan from real, map-resolved places \u2014 open data, not model memory.'),
+    ('Booking', 'Prepares simulated, gated bookings with real deep links; spend above threshold needs explicit approval.'),
+    ('Referee', 'Audits agents against each other, states conflicts in rupees; one Advocate per traveller in group mode.'),
+    ('Notification', 'Builds opt-in, time-anchored reminders \u2014 only from the bookings the traveller actually accepted.'),
+    ('The design rules', 'LLM for judgment, code for money \u2014 a model never touches arithmetic. Six travel paths, one architecture. The traveller gets the last word.'),
 ]
-y = 3.6
-for hdr, bdy in cards:
-    box(s, 0.55, y, 12.25, 1.02, fill=CARD, line=LINE, radius=True)
-    text(s, 0.8, y + 0.1, 3.6, 0.8, hdr, size=14.5, bold=True, leading=1.0)
-    text(s, 4.55, y + 0.1, 8.05, 0.85, bdy, size=12, color=SLATE, leading=1.05)
-    y += 1.16
+for i, (name, desc) in enumerate(agent_cards):
+    col, row = i % 2, i // 2
+    x = 0.55 + col * 6.23
+    y = 2.72 + row * 0.99
+    accent = (name == 'The design rules')
+    box(s, x, y, 6.05, 0.88, fill=CARD, line=(MARIGOLD if accent else LINE), radius=True)
+    text(s, x + 0.22, y + 0.08, 1.72, 0.72, name, size=12, bold=True, leading=0.95,
+         color=(RGBColor(0xC5, 0x82, 0x00) if accent else PINE))
+    text(s, x + 2.0, y + 0.07, 3.92, 0.78, desc, size=10.5, color=SLATE, leading=1.0)
 footer(s, 3)
 
-# ================================================================ SLIDE 4 — proof (backward edge, live)
+# ================================================================ SLIDE 4 — implementation: how we built it
 s = slide()
-kicker(s, 'Implementation — caught live on the deployed product')
-title(s, 'The Referee rejected two agents’ work — on camera', size=30)
+kicker(s, 'Implementation \u2014 how we built it')
+title(s, 'An agile process, a lean stack, AI only where it earns its place', size=29)
 
-pic(s, '27-agent-stream-midway.png', 0.55, 1.7, w=7.35)
-box(s, 0.55, 6.0, 7.35, 0.62, fill=INK, radius=True)
-text(s, 0.75, 6.09, 7.0, 0.45, [
-    [('Live run · solo · ₹25,000 · from Pune  —  ', {'size': 11.5, 'color': PAPER}),
-     ('₹10,000 of activities vs a ₹5,000 allocation → sent backwards → both agents re-ran',
-      {'size': 11.5, 'bold': True, 'color': MARIGOLD})],
+cols = [
+    ('PROCESS', [
+        'Agile \u2192 Scrum, run in Jira: a 61-story backlog groomed into six sprints',
+        'Sequenced by data dependency \u2014 Booking cannot exist before Itinerary',
+        'QA stories in every sprint, not batched at the end; moderated UAT with real users',
+        'Sprint 7 added on evidence: a plan you cannot change is a demo, not a product',
+        'A continuously maintained decision log \u2014 27 entries; no call re-litigated',
+    ]),
+    ('TOOLS & FRAMEWORKS', [
+        'Next.js App Router + TypeScript \u2014 UI and server routes in one deployable',
+        'Tailwind CSS v4 on a fixed design system \u2014 pine, marigold, Plex Mono for money',
+        'Vercel \u2014 push-to-deploy on every commit to main',
+        'Auth.js + Google OAuth + a password-less test user; the gate sits at commitment',
+        'OpenStreetMap + Nominatim + Wikipedia \u2014 real places, licensed photos, keyless',
+        'Trips in browser storage \u2014 a privacy position, not a missing database',
+    ]),
+    ('AI & MODELS', [
+        'Three Groq-hosted models, routed per agent by job:',
+        '\u2022 gpt-oss-120b \u2014 reasoning: Discovery, Itinerary, Budget',
+        '\u2022 qwen3.8-27b \u2014 arbitration: Referee, consensus, intent',
+        '\u2022 gpt-oss-20b \u2014 structural: Booking, Advocates, translation',
+        'Typed JSON-schema handoffs \u2014 every output validated before it enters trip-state',
+        'Per-agent failover chains across all three \u2014 quota, schema errors, even model retirement',
+        'Deterministic money layer in code; translation runs after generation completes',
+    ]),
+]
+for i, (hdr, items) in enumerate(cols):
+    x = 0.55 + i * 4.17
+    box(s, x, 1.7, 3.99, 4.5, fill=CARD, line=LINE, radius=True)
+    text(s, x + 0.22, 1.85, 3.5, 0.35, hdr, size=11.5, bold=True, color=RGBColor(0xC5, 0x82, 0x00))
+    text(s, x + 0.22, 2.24, 3.58, 3.85, items, size=10.5, leading=1.1, color=INK)
+
+box(s, 0.55, 6.35, 12.25, 0.58, fill=INK, radius=True)
+text(s, 0.85, 6.44, 11.8, 0.42, [
+    [('Total infrastructure cost: \u20b90 ', {'size': 12.5, 'bold': True, 'color': MARIGOLD}),
+     ('\u2014 every dependency inside a free tier. The constraint drove the engineering: '
+      'three-model failover, identical-brief caching, zero-quota sample trips.',
+      {'size': 12, 'color': PAPER})],
 ])
-
-box(s, 8.15, 1.7, 4.65, 2.28, fill=CARD, line=LINE, radius=True)
-text(s, 8.4, 1.85, 4.2, 0.4, 'WHAT YOU ARE SEEING', size=11, bold=True, color=RGBColor(0xC5, 0x82, 0x00))
-text(s, 8.4, 2.22, 4.2, 1.7, [
-    'Referee Agent · budget audit — conflict stated in rupees',
-    'Budget Agent · re-planning — “triggered by Referee”',
-    'Itinerary Agent · revised to fit',
-    [('Result: 9 agent calls · 58s · “Re-planned by Referee” in the header',
-      {'bold': True})],
-], size=12, leading=1.12)
-
-box(s, 8.15, 4.15, 4.65, 2.5, fill=PINE, radius=True)
-text(s, 8.4, 4.3, 4.2, 0.4, 'AND FOR GROUPS', size=11, bold=True, color=MARIGOLD)
-text(s, 8.4, 4.66, 4.2, 1.9, [
-    'One Advocate agent per traveller.',
-    'The Referee publishes who conceded what, with a satisfaction score per person.',
-    [('The fairness floor, in writing: “Nobody conceded twice.”', {'bold': True, 'color': MARIGOLD})],
-], size=12.5, color=PAPER, leading=1.15)
 footer(s, 4)
 
 # ================================================================ SLIDE 5 — built & honest
@@ -324,45 +339,53 @@ for (h1, b1), (h2, b2) in zip(left, right):
     y += 1.1
 footer(s, 5)
 
-# ================================================================ SLIDE 6 — outcomes & close
+# ================================================================ SLIDE 6 — key outcomes & impact
 s = slide()
-kicker(s, 'Outcomes, validation & what’s next')
-title(s, 'Instrumented targets, honest scope, a sequenced launch', size=30)
+kicker(s, 'Key outcomes & impact')
+title(s, 'What TripME delivers \u2014 today, and measured', size=30)
 
-box(s, 0.55, 1.75, 6.15, 3.1, fill=CARD, line=LINE, radius=True)
-text(s, 0.8, 1.88, 5.6, 0.4, 'HOW WE KNOW IT WORKS — MVP TARGETS', size=11, bold=True,
+box(s, 0.55, 1.7, 6.05, 3.3, fill=CARD, line=LINE, radius=True)
+text(s, 0.8, 1.85, 5.5, 0.35, 'OUTCOMES \u2014 SHIPPED AND VERIFIED', size=11, bold=True,
      color=RGBColor(0xC5, 0x82, 0x00))
-rows = [
-    ('Plan completion', '> 70% of started briefs'),
-    ('Agent time to plan', 'median < 60s — measured on-screen (34–58s)'),
-    ('Referee comprehension', '> 50% of testers can explain it'),
-    ('Override rate', '> 30% change something — the plan is theirs'),
-    ('Confirm rate · 30-day return', '> 25% · > 20%'),
-]
-y = 2.3
-for k, v in rows:
-    text(s, 0.8, y, 2.6, 0.4, k, size=12, bold=True)
-    text(s, 3.45, y, 3.15, 0.4, v, size=11.5, color=SLATE)
-    y += 0.49
+text(s, 0.8, 2.24, 5.6, 2.65, [
+    [('Complete MVP live', {'bold': True}), (' \u2014 18 features, all 6 travel paths, 7 languages, on a real URL', {})],
+    [('4\u20136 hours \u2192 under 60 seconds', {'bold': True}),
+     (' of agent time \u2014 measured and printed on every plan (34\u201358s)', {})],
+    [('Arbitration is real', {'bold': True}),
+     (' \u2014 the Referee rejected two agents\u2019 work on a live run and re-planned it (9 calls, 58s)', {})],
+    [('Survived a provider outage', {'bold': True}),
+     (' \u2014 both original models were retired by Groq; failover absorbed it', {})],
+], size=12, leading=1.16)
 
-box(s, 7.0, 1.75, 5.8, 3.1, fill=CARD, line=LINE, radius=True)
-text(s, 7.25, 1.88, 5.3, 0.4, 'NEXT — IN ORDER', size=11, bold=True, color=RGBColor(0xC5, 0x82, 0x00))
-text(s, 7.25, 2.3, 5.3, 2.4, [
-    [('1  ', {'bold': True, 'color': PINE}), ('Launch to two personas only — solo & couple; groups and families at month 3+', {})],
-    [('2  ', {'bold': True, 'color': PINE}), ('Real booking execution behind the same approval gates', {})],
-    [('3  ', {'bold': True, 'color': PINE}), ('Voice input & large-text — owed before pilgrimage acquisition is honest', {})],
-    [('4  ', {'bold': True, 'color': PINE}), ('Monetise: commission · Pro tier · early-bird plan lock-in', {})],
-], size=12.5, leading=1.25)
+box(s, 6.78, 1.7, 6.05, 3.3, fill=PINE, radius=True)
+text(s, 7.03, 1.85, 5.5, 0.35, 'IMPACT \u2014 WHAT CHANGES FOR THE TRAVELLER', size=11, bold=True, color=MARIGOLD)
+text(s, 7.03, 2.24, 5.6, 2.65, [
+    [('One brief replaces 6\u20138 apps', {'bold': True, 'color': CARD}),
+     (' \u2014 context entered once, carried end to end', {'color': PAPER})],
+    [('Budget enforced during planning', {'bold': True, 'color': CARD}),
+     (' \u2014 not reconciled after the money is gone', {'color': PAPER})],
+    [('Groups reach a defensible plan', {'bold': True, 'color': CARD}),
+     (' \u2014 a published concession matrix; nobody concedes twice', {'color': PAPER})],
+    [('Honesty as shipped UI', {'bold': True, 'color': CARD}),
+     (' \u2014 simulated labelled, prices marked est., scope stated up front', {'color': PAPER})],
+], size=12, leading=1.16)
 
-box(s, 0.55, 5.1, 12.25, 1.35, fill=INK, radius=True)
-text(s, 0.9, 5.3, 8.5, 1.0, [
-    [('Try it now — ', {'size': 17, 'bold': True, 'color': PAPER}),
-     ('tripme-khaki.vercel.app', {'size': 17, 'bold': True, 'color': MARIGOLD})],
-    [('wireframes: /wireframes.html · source: github.com/divyamsingh4444/tripme',
-      {'size': 12, 'color': RGBColor(0x9D, 0xB3, 0xAC)})],
-], leading=1.2)
-text(s, 9.6, 5.32, 3.0, 0.9, 'One mood. One budget.\nOne complete trip.',
-     size=15, bold=True, color=PAPER, align=PP_ALIGN.RIGHT, leading=1.1)
+box(s, 0.55, 5.18, 12.25, 0.72, fill=CARD, line=LINE, radius=True)
+text(s, 0.8, 5.29, 11.8, 0.5, [
+    [('Validation gates for the beta: ', {'size': 11.5, 'bold': True, 'color': PINE}),
+     ('>70% plan completion \u00b7 <60s median agent time \u00b7 >50% can explain the Referee \u00b7 '
+      '>30% override something \u00b7 >25% confirm \u00b7 >20% return in 30 days',
+      {'size': 11.5, 'color': SLATE})],
+])
+
+box(s, 0.55, 6.08, 12.25, 0.84, fill=INK, radius=True)
+text(s, 0.9, 6.21, 8.5, 0.6, [
+    [('Try it now \u2014 ', {'size': 15, 'bold': True, 'color': PAPER}),
+     ('tripme-khaki.vercel.app', {'size': 15, 'bold': True, 'color': MARIGOLD}),
+     ('   \u00b7   wireframes: /wireframes.html', {'size': 11, 'color': RGBColor(0x9D, 0xB3, 0xAC)})],
+])
+text(s, 9.3, 6.22, 3.3, 0.55, 'One mood. One budget.\nOne complete trip.',
+     size=12.5, bold=True, color=PAPER, align=PP_ALIGN.RIGHT, leading=1.05)
 footer(s, 6)
 
 # ================================================================ APPENDIX
