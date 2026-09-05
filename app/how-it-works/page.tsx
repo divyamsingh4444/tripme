@@ -259,7 +259,7 @@ export default function HowItWorksPage() {
         <h2 className="font-display text-xl font-bold mb-3">Under the hood</h2>
         <div className="bg-card rounded-2xl border border-border p-5 text-sm leading-relaxed">
           <p>
-            <span className="font-semibold">Model:</span>{' '}three Llama and GPT-OSS models routed on Groq, each agent on the one that suits its job — every plan is
+            <span className="font-semibold">Model:</span>{' '}three GPT-OSS and Qwen models routed on Groq, each agent on the one that suits its job — every plan is
             generated live, in JSON mode, with per-agent prompts and temperatures.
           </p>
           <p className="mt-2">

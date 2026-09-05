@@ -19,9 +19,9 @@ import { NextRequest, NextResponse } from 'next/server';
 /*
  * Measured capacities on the free tier. The per-MINUTE buckets are separate per
  * model, and so are the per-DAY ones — and the daily cap is what actually bites:
- *   llama-3.3-70b-versatile  12,000 TPM   100,000 tokens/DAY  <- the real ceiling
+ *   (limits below were measured on the 2025 Llama roster; Groq rotates models,
  *   openai/gpt-oss-120b       8,000 TPM   1,000 req/day   (shares with gpt-oss-20b)
- *   llama-3.1-8b-instant      6,000 TPM  14,400 req/day
+ *   so treat the *shape* of the lesson as durable, not the numbers)
  *   qwen/qwen3.6-27b          8,000 TPM  — REJECTED: emits <think> blocks, not usable
  *
  * That is 26,000 TPM available. Cramming a ~10k run into the single 12k bucket
@@ -32,9 +32,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * being trusted. Budget stays on 70B specifically because its nested allocation
  * object fails gpt-oss's JSON validator.
  */
-const MODEL_REASONING = 'llama-3.3-70b-versatile';   // destination, itinerary, budget
-const MODEL_ARBITER = 'openai/gpt-oss-120b';         // intent variants, consensus, referee
-const MODEL_STRUCTURAL = 'llama-3.1-8b-instant';     // booking, notification, advocate
+const MODEL_REASONING = 'openai/gpt-oss-120b';       // destination, itinerary, budget
+const MODEL_ARBITER = 'qwen/qwen3.8-27b';            // intent variants, consensus, referee
+const MODEL_STRUCTURAL = 'openai/gpt-oss-20b';       // booking, notification, advocate
 
 interface AgentConfig {
   system: string;
@@ -501,7 +501,7 @@ export const maxDuration = 60;
  *
  * Primary is whichever model suits the job; the rest are escape routes. This
  * exists because the binding constraint turned out to be TOKENS PER DAY, not
- * per minute — llama-3.3-70b allows 100,000/day, which at ~10k a plan is about
+ * per minute — the daily bucket on the lead model, which at ~10k a plan is about
  * ten plans and then nothing until tomorrow. Groq does not expose the daily
  * figure in response headers; it only appears in the 429 body, so it cannot be
  * checked before a call, only reacted to.
@@ -558,7 +558,11 @@ function chainFor(agent: string, config: AgentConfig): string[] {
  */
 function shouldFailOver(err: unknown): boolean {
   const status = (err as { status?: number })?.status;
-  return status === 429 || status === 400 || status === 413 || status === 422 || status === 503;
+  /* 404 = the provider decommissioned the model out from under us — exactly as
+   * fail-over-worthy as quota. Learned live: Groq retired both Llama models in
+   * Sep 2026 and every agent whose chain led with one died with a 502 instead
+   * of walking to the survivor. A dead model must behave like a busy one. */
+  return status === 429 || status === 400 || status === 404 || status === 413 || status === 422 || status === 503;
 }
 
 function isRateLimit(err: unknown): boolean {
