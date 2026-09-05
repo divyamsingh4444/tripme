@@ -60,10 +60,11 @@ rupees with three resolutions.
 ## 2 · Models & prompting
 
 **Q: Which models, and how were they assigned?**
-Three, on Groq, assigned per agent by job:
-- `llama-3.3-70b-versatile` — reasoning-heavy: Discovery, Itinerary, Budget
-- `openai/gpt-oss-120b` — arbitration and long context: Intent variants, consensus, Referee
-- `llama-3.1-8b-instant` — structural/short-form: Booking, Notification, Advocates, translation
+Three, on Groq, assigned per agent by job *(roster refreshed Sep 2026 after Groq retired both
+Llama models — see D-027; the assignment logic is the durable part, the names rotate)*:
+- `openai/gpt-oss-120b` — reasoning-heavy: Discovery, Itinerary, Budget
+- `qwen/qwen3.8-27b` — arbitration and long context: Intent variants, consensus, Referee
+- `openai/gpt-oss-20b` — structural/short-form: Booking, Notification, Advocates, translation
 
 Each agent also has its own **temperature** (0.3 for compliance/audit work up to 0.7 for consensus
 creativity) and its own **failover chain** across all three models.
@@ -98,7 +99,7 @@ fallback. If a model refuses JSON mode entirely, the retry drops `response_forma
 fence-stripping — because we discovered some models 400 on schemas others accept.
 
 **Q: What does the failover actually catch?**
-HTTP 429 (rate/quota), 400 (schema rejection), 413, 422, and 503. Originally it only caught 429 —
+HTTP 429 (rate/quota), 400 (schema rejection), **404 (model decommissioned — added after Groq retired both Llama models in Sep 2026)**, 413, 422, and 503. Originally it only caught 429 —
 then gpt-oss returned 400 on a nested schema that Llama accepted, and the Pilgrimage path died in
 production with an unhelpful "this agent hit a snag". Two fixes: broaden the failover, and replace
 the generic error with the actual cause and next step. A failover you haven't watched fire isn't a

@@ -1,6 +1,6 @@
 # TripME — Phase 2 Master Document
 **Team DEBUGGERS · BITSoM "Product Management with Generative & Agentic AI" Capstone**
-**Started: 1 Aug 2026 · Last updated: 6 Aug 2026 (D-026) · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
+**Started: 1 Aug 2026 · Last updated: 5 Sep 2026 (D-027) · Submission deadline: 2 Aug 2026 · Presentation: 8 Aug 2026 onwards**
 
 This is the single source of truth for where the Phase 2 submission stands: everything we know, everything built, everything still owed, and exactly how we finish the last three build deliverables (wireframes, MVP demo recording, PRD).
 
@@ -169,6 +169,18 @@ Also caught: the Booking Agent was pricing **three nights for a three-day trip**
 **Owed by you before this is live:** Google Cloud OAuth credentials and (optionally) a Supabase project — full steps in [`docs/AUTH_SETUP.md`](AUTH_SETUP.md). Note the step people forget: while the consent screen is in Testing, only accounts listed under **Test users** can sign in, so add every demo account.
 
 **Still true and worth stating plainly in the PRD:** signing in does **not** sync trips across devices. Trips remain in the browser. Moving them server-side is a real design decision about where a traveller's data lives, and not one to make quietly as a side effect of adding a login button.
+
+**D-027 · The model provider retired our models out from under us (commit `d22752b`).**
+
+**Reported from production, 5 Sep:** a couple-mode run died on its very first agent — *"Advocate · Priya — Something failed on our side, not yours."* Groq had decommissioned **both** Llama models (`llama-3.3-70b-versatile`, `llama-3.1-8b-instant`); only `gpt-oss-120b` survived. The product looked half-alive rather than down because agents whose chain *led* with the survivor (Mood) worked, while every chain leading with a dead model returned 404 — and **404 was not in the failover predicate**, so those agents died instantly instead of walking to the living model. The resilience system built for quota exhaustion had a blind spot for extinction.
+
+**Two fixes.** A roster refresh keeping three *distinct* models so the three daily quota buckets survive — reasoning → `gpt-oss-120b`, arbiter → `qwen/qwen3.8-27b`, structural → `gpt-oss-20b`, both new models verified for JSON-mode output before the swap; and **404 added to the failover predicates in both routes** (agents and translate), because a model the provider has retired must behave exactly like a model that is busy.
+
+**Verified** locally and then live: full solo pipeline chained end to end, advocates + consensus, all three nested-schema intent variants, options, assistant, translate (Tamil out, figures intact), nearby, place-image, every page 200. No Bengaluru in any booking output.
+
+**Standing lesson:** hosted free-tier models are a *rotating* dependency, not a stable one. Any hard-coded model name is a time bomb with a provider-controlled fuse; the failover predicate — not the roster — is the real availability contract.
+
+*Same incident, separate recovery:* the local working copy's `.env.local` (never in git, by design) was recovered from the partial copy at `D:\Important docs\…\massai_project	ripme` — which also explained the 11 Aug folder-gutting mystery: the copy was a partial move that took the dotfiles and left `public/` and `types/` behind.
 
 **D-026 · The submission documents contradicted the product they described.**
 
